@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft;
 public final class PeriodicMessageScheduler {
 	private final ResponderConfig config;
 	private final ChatResponderEngine engine;
+	private final OutgoingChatService outgoingChatService;
 	private final LongSupplier clock;
 	private final List<State> states = new ArrayList<>();
 
@@ -21,6 +22,7 @@ public final class PeriodicMessageScheduler {
 	PeriodicMessageScheduler(ResponderConfig config, ChatResponderEngine engine, LongSupplier clock) {
 		this.config = config;
 		this.engine = engine;
+		this.outgoingChatService = engine == null ? null : engine.outgoingChatService();
 		this.clock = clock;
 		for (int index = 0; index < 3; index++) {
 			states.add(new State());
@@ -67,12 +69,14 @@ public final class PeriodicMessageScheduler {
 	}
 
 	private void send(Minecraft minecraft, String outgoing) {
-		engine.recordOutgoing(outgoing);
+		if (outgoingChatService == null) {
+			throw new IllegalStateException("OutgoingChatService is required for Minecraft sending");
+		}
 		OutgoingMessage message = classifyOutgoing(outgoing);
 		if (message.type() == OutgoingType.COMMAND) {
-			minecraft.getConnection().sendCommand(message.payload());
+			outgoingChatService.sendCommand(message.payload());
 		} else {
-			minecraft.getConnection().sendChat(message.payload());
+			outgoingChatService.sendChat(message.payload());
 		}
 	}
 

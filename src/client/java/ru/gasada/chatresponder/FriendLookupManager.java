@@ -26,6 +26,7 @@ public final class FriendLookupManager {
 	private static final Pattern TIMESTAMP_ONLY = Pattern.compile("\\s*\\[\\d{1,2}:\\d{2}(?::\\d{2})?]\\s*");
 
 	private final ResponderConfig config;
+	private final ServerCommandService commandService;
 	private final Deque<String> queue = new ArrayDeque<>();
 	private String pendingFriend;
 	private String pendingLastSeen;
@@ -33,7 +34,12 @@ public final class FriendLookupManager {
 	private long nextCommandAt;
 
 	public FriendLookupManager(ResponderConfig config) {
+		this(config, null);
+	}
+
+	public FriendLookupManager(ResponderConfig config, ServerCommandService commandService) {
 		this.config = config;
+		this.commandService = commandService;
 	}
 
 	public void queueFriends(Collection<String> friends) {
@@ -75,7 +81,11 @@ public final class FriendLookupManager {
 		pendingFriend = queue.removeFirst();
 		pendingLastSeen = null;
 		pendingSince = now;
-		minecraft.getConnection().sendCommand("clan lookup " + pendingFriend);
+		if (commandService == null || !commandService.lookupFriend(pendingFriend).success()) {
+			pendingFriend = null;
+			pendingLastSeen = null;
+			nextCommandAt = now + COMMAND_DELAY_MS;
+		}
 	}
 
 	public boolean shouldShowSystemMessage(Component message, boolean overlay) {

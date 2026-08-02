@@ -539,7 +539,12 @@ public final class ResponderScreen extends Screen {
 			setStatus("Введите текст личного сообщения", 0xFFFF7777);
 			return;
 		}
-		minecraft.getConnection().sendCommand("w " + selectedFriend + " " + message);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS
+				.privateMessage(selectedFriend, message);
+		if (!result.success()) {
+			setStatus(result.errorMessage(), 0xFFFF7777);
+			return;
+		}
 		friendMessageValue = "";
 		friendMessageBox.setValue("");
 		setStatus("ЛС отправлено: " + selectedFriend, 0xFF75D98B);
@@ -554,7 +559,11 @@ public final class ResponderScreen extends Screen {
 			setStatus("Введите корректную сумму", 0xFFFF7777);
 			return;
 		}
-		minecraft.getConnection().sendCommand("pay " + selectedFriend + " " + amount);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.pay(selectedFriend, amount);
+		if (!result.success()) {
+			setStatus(result.errorMessage(), 0xFFFF7777);
+			return;
+		}
 		setStatus("Перевод отправлен: " + selectedFriend, 0xFF75D98B);
 	}
 
@@ -562,7 +571,11 @@ public final class ResponderScreen extends Screen {
 		if (!checkFriendAction()) {
 			return;
 		}
-		minecraft.getConnection().sendCommand("call " + selectedFriend);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.call(selectedFriend);
+		if (!result.success()) {
+			setStatus(result.errorMessage(), 0xFFFF7777);
+			return;
+		}
 		setStatus("Запрос телепорта отправлен: " + selectedFriend, 0xFF75D98B);
 	}
 
@@ -575,7 +588,11 @@ public final class ResponderScreen extends Screen {
 			setStatus("Введите текст сообщения на почту", 0xFFFF7777);
 			return;
 		}
-		minecraft.getConnection().sendCommand("mail send " + selectedFriend + " " + message);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.mail(selectedFriend, message);
+		if (!result.success()) {
+			setStatus(result.errorMessage(), 0xFFFF7777);
+			return;
+		}
 		friendMailValue = "";
 		friendMailBox.setValue("");
 		setStatus("Почта отправлена: " + selectedFriend, 0xFF75D98B);
@@ -695,7 +712,11 @@ public final class ResponderScreen extends Screen {
 			return;
 		}
 
-		minecraft.getConnection().sendCommand("ignoreplayer " + nickname);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.ignorePlayer(nickname);
+		if (!result.success()) {
+			setStatus(result.errorMessage(), 0xFFFF7777);
+			return;
+		}
 		setStatus("Отправлено: /ignoreplayer " + nickname, 0xFF75D98B);
 	}
 

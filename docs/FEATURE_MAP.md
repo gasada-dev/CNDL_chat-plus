@@ -17,17 +17,17 @@
 | Распознавание Discord sender | `extractDiscordSender` | bootstrap patterns | — | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
 | Локальный Discord-мут | `ResponderScreen.addDiscordMutedPlayer` | Discord filter | `discordMutedPlayers` | Добавить Unicode name, получить сообщение, затем снять мут |
 | Чёрный список слов | `WildcardMatcher` (`CONTAINS_MATCH`) | `GasadaChatResponderClient`, blacklist tab | `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
-| Серверный мут игрока | `ResponderScreen.addMutedPlayer` | connection | — | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
+| Серверный мут игрока | `ServerCommandService.ignorePlayer` | `ResponderScreen`, `OutgoingChatService` | active template command | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
 | Список друзей | friends tab `ResponderScreen` | `ConfigManager` | `friends`, `friendLastSeen` | Добавить/выбрать/удалить друга, закрыть и открыть экран |
 | Подсказки ников | `refreshSuggestions`, `refreshFriendSuggestions` | `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
 | Online/offline во вкладке | `ResponderScreen.tick/currentOnlineFriends` | connection player list | `friends`, `friendLastSeen` | Открыть вкладку; дождаться обновления примерно через 20 ticks |
 | Lookup последнего входа | `FriendLookupManager` | friends tab, Fabric ALLOW events | `friends`, `friendLastSeen` | Дождаться `/clan lookup`, проверить скрытие блока и сохранённый timestamp |
 | HUD online-друзей | `FriendsHud.render` | HUD registry | `friends`, `friendHudEnabled` | Включить HUD; online friend виден справа снизу; выключить toggle |
 | Уведомление/звук входа | `FriendsHud.render` | `SoundEvents.PLAYER_LEVELUP` | `friends`, `friendHudEnabled` | После warmup подтвердить offline ≥5 с, затем online; одно notice на 4 с и один звук |
-| Личное сообщение другу | `ResponderScreen.sendPrivateToFriend` | connection | `friends` | Выбрать друга, ввести текст, нажать «Отправить ЛС», проверить `/w` |
-| Перевод другу | `ResponderScreen.payFriend` | connection | `friends` | Проверить целую сумму, десятичную с `,`, invalid format и отправку `/pay` |
-| Запрос телепорта | `ResponderScreen.callFriend` | connection | `friends` | Выбрать друга, нажать «Отправить ТП», проверить `/call` |
-| Почта другу | `ResponderScreen.mailFriend` | connection | `friends` | Ввести независимый mail text, проверить `/mail send` и очистку поля |
+| Личное сообщение другу | `ServerCommandService.privateMessage` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, ввести текст, нажать «Отправить ЛС», проверить `/w` |
+| Перевод другу | `ServerCommandService.pay` | `ResponderScreen`, `AmountValidator` | active template command/friends | Проверить положительную сумму, десятичную с `,`, invalid format и отправку `/pay` |
+| Запрос телепорта | `ServerCommandService.call` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, нажать «Отправить ТП», проверить `/call` |
+| Почта другу | `ServerCommandService.mail` | `ResponderScreen`, `MessageValidator` | active template command/friends | Ввести независимый mail text, проверить `/mail send` и очистку поля |
 | До трёх рассылок | `PeriodicMessageScreen` | config, scheduler | `periodicMessages` | Открыть скрытую область в (0,0) rules screen; добавить 3, четвёртая недоступна |
 | Планирование рассылки | `PeriodicMessageScheduler.tick` | `ChatResponderEngine.recordOutgoing` | `periodicMessages` | Первый send только после полного interval; edit/disable сбрасывает timer |
 | Periodic chat/command | `PeriodicMessageScheduler.send` | connection | `periodicMessages[].message` | Plain text идёт как chat; leading `/` — как command |

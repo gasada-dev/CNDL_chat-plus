@@ -140,20 +140,9 @@ ClientReceiveMessageEvents.ALLOW_GAME
 
 `UpdateChecker.start` создаёт `HttpClient`, добавляет cache-busting timestamp и асинхронно читает `version.json`. Он требует status 200, числовую версию из 2–4 частей, HTTPS, host `raw.githubusercontent.com` и окончание path `CNDL_chat+-<version>.jar`. Body size, content type, точный repository path, redirects, user info, fragment и длины полей сейчас не ограничены. Async callback меняет только `AtomicReference`; экран открывается из client tick.
 
-## Прямые исходящие вызовы
+## Исходящие вызовы
 
-| Класс:строка | Метод | Источник данных |
-|---|---|---|
-| `ChatResponderEngine:244` | `sendCommand(finalOutgoing.substring(1))` | rule response и настраиваемые channel prefixes/command |
-| `ChatResponderEngine:246` | `sendChat(finalOutgoing)` | rule response и global prefix |
-| `PeriodicMessageScheduler:55` | `sendCommand(outgoing.substring(1))` | `PeriodicMessageConfig.message` |
-| `PeriodicMessageScheduler:57` | `sendChat(outgoing)` | `PeriodicMessageConfig.message` |
-| `FriendLookupManager:70` | `sendCommand("clan lookup " + pendingFriend)` | `config.friends`/UI queue |
-| `ResponderScreen:542` | `sendCommand("w " + selectedFriend + " " + message)` | selected config friend + UI message |
-| `ResponderScreen:557` | `sendCommand("pay " + selectedFriend + " " + amount)` | selected config friend + UI amount |
-| `ResponderScreen:565` | `sendCommand("call " + selectedFriend)` | selected config friend |
-| `ResponderScreen:578` | `sendCommand("mail send " + selectedFriend + " " + message)` | selected config friend + UI message |
-| `ResponderScreen:698` | `sendCommand("ignoreplayer " + nickname)` | validated UI nickname |
+`OutgoingChatService.MinecraftTransport` является единственной точкой прямых вызовов `sendChat`/`sendCommand`. `ServerCommandService` валидирует аргументы и разворачивает шесть templates активного snapshot. `ChatResponderEngine` и `PeriodicMessageScheduler` передают универсальные chat/command payload в outgoing service, а `FriendLookupManager` и `ResponderScreen` вызывают именованные методы command service.
 
 ## Regex-аудит
 

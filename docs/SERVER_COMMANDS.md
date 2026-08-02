@@ -1,17 +1,17 @@
 # Серверные команды и исходящие сообщения
 
-Документ фиксирует все существующие пути отправки версии 0.4.3. Команды передаются в Minecraft API без начального `/`; в таблицах показан пользовательский вид с `/`.
+Документ фиксирует все существующие пути отправки. `ServerCommandService` строит именованные команды из `ActiveTemplateSnapshot.commands`, а `OutgoingChatService` является единственной точкой вызова Minecraft API. Команды передаются API без начального `/`; в таблицах показан пользовательский вид с `/`.
 
 ## Именованные команды
 
 | Команда | Отправитель | Ожидаемые аргументы | Фактическая валидация перед отправкой | Текущие пределы | Ожидаемый ответ/эффект | Что скрывает мод |
 |---|---|---|---|---|---|---|
-| `/ignoreplayer <player>` | `ResponderScreen.addMutedPlayer` | Minecraft nickname | trim; `[A-Za-z0-9_]{1,16}`; наличие connection | UI field max 32, regex фактически 1..16; total command length отдельно не проверяется | Сервер включает/выключает ignore player по своим правилам | Специального фильтра ответа нет |
-| `/clan lookup <player>` | `FriendLookupManager.tick` | friend name из queue | Только null/blank и case-insensitive queue dedup до постановки; повторной проверки nickname/control chars нет | Не ограничен manager; UI add friend ограничен 16, но ручной config обходит UI | Многострочный профиль/последний вход | Пустые/timestamp-only; `Был в сети/онлайн`, `Неактивен`, `Тип убийства` и широкий `LOOKUP_OUTPUT`; при pending также строки с friend name |
-| `/w <player> <message>` | `ResponderScreen.sendPrivateToFriend` | выбранный friend, личный текст | friend должен быть выбран; connection; message trim и non-empty. Ник повторно не валидируется, control chars не проверяются | UI message max 220; total command/Minecraft limit не проверяется | Сервер отправляет личное сообщение | Ответ сервера специально не скрывается |
-| `/pay <player> <amount>` | `ResponderScreen.payFriend` | выбранный friend, amount | friend selected; connection; comma→dot; `[0-9]+(?:\.[0-9]{1,2})?` | UI max 16 chars; число digits явно не ограничено; ноль допускается | Сервер выполняет/отклоняет перевод | Ответ сервера специально не скрывается |
-| `/call <player>` | `ResponderScreen.callFriend` | выбранный friend | Только friend selected и connection; nickname повторно не валидируется | Отдельного лимита нет | Сервер отправляет teleport request | Ответ сервера специально не скрывается |
-| `/mail send <player> <message>` | `ResponderScreen.mailFriend` | выбранный friend, mail text | friend selected; connection; message trim и non-empty. Ник/control chars не проверяются | UI message max 220; total limit не проверяется | Сервер отправляет offline mail | Ответ сервера специально не скрывается |
+| `/ignoreplayer <player>` | `ServerCommandService.ignorePlayer` | Minecraft nickname | `PlayerNameValidator`, command-template validation, connection | player 16; outgoing 256 | Сервер включает/выключает ignore player по своим правилам | Специального фильтра ответа нет |
+| `/clan lookup <player>` | `ServerCommandService.lookupFriend` | friend name из queue | `PlayerNameValidator`, command-template validation, connection | player 16; outgoing 256 | Многострочный профиль/последний вход | Текущие lookup patterns |
+| `/w <player> <message>` | `ServerCommandService.privateMessage` | выбранный friend, личный текст | player + `MessageValidator`, controls, connection | message 220; outgoing 256 | Сервер отправляет личное сообщение | Ответ сервера специально не скрывается |
+| `/pay <player> <amount>` | `ServerCommandService.pay` | выбранный friend, amount | player + `AmountValidator`; положительный `BigDecimal`, comma→dot | amount input 16; outgoing 256 | Сервер выполняет/отклоняет перевод | Ответ сервера специально не скрывается |
+| `/call <player>` | `ServerCommandService.call` | выбранный friend | `PlayerNameValidator`, template validation, connection | player 16; outgoing 256 | Сервер отправляет teleport request | Ответ сервера специально не скрывается |
+| `/mail send <player> <message>` | `ServerCommandService.mail` | выбранный friend, mail text | player + `MessageValidator`, controls, connection | message 220; outgoing 256 | Сервер отправляет offline mail | Ответ сервера специально не скрывается |
 
 ## Другие command/chat paths
 
@@ -35,20 +35,12 @@ UI ограничивает response 256 символами, prefixes 16/32/64, 
 
 UI ограничивает текст 256 символами, требует non-empty для enabled slot и interval 1..525600. Загруженный вручную JSON обходит length/control-character validation. Строка `/` отдельно не отклоняется и превращается в пустой command argument.
 
-## Полный список прямых Minecraft API calls
+## Прямые Minecraft API calls
 
 | Место | Вызов |
 |---|---|
-| `ChatResponderEngine:244` | `sendCommand(finalOutgoing.substring(1))` |
-| `ChatResponderEngine:246` | `sendChat(finalOutgoing)` |
-| `PeriodicMessageScheduler:55` | `sendCommand(outgoing.substring(1))` |
-| `PeriodicMessageScheduler:57` | `sendChat(outgoing)` |
-| `FriendLookupManager:70` | `sendCommand("clan lookup " + pendingFriend)` |
-| `ResponderScreen:542` | `sendCommand("w " + selectedFriend + " " + message)` |
-| `ResponderScreen:557` | `sendCommand("pay " + selectedFriend + " " + amount)` |
-| `ResponderScreen:565` | `sendCommand("call " + selectedFriend)` |
-| `ResponderScreen:578` | `sendCommand("mail send " + selectedFriend + " " + message)` |
-| `ResponderScreen:698` | `sendCommand("ignoreplayer " + nickname)` |
+| `OutgoingChatService.MinecraftTransport` | `sendCommand(command)` |
+| `OutgoingChatService.MinecraftTransport` | `sendChat(message)` |
 
 ## Пользовательские/config-данные, попадающие в команды
 

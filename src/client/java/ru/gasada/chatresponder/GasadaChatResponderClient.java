@@ -25,6 +25,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
 	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
+	public static ServerCommandService SERVER_COMMANDS;
 
 	@Override
 	public void onInitializeClient() {
@@ -32,14 +33,16 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		ChatResponderEngine engine = new ChatResponderEngine(CONFIG);
 		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(CONFIG, engine);
 		UpdateChecker updateChecker = new UpdateChecker();
-		FRIEND_LOOKUP = new FriendLookupManager(CONFIG);
 		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
 		switchCoordinator.register(engine::resetRuntimeState);
-		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		switchCoordinator.register(FriendsHud::resetRuntimeState);
 		switchCoordinator.register(periodicScheduler::resetRuntimeState);
 		switchCoordinator.register(MUTED_WORD_MATCHER::clear);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
+		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
+		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
+		FRIEND_LOOKUP = new FriendLookupManager(CONFIG, SERVER_COMMANDS);
+		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		FriendsHud.register(CONFIG);
 
 		KeyMapping.Category category = KeyMapping.Category.register(

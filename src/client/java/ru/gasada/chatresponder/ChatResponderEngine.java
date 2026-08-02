@@ -17,6 +17,7 @@ public final class ChatResponderEngine {
 
 	private final ResponderConfig config;
 	private final WildcardMatcher wildcardMatcher = new WildcardMatcher();
+	private final OutgoingChatService outgoingChatService;
 	private String lastIncomingFingerprint = "";
 	private long lastIncomingAt;
 	private String lastSentText = "";
@@ -24,6 +25,11 @@ public final class ChatResponderEngine {
 
 	public ChatResponderEngine(ResponderConfig config) {
 		this.config = config;
+		this.outgoingChatService = OutgoingChatService.forMinecraft(this::recordOutgoing);
+	}
+
+	OutgoingChatService outgoingChatService() {
+		return outgoingChatService;
 	}
 
 	public void handlePlayerMessage(Component displayedMessage, PlayerChatMessage signedMessage, GameProfile sender) {
@@ -241,18 +247,11 @@ public final class ChatResponderEngine {
 			return;
 		}
 
-		recordOutgoing(finalOutgoing);
-		Minecraft minecraft = Minecraft.getInstance();
-		minecraft.execute(() -> {
-			if (minecraft.getConnection() == null) {
-				return;
-			}
-			if (finalOutgoing.startsWith("/")) {
-				minecraft.getConnection().sendCommand(finalOutgoing.substring(1));
-			} else {
-				minecraft.getConnection().sendChat(finalOutgoing);
-			}
-		});
+		if (finalOutgoing.startsWith("/")) {
+			outgoingChatService.sendCommand(finalOutgoing.substring(1));
+		} else {
+			outgoingChatService.sendChat(finalOutgoing);
+		}
 	}
 
 	public void recordOutgoing(String message) {
