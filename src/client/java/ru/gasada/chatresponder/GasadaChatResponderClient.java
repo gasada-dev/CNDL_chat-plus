@@ -24,15 +24,16 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		CONFIG = ConfigManager.load();
 		ChatResponderEngine engine = new ChatResponderEngine(CONFIG);
-		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(CONFIG, engine);
 		UpdateChecker updateChecker = new UpdateChecker();
 		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
 		switchCoordinator.register(engine::resetRuntimeState);
-		switchCoordinator.register(periodicScheduler::resetRuntimeState);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
 		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
+		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(
+				TEMPLATE_RUNTIME, engine.outgoingChatService());
+		switchCoordinator.register(periodicScheduler::resetRuntimeState);
 		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
 		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
 		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis);

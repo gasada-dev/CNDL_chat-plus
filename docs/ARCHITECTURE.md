@@ -92,7 +92,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 3. Вызывает `FRIEND_LOOKUP.tick(minecraft)`.
 4. Вызывает `UpdateChecker.tick(minecraft)`.
 
-`PeriodicMessageScheduler.tick` проходит ровно три `State`, сбрасывает неактивные/невалидные/отключённые слоты, сравнивает текст+интервал с сохранённым fingerprint, планирует первый запуск после полного интервала и отправляет просроченные сообщения.
+`PeriodicMessageScheduler.tick` проходит ровно `PeriodicMessageConfig.MAX_PERIODIC_MESSAGES` (3) состояний active snapshot, сбрасывает неактивные/невалидные/отключённые слоты, сравнивает текст+интервал с сохранённым fingerprint, планирует первый запуск после полного интервала и отправляет просроченные сообщения через `OutgoingChatService`. Template switch очищает все timers до публикации нового snapshot.
 
 `FriendLookupManager.tick` очищает очередь при disconnect, принимает только друзей active snapshot, обрабатывает timeout 7 секунд, выдерживает 2,5 секунды между командами и запрашивает следующий lookup через `FriendActionService`/`ServerCommandService`. Ответ разбирает `FriendLookupParser` с compiled patterns активного шаблона; `last seen` публикуется обратно в тот же template scope.
 

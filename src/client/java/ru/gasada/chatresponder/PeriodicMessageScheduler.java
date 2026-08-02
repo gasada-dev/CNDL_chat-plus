@@ -10,7 +10,7 @@ import net.minecraft.client.Minecraft;
 
 public final class PeriodicMessageScheduler {
 	private final ResponderConfig config;
-	private final ChatResponderEngine engine;
+	private final ServerTemplateRuntime templateRuntime;
 	private final OutgoingChatService outgoingChatService;
 	private final LongSupplier clock;
 	private final List<State> states = new ArrayList<>();
@@ -21,10 +21,28 @@ public final class PeriodicMessageScheduler {
 
 	PeriodicMessageScheduler(ResponderConfig config, ChatResponderEngine engine, LongSupplier clock) {
 		this.config = config;
-		this.engine = engine;
+		this.templateRuntime = null;
 		this.outgoingChatService = engine == null ? null : engine.outgoingChatService();
 		this.clock = clock;
-		for (int index = 0; index < 3; index++) {
+		initializeStates();
+	}
+
+	public PeriodicMessageScheduler(ServerTemplateRuntime templateRuntime,
+			OutgoingChatService outgoingChatService) {
+		this(templateRuntime, outgoingChatService, System::currentTimeMillis);
+	}
+
+	PeriodicMessageScheduler(ServerTemplateRuntime templateRuntime, OutgoingChatService outgoingChatService,
+			LongSupplier clock) {
+		this.config = null;
+		this.templateRuntime = templateRuntime;
+		this.outgoingChatService = outgoingChatService;
+		this.clock = clock;
+		initializeStates();
+	}
+
+	private void initializeStates() {
+		for (int index = 0; index < PeriodicMessageConfig.MAX_PERIODIC_MESSAGES; index++) {
 			states.add(new State());
 		}
 	}
@@ -34,23 +52,24 @@ public final class PeriodicMessageScheduler {
 	}
 
 	void tick(BooleanSupplier connected, Consumer<String> sender) {
+		List<ActiveTemplateSnapshot.PeriodicSnapshot> messages = activeMessages();
 		for (int index = 0; index < states.size(); index++) {
 			State state = states.get(index);
-			if (index >= config.periodicMessages.size()) {
+			if (index >= messages.size()) {
 				state.reset();
 				continue;
 			}
 
-			PeriodicMessageConfig message = config.periodicMessages.get(index);
-			if (!message.enabled || message.message.isBlank() || message.intervalMinutes < 1
+			ActiveTemplateSnapshot.PeriodicSnapshot message = messages.get(index);
+			if (!message.enabled() || message.message().isBlank() || message.intervalMinutes() < 1
 					|| !connected.getAsBoolean()) {
 				state.reset();
 				continue;
 			}
 
-			String settings = message.message + '\n' + message.intervalMinutes;
+			String settings = message.message() + '\n' + message.intervalMinutes();
 			long now = clock.getAsLong();
-			long intervalMillis = message.intervalMinutes * 60_000L;
+			long intervalMillis = message.intervalMinutes() * 60_000L;
 			if (!settings.equals(state.settings) || state.nextSendAt == 0L) {
 				state.settings = settings;
 				state.nextSendAt = now + intervalMillis;
@@ -58,10 +77,22 @@ public final class PeriodicMessageScheduler {
 			}
 
 			if (now >= state.nextSendAt) {
-				sender.accept(message.message.trim());
+				sender.accept(message.message().trim());
 				state.nextSendAt = now + intervalMillis;
 			}
 		}
+	}
+
+	private List<ActiveTemplateSnapshot.PeriodicSnapshot> activeMessages() {
+		if (templateRuntime != null) {
+			return templateRuntime.activeSnapshot()
+					.map(ActiveTemplateSnapshot::periodicMessages).orElse(List.of());
+		}
+		return config.periodicMessages.stream()
+				.limit(PeriodicMessageConfig.MAX_PERIODIC_MESSAGES)
+				.map(message -> new ActiveTemplateSnapshot.PeriodicSnapshot(
+						message.enabled, message.message, message.intervalMinutes))
+				.toList();
 	}
 
 	public void resetRuntimeState() {

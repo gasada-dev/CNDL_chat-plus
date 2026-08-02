@@ -28,9 +28,9 @@
 | Перевод другу | `ServerCommandService.pay` | `ResponderScreen`, `AmountValidator` | active template command/friends | Проверить положительную сумму, десятичную с `,`, invalid format и отправку `/pay` |
 | Запрос телепорта | `ServerCommandService.call` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, нажать «Отправить ТП», проверить `/call` |
 | Почта другу | `ServerCommandService.mail` | `ResponderScreen`, `MessageValidator` | active template command/friends | Ввести независимый mail text, проверить `/mail send` и очистку поля |
-| До трёх рассылок | `PeriodicMessageScreen` | config, scheduler | `periodicMessages` | Открыть скрытую область в (0,0) rules screen; добавить 3, четвёртая недоступна |
-| Планирование рассылки | `PeriodicMessageScheduler.tick` | `ChatResponderEngine.recordOutgoing` | `periodicMessages` | Первый send только после полного interval; edit/disable сбрасывает timer |
-| Periodic chat/command | `PeriodicMessageScheduler.send` | connection | `periodicMessages[].message` | Plain text идёт как chat; leading `/` — как command |
+| До трёх рассылок | `PeriodicMessageScreen` | `PeriodicMessageConfig.MAX_PERIODIC_MESSAGES`, scheduler | active template `periodicMessages` | Добавить 3, четвёртая недоступна |
+| Планирование рассылки | `PeriodicMessageScheduler.tick` | active template runtime | active template `periodicMessages` | Первый send только после полного interval; edit/disable/switch сбрасывает timer |
+| Periodic chat/command | `PeriodicMessageScheduler.send` | `OutgoingChatService` | active template message | Plain text идёт как chat; leading `/` — как command |
 | Загрузка/санитизация config | `ConfigManager.load`, `ResponderConfig.sanitize` | Gson | все поля | Проверить отсутствующий, старый, null-filled и вручную отредактированный JSON |
 | Атомарное сохранение config | `ConfigManager.save` | NIO Files | все поля | Save создаёт итоговый JSON; `.tmp` не остаётся после успешного move |
 | Legacy periodic migration | `ResponderConfig.sanitize` | `PeriodicMessageConfig` | три legacy periodic поля | Загрузить JSON только со старыми полями; появляется один slot |

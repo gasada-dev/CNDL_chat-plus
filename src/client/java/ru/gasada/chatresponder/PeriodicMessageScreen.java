@@ -51,7 +51,7 @@ public final class PeriodicMessageScreen extends Screen {
 			rebuildContents();
 		}).bounds(panelX + 18, height - 48, 100, 20)
 				.tooltip(help("Добавить ещё одну рассылку, максимум три")).build());
-		add.active = drafts.size() < 3;
+		add.active = drafts.size() < PeriodicMessageConfig.MAX_PERIODIC_MESSAGES;
 
 		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> save())
 				.bounds(panelX + panelWidth - 208, height - 48, 90, 20)

@@ -1,6 +1,7 @@
 package ru.gasada.chatresponder;
 
 public final class PeriodicMessageConfig {
+	public static final int MAX_PERIODIC_MESSAGES = 3;
 	public boolean enabled;
 	public String message = "";
 	public int intervalMinutes = 5;

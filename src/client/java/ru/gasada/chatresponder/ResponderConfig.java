@@ -77,8 +77,9 @@ public final class ResponderConfig {
 		if (periodicMessages.isEmpty()) {
 			periodicMessages.add(new PeriodicMessageConfig());
 		}
-		if (periodicMessages.size() > 3) {
-			periodicMessages = new ArrayList<>(periodicMessages.subList(0, 3));
+		if (periodicMessages.size() > PeriodicMessageConfig.MAX_PERIODIC_MESSAGES) {
+			periodicMessages = new ArrayList<>(periodicMessages.subList(
+					0, PeriodicMessageConfig.MAX_PERIODIC_MESSAGES));
 		}
 		for (PeriodicMessageConfig message : periodicMessages) {
 			if (message.message == null) {
