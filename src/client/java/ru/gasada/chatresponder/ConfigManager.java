@@ -22,6 +22,13 @@ public final class ConfigManager {
 		if (!Files.exists(CONFIG_PATH)) {
 			return ResponderConfig.defaults();
 		}
+		LegacyConfigToVanillaBoxMigration migration = new LegacyConfigToVanillaBoxMigration(
+				CONFIG_PATH, new ServerTemplateRepository(CONFIG_PATH.getParent()));
+		TemplateOperationResult<ServerTemplate> migrationResult = migration.migrateIfNeeded();
+		if (!migrationResult.success()) {
+			GasadaChatResponderClient.LOGGER.warn("[CONFIG] Миграция Vanilla-box не выполнена: {}",
+					migrationResult.errorMessage(), migrationResult.error());
+		}
 
 		try {
 			ResponderConfig config = GSON.fromJson(Files.readString(CONFIG_PATH, StandardCharsets.UTF_8), ResponderConfig.class);

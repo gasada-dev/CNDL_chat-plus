@@ -2,6 +2,8 @@
 
 Файл: `.minecraft/config/gasada-chat-responder.json`. Путь строит `ConfigManager` через `FabricLoader.getConfigDir()`. Имя является частью совместимости и не должно меняться.
 
+При первом успешном чтении старого файла `LegacyConfigToVanillaBoxMigration` создаёт побайтовый backup `gasada-chat-responder.legacy-backup.json`, переносит server-specific поля в `server-templates/vanilla-box.json`, проверяет запись и последним сохраняет `server-templates.json`. Старый файл остаётся runtime-источником до этапа переключения и не удаляется. Повторный запуск не дублирует миграцию.
+
 Ниже описана фактическая схема версии 0.4.3. Поля публичные и изменяемые; `schemaVersion` отсутствует. Отсутствующий config загружается через `ResponderConfig.defaults()`. Загруженный и сохраняемый объект проходит `ResponderConfig.sanitize()`.
 
 ## Поля `ResponderConfig`

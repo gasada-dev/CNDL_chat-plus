@@ -1,0 +1,26 @@
+{
+  "enabled": false,
+  "discordChatEnabled": false,
+  "discordMutedPlayers": ["DiscordUser", "discorduser", "Другой"],
+  "mutedWords": ["Реклама", "реклама", "казино*"],
+  "friends": ["Alice", "alice", "Bob"],
+  "friendLastSeen": {
+    "Alice": "вчера",
+    "Bob": "2 дня назад"
+  },
+  "friendHudEnabled": false,
+  "periodicMessages": [
+    {"enabled": true, "message": "сообщение", "intervalMinutes": 7},
+    {"enabled": false, "message": "/command", "intervalMinutes": 9}
+  ],
+  "rules": [
+    {"enabled": true, "trigger": "привет*", "response": "ответ", "channel": "GLOBAL"},
+    {"enabled": false, "trigger": "test", "response": "reply", "channel": "PRIVATE"}
+  ],
+  "globalPrefix": "!!",
+  "clanReplyPrefix": "/cc",
+  "privateReplyCommand": "/reply",
+  "globalMarkers": "(!),[world]",
+  "clanMarkers": "[clan]",
+  "privateMarkers": "[private]"
+}

@@ -65,7 +65,7 @@ public final class ServerTemplate {
 		return new ArrayList<>(source == null ? List.of() : source);
 	}
 
-	private static List<ReplyRule> copyRules(List<ReplyRule> source) {
+	static List<ReplyRule> copyRules(List<ReplyRule> source) {
 		List<ReplyRule> result = new ArrayList<>();
 		if (source == null) {
 			return result;
