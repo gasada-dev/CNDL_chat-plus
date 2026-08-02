@@ -23,6 +23,10 @@ public final class ConfigManager {
 		return new ServerTemplateRepository(CONFIG_PATH.getParent());
 	}
 
+	public static Path templateImportDirectory() {
+		return CONFIG_PATH.getParent().resolve("gasada-chat-responder-template-imports");
+	}
+
 	public static ResponderConfig load() {
 		if (!Files.exists(CONFIG_PATH)) {
 			return ResponderConfig.defaults();

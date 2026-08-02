@@ -8,6 +8,7 @@
 | `.minecraft/config/gasada-chat-responder.legacy-backup.json` | побайтовый backup старого config перед первой миграцией |
 | `.minecraft/config/server-templates.json` | `RootConfig`: schema, default, список templates, exact bindings |
 | `.minecraft/config/server-templates/<id>.json` | один `ServerTemplate` на файл |
+| `.minecraft/config/gasada-chat-responder-template-imports/*.json` | входящие пользовательские templates; читаются только по кнопке загрузки |
 
 Имя legacy-файла и существующие поля не удалены. Все записи repository и legacy config используют UTF-8 и sibling `.tmp` → atomic move с replace fallback.
 
@@ -35,6 +36,12 @@
 - `parsers` (`ParserSettings`).
 
 `ActiveTemplateSnapshot` является deep immutable copy. Runtime state (guards, lookup queue, presence/notices, timers и compiled data) в JSON не сохраняется.
+
+Bundled templates находятся внутри JAR в
+`assets/gasada_chat_responder/server_templates/`; `index.txt` перечисляет JSON-файлы,
+которые разработчик хочет предустановить. При запуске отсутствующие ID регистрируются,
+а существующие пользовательские файлы не перезаписываются. Внешний import ограничен
+одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
 
 ## Legacy ResponderConfig
 
@@ -76,5 +83,5 @@
 
 - Повреждённый legacy JSON приводит к logged migration/load error и defaults, но byte-for-byte backup создаётся до parse и сохраняет исходный файл. Последующий UI save может заменить основной legacy JSON defaults, поэтому восстановление выполняется из backup вручную.
 - Repository schema version пока равна 1 и не имеет downgrade path.
-- Template editor этого этапа редактирует identity/address metadata; остальные категории редактируются существующими вкладками active view или импортируются.
+- Template editor редактирует identity/address metadata, все именованные серверные команды и Discord marker/name regex. Остальные категории редактируются существующими вкладками active view или импортируются.
 - Ручное редактирование JSON может создать значения, которые UI не предлагает; commands/parsers повторно валидируются перед send/save/import, но не все display-only строки имеют общий length limit.

@@ -20,13 +20,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 
 public final class UpdateChecker {
-	static final String MANIFEST_URL =
-			"https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/version.json";
+	static final String RELEASE_API_URL =
+			"https://api.github.com/repos/gasada-dev/MineModChat-/releases/latest";
 	static final int MAX_BODY_BYTES = 65_536;
 	private static final int MAX_URL_LENGTH = 1_024;
 	private static final int MAX_MESSAGE_LENGTH = 512;
-	private static final String ALLOWED_DOWNLOAD_HOST = "raw.githubusercontent.com";
-	private static final String ALLOWED_REPOSITORY_PATH = "/gasada-dev/MineModChat-/main/";
+	private static final String ALLOWED_DOWNLOAD_HOST = "github.com";
+	private static final String ALLOWED_RELEASE_PATH = "/gasada-dev/MineModChat-/releases/download/";
 	private static final Gson GSON = new Gson();
 	private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(4))
@@ -55,12 +55,13 @@ public final class UpdateChecker {
 
 	private void start() {
 		if (!state.compareAndSet(CheckState.NOT_STARTED, CheckState.CHECKING)) return;
-		URI manifestUri = URI.create(MANIFEST_URL + "?check=" + System.currentTimeMillis());
-		HttpRequest request = HttpRequest.newBuilder(manifestUri)
+		URI releaseUri = URI.create(RELEASE_API_URL);
+		HttpRequest request = HttpRequest.newBuilder(releaseUri)
 				.timeout(Duration.ofSeconds(10))
 				.header("User-Agent", "CNDL_chat+ Update Checker")
 				.header("Cache-Control", "no-cache")
-				.header("Accept", "application/json, text/plain")
+				.header("Accept", "application/vnd.github+json")
+				.header("X-GitHub-Api-Version", "2022-11-28")
 				.GET().build();
 
 		client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream())
@@ -90,7 +91,7 @@ public final class UpdateChecker {
 				state.set(CheckState.FAILED);
 				return;
 			}
-			UpdateInfo info = parseManifest(bytes);
+			UpdateInfo info = parseRelease(bytes);
 			if (info != null && validate(info).valid()
 					&& UpdateVersion.compare(info.version(), currentVersion) > 0) {
 				availableUpdate.set(info);
@@ -100,7 +101,7 @@ public final class UpdateChecker {
 			}
 		} catch (IOException | RuntimeException exception) {
 			state.set(CheckState.FAILED);
-			GasadaChatResponderClient.LOGGER.debug("Некорректный манифест обновления", exception);
+			GasadaChatResponderClient.LOGGER.debug("Некорректный ответ GitHub Release", exception);
 		}
 	}
 
@@ -117,15 +118,24 @@ public final class UpdateChecker {
 		minecraft.gui.setScreen(new UpdateAvailableScreen(currentScreen, currentVersion, info));
 	}
 
-	static UpdateInfo parseManifest(byte[] bytes) {
+	static UpdateInfo parseRelease(byte[] bytes) {
 		if (bytes == null || bytes.length > MAX_BODY_BYTES) return null;
 		try {
 			String json = StandardCharsets.UTF_8.newDecoder()
 					.onMalformedInput(CodingErrorAction.REPORT)
 					.onUnmappableCharacter(CodingErrorAction.REPORT)
 					.decode(ByteBuffer.wrap(bytes)).toString();
-			ManifestDto dto = GSON.fromJson(json, ManifestDto.class);
-			return dto == null ? null : new UpdateInfo(dto.version, dto.downloadUrl, dto.message);
+			ReleaseDto dto = GSON.fromJson(json, ReleaseDto.class);
+			if (dto == null || dto.tagName == null || !dto.tagName.startsWith("v")) return null;
+			String version = dto.tagName.substring(1);
+			if (!UpdateVersion.isStrictManifestVersion(version) || dto.assets == null) return null;
+			String expectedName = "CNDL_chat+-" + version + ".jar";
+			for (ReleaseAssetDto asset : dto.assets) {
+				if (asset != null && expectedName.equals(asset.name) && asset.browserDownloadUrl != null) {
+					return new UpdateInfo(version, asset.browserDownloadUrl, dto.body);
+				}
+			}
+			return null;
 		} catch (CharacterCodingException | RuntimeException exception) {
 			return null;
 		}
@@ -144,13 +154,14 @@ public final class UpdateChecker {
 		try {
 			URI uri = URI.create(info.downloadUrl());
 			String expectedFile = "CNDL_chat+-" + info.version() + ".jar";
+			String expectedPath = ALLOWED_RELEASE_PATH + "v" + info.version() + "/" + expectedFile;
 			boolean valid = "https".equalsIgnoreCase(uri.getScheme())
 					&& ALLOWED_DOWNLOAD_HOST.equalsIgnoreCase(uri.getHost())
 					&& (uri.getPort() == -1 || uri.getPort() == 443)
 					&& uri.getRawUserInfo() == null
 					&& uri.getRawFragment() == null
 					&& uri.getRawQuery() == null
-					&& (ALLOWED_REPOSITORY_PATH + expectedFile).equals(uri.getPath())
+					&& expectedPath.equals(uri.getPath())
 					&& uri.getPath().endsWith(".jar");
 			return valid ? ValidationResult.success() : ValidationResult.failure("Download URL не разрешён");
 		} catch (RuntimeException exception) {
@@ -183,9 +194,15 @@ public final class UpdateChecker {
 		private static ValidationResult success() { return new ValidationResult(true, ""); }
 		private static ValidationResult failure(String error) { return new ValidationResult(false, error); }
 	}
-	private static final class ManifestDto {
-		String version;
-		String downloadUrl;
-		String message;
+	private static final class ReleaseDto {
+		@com.google.gson.annotations.SerializedName("tag_name")
+		String tagName;
+		String body;
+		ReleaseAssetDto[] assets;
+	}
+	private static final class ReleaseAssetDto {
+		String name;
+		@com.google.gson.annotations.SerializedName("browser_download_url")
+		String browserDownloadUrl;
 	}
 }

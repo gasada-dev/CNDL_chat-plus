@@ -2,15 +2,20 @@
 
 ## Unreleased
 
+Следующее изменение обязано получить новую уникальную версию.
+
+## 0.4.4 — 2026-08-03
+
 - добавлена JUnit 5 infrastructure и characterization/unit/security test suite;
 - централизованы text normalization и wildcard matching без изменения legacy semantics;
 - добавлены validators для player/Discord/message/amount inputs;
 - добавлены server template model, atomic repository, safe migration старого config в `Vanilla-box`, address resolver и immutable active runtime;
 - команды, parsers, filters, responder guards/rules, friends/HUD и periodic scheduler переведены на active template services;
 - добавлены template management UI и подтверждаемый выборочный import с preview;
-- `ResponderScreen` разделён на controllers/utilities, скрытая periodic button заменена видимой «Рассылки»;
-- `UpdateChecker` получил shared HTTP client, explicit state, bounded strict UTF-8 manifest и строгую URL/repository/JAR validation;
-- добавлены GitHub Actions build verification и release documentation.
+- `ResponderScreen` получил верхний selector шаблона с кнопкой настроек; скрытая periodic zone закреплена в `(0,0)` размером `15×15`;
+- template editor теперь редактирует команды сервера и Discord patterns, добавлены bundled templates и безопасная пользовательская папка загрузки;
+- `UpdateChecker` читает latest GitHub Release и проверяет соответствие numeric tag и JAR asset;
+- GitHub Actions автоматически публикует проверенный основной JAR при push тега `v<mod_version>`.
 
 ## 0.4.3
 

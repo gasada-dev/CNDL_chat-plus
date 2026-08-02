@@ -61,19 +61,25 @@ FriendLookupManager interception
 
 `ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` использует приоритет exact binding → exact pattern → wildcard → default → none.
 
+`TemplateCatalogService` до начального выбора устанавливает отсутствующие bundled JSON из
+`assets/gasada_chat_responder/server_templates/index.txt`. Совпадающие ID пропускаются, поэтому
+обновление мода не перезаписывает пользовательский template. Внешние JSON размером до 1 MiB
+загружаются только по команде UI из `config/gasada-chat-responder-template-imports`; перед
+регистрацией проверяются ID/name, command placeholders и parser patterns.
+
 `LegacyConfigToVanillaBoxMigration` до завершения новой схемы создаёт побайтовый backup старого config, сохраняет и перечитывает `server-templates/vanilla-box.json`, затем последним пишет root. Старый файл не удаляется и остаётся совместимым view Vanilla-box.
 
 `TemplateImportService` строит отдельный `TemplateImportPreview`; source и persisted target до confirmation не меняются. Categories импортируются выборочно, списки поддерживают REPLACE/MERGE/SKIP, periodic ограничены тремя, existing last seen сохраняется без explicit overwrite, commands/parsers валидируются до apply.
 
 ## UI
 
-`ResponderScreen` сохраняет четыре вкладки. Layout остаётся в screen, а mutations/save/suggestions/pagination/status/constants вынесены в tab controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`. Видимые кнопки открывают «Рассылки» и templates.
+`ResponderScreen` сохраняет четыре вкладки. Layout остаётся в screen, а mutations/save/suggestions/pagination/status/constants вынесены в tab controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`. Верхняя строка содержит cycle selector active template и кнопку настроек. Рассылки открывает намеренно невидимый `15×15` widget в `(0,0)` только на первой вкладке.
 
-`TemplatesScreen`, `TemplateEditorScreen` и `TemplateImportScreen` используют draft/preview. Runtime меняется только после успешного save или явного временного выбора. Активный/default/единственный template защищён от небезопасного удаления.
+`TemplatesScreen`, `TemplateEditorScreen` и `TemplateImportScreen` используют draft/preview. Editor имеет страницы identity/address, всех именованных команд и Discord marker/name patterns. Runtime меняется только после успешного save или явного временного выбора. Активный/default/единственный template защищён от небезопасного удаления.
 
 ## Update checker
 
-`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. URL обязан быть HTTPS raw GitHub URL без user info/query/fragment с точным repository path и `CNDL_chat+-<version>.jar`. `UpdateVersion` отдельно сохраняет comparison characterization. Экран открывается только из client tick; автоматической установки нет.
+`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; выбирается только asset `CNDL_chat+-<version>.jar` с HTTPS URL точного release path репозитория. `UpdateVersion` отдельно сохраняет comparison characterization. Экран открывается только из client tick; автоматической установки нет.
 
 ## Threading и I/O invariants
 

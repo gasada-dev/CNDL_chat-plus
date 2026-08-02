@@ -25,14 +25,20 @@ CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он с
 3. Найди все usages изменяемого класса.
 4. Не изменяй пользовательское поведение без явного требования.
 5. Не меняй формат config без миграции.
-6. Выполни `./gradlew test` и `./gradlew build`.
+6. Для каждого набора изменений обязательно увеличь `mod_version` в `gradle.properties`.
+7. Одновременно обнови версию в `README.md`, `CHANGELOG.md` и release-документации.
+8. Выполни `./gradlew test` и `./gradlew build`.
+
+Версию нельзя оставлять прежней даже для документационных, UI, CI или внутренних
+изменений. До начала следующего изменения текущая версия должна быть уникальной и
+готовой к тегу `v<mod_version>`.
 
 До рефакторинга алгоритма сначала зафиксируйте текущее поведение characterization-тестами. Один этап должен затрагивать одну подсистему; не совмещайте перенос классов, изменение UI, изменение фильтрации и изменение формата config.
 
 ## Подсистемы
 
 - Инициализация и Fabric events: `GasadaChatResponderClient`.
-- Конфигурация/templates: `ConfigManager`, `ServerTemplateRepository`, `ServerTemplateManager`, `TemplateSelectionService`, `ServerTemplateRuntime`.
+- Конфигурация/templates: `ConfigManager`, `ServerTemplateRepository`, `ServerTemplateManager`, `TemplateCatalogService`, `TemplateSelectionService`, `ServerTemplateRuntime`.
 - Автоответ и каналы: `ChatResponderEngine`, `ChatChannelDetector`, `ReplyRuleMatcher`, guards.
 - Discord- и word-фильтры: `ChatVisibilityFilter`, `CompiledFilterSet`, `DiscordMessageParser`.
 - Исходящие команды: `OutgoingChatService`, `ServerCommandService`, `FriendActionService`.
@@ -58,6 +64,11 @@ CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он с
 - правило «первое совпавшее правило побеждает»;
 - существующие серверные команды и механику обновления;
 - внешний вид UI, если задача не посвящена UI.
+
+У скрытой кнопки рассылок намеренный контракт: только на первой вкладке `ResponderScreen`,
+координаты `(0,0)`, размер `15×15`, без render/narration. Не делайте её видимой и не
+переносите без отдельной явной задачи. Селектор active template и кнопка настроек находятся
+в верхней строке вместо текстовой подписи `Шаблон: ...`.
 
 ## Изменения конфигурации
 

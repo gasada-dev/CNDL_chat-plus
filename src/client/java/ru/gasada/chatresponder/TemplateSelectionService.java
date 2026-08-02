@@ -37,7 +37,14 @@ public final class TemplateSelectionService {
 				return TemplateOperationResult.failure(rootSaved.errorMessage(), rootSaved.error());
 			}
 		}
-		String id = root.defaultTemplateId != null ? root.defaultTemplateId : root.templates.getFirst().id;
+		if (root.defaultTemplateId == null || root.defaultTemplateId.isBlank()) {
+			root.defaultTemplateId = root.templates.getFirst().id;
+			TemplateOperationResult<Void> rootSaved = repository.saveRoot(root);
+			if (!rootSaved.success()) {
+				return TemplateOperationResult.failure(rootSaved.errorMessage(), rootSaved.error());
+			}
+		}
+		String id = root.defaultTemplateId;
 		return select(id);
 	}
 

@@ -9,6 +9,7 @@ Server templates предотвращают смешивание rules, commands
 - `ServerTemplateRepository` читает/атомарно пишет `server-templates.json` и `server-templates/<id>.json`.
 - `ServerTemplateManager` выполняет CRUD/metadata/default/bind operations.
 - `ServerTemplateRuntime` публикует `ActiveTemplateSnapshot` и compiled derivatives.
+- `TemplateCatalogService` устанавливает bundled templates и загружает внешние JSON.
 
 Между templates изолированы:
 
@@ -52,9 +53,22 @@ exact permanent binding
 - deep copy `Vanilla-box`;
 - deep copy выбранного template.
 
-`TemplateEditorScreen` редактирует display name и address patterns через deep-copy draft. До успешного repository save runtime не меняется. Можно выбрать default, временно активировать или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
+`TemplateEditorScreen` редактирует display name/address patterns, все шесть именованных команд, private reply prefix и Discord marker/name regex через deep-copy draft. Placeholders и regex проверяются до save. До успешного repository save runtime не меняется. Можно выбрать default, временно активировать или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
 
 Основные server settings выбранного active template продолжают редактироваться четырьмя вкладками `ResponderScreen`; compatible `ResponderConfig` служит view и при save маршрутизируется в active template. Non-Vanilla save не перезаписывает legacy Vanilla data.
+
+## Каталог и обмен готовыми шаблонами
+
+- Для предустановки разработчик кладёт полные `ServerTemplate` JSON в
+  `src/client/resources/assets/gasada_chat_responder/server_templates/` и добавляет имена
+  файлов в `index.txt`. При первом запуске они копируются в repository; существующий ID
+  всегда выигрывает и не перезаписывается обновлением JAR.
+- Пользователь кладёт полученные JSON в
+  `.minecraft/config/gasada-chat-responder-template-imports/` и нажимает
+  «Загрузить шаблоны из папки». Source-файлы остаются на месте, duplicate ID пропускаются.
+- Импорт принимает только UTF-8 JSON до 1 MiB, безопасный ID, корректное имя, command
+  placeholders и компилируемые parser patterns. Новый template сначала атомарно сохраняется,
+  затем регистрируется в root; при ошибке root новая запись удаляется.
 
 ## Импорт
 
@@ -89,6 +103,6 @@ Vanilla-only strings локализованы в двух factories:
 ## Ограничения
 
 - Root schema version сейчас 1.
-- UI metadata editor использует comma-separated address patterns.
+- UI metadata editor использует comma-separated address patterns; command templates хранятся без начального `/`, кроме отдельного private reply prefix.
 - Удаление после успешного root update удаляет отдельный template file; active/default protections предотвращают loss текущего selection.
 - Minecraft client и реальные серверные formats требуют ручной проверки после изменения patterns/commands.

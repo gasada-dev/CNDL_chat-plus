@@ -64,6 +64,42 @@ public final class ServerTemplateManager {
 		return TemplateOperationResult.success(copy);
 	}
 
+	public TemplateOperationResult<ServerTemplate> importNew(ServerTemplate source) {
+		if (source == null || !ServerTemplateRepository.isSafeId(source.id)) {
+			return TemplateOperationResult.failure("Некорректный ID импортируемого шаблона", null);
+		}
+		TemplateNameValidator.ValidationResult nameResult = TemplateNameValidator.validate(source.name);
+		if (!nameResult.valid()) {
+			return TemplateOperationResult.failure(nameResult.errorMessage(), null);
+		}
+		TemplateOperationResult<RootConfig> loaded = repository.loadRoot();
+		if (!loaded.success()) {
+			return TemplateOperationResult.failure(loaded.errorMessage(), loaded.error());
+		}
+		if (loaded.value().templates.stream().anyMatch(info -> source.id.equals(info.id))
+				|| repository.loadTemplate(source.id).success()) {
+			return TemplateOperationResult.failure("Шаблон с таким ID уже существует", null);
+		}
+
+		ServerTemplate imported = source.deepCopy(source.id, nameResult.normalizedName());
+		TemplateOperationResult<Void> savedTemplate = repository.saveTemplate(imported);
+		if (!savedTemplate.success()) {
+			return TemplateOperationResult.failure(savedTemplate.errorMessage(), savedTemplate.error());
+		}
+		loaded.value().templates.add(new ServerTemplateInfo(imported.id, imported.name));
+		TemplateOperationResult<Void> savedRoot = repository.saveRoot(loaded.value());
+		if (!savedRoot.success()) {
+			TemplateOperationResult<Void> cleanup = repository.deleteTemplate(imported.id);
+			if (!cleanup.success()) {
+				return TemplateOperationResult.failure(savedRoot.errorMessage()
+						+ "; не удалось удалить незарегистрированный файл: " + cleanup.errorMessage(),
+						savedRoot.error());
+			}
+			return TemplateOperationResult.failure(savedRoot.errorMessage(), savedRoot.error());
+		}
+		return TemplateOperationResult.success(imported);
+	}
+
 	public TemplateOperationResult<ServerTemplate> saveDraft(ServerTemplate draft, String name,
 			java.util.List<String> addressPatterns) {
 		TemplateNameValidator.ValidationResult nameResult = TemplateNameValidator.validate(name);

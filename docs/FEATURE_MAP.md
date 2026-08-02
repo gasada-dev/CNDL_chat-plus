@@ -4,7 +4,8 @@
 |---|---|---|---|
 | Bootstrap, F8, Fabric events | `GasadaChatResponderClient` | active runtime | Запуск, F8, connect/disconnect |
 | Автовыбор template | `TemplateSelectionService`, `ServerTemplateResolver` | root bindings/patterns/default | exact, wildcard, default, unknown server |
-| Template CRUD/UI | `ServerTemplateManager`, `TemplatesScreen`, `TemplateEditorScreen` | root + template files | create/copy/rename/delete/default/bind/temp select |
+| Template CRUD/UI | `ServerTemplateManager`, `TemplatesScreen`, `TemplateEditorScreen` | root + template files | create/copy/rename/commands/Discord/delete/default/bind/temp select |
+| Bundled/external templates | `TemplateCatalogService` | JAR catalog + import folder | install once/no overwrite/validation/load button |
 | Выборочный import | `TemplateImportService`, `TemplateImportScreen` | source/target template | preview, confirmation, REPLACE/MERGE/SKIP |
 | Wildcard rules | `WildcardMatcher`, `ReplyRuleMatcher` | compiled active rules | exact/все позиции `*`/regex literals/first wins |
 | Канал ответа | `ChatChannelDetector` | active prefixes/markers/parsers | Discord → private → clan → global → LOCAL |
@@ -17,9 +18,9 @@
 | Friend lookup | `FriendLookupManager`, `FriendLookupParser` | active friends/patterns/last seen | delay/timeout/block interception/switch reset |
 | Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
 | Периодические сообщения | `PeriodicMessageScheduler` | active periodic slots | полный interval, reset, chat vs command, max 3 |
-| Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, visible «Рассылки», status/suggestions |
+| Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, template selector/settings, hidden 15×15 periodic hotspot |
 | Legacy config/migration | `ConfigManager`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration` | legacy + Vanilla-box | backup, sanitize, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
-| Update check | `UpdateChecker`, `UpdateVersion` | global runtime state | async/status/type/size/UTF-8/URL/version/client tick |
+| Update check | `UpdateChecker`, `UpdateVersion` | GitHub latest release | async/status/type/size/UTF-8/tag/asset URL/client tick |
 
 Подробные потоки описаны в `docs/ARCHITECTURE.md`, schema — в `docs/CONFIG.md` и `docs/SERVER_TEMPLATES.md`, команды — в `docs/SERVER_COMMANDS.md`.

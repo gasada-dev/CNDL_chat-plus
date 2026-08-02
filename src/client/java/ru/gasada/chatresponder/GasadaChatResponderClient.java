@@ -19,6 +19,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static ServerCommandService SERVER_COMMANDS;
 	public static FriendActionService FRIEND_ACTIONS;
 	public static TemplateSelectionService TEMPLATE_SELECTION;
+	public static TemplateCatalogService TEMPLATE_CATALOG;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -30,8 +31,13 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		switchCoordinator.register(engine::resetRuntimeState);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
-		TEMPLATE_SELECTION = new TemplateSelectionService(
-				ConfigManager.templateRepository(), TEMPLATE_RUNTIME, CONFIG);
+		ServerTemplateRepository templateRepository = ConfigManager.templateRepository();
+		TEMPLATE_CATALOG = new TemplateCatalogService(templateRepository, ConfigManager.templateImportDirectory());
+		TemplateCatalogService.ImportSummary bundled = TEMPLATE_CATALOG.installBundledTemplates();
+		if (!bundled.success()) {
+			LOGGER.warn("Не все встроенные шаблоны установлены: {}", String.join("; ", bundled.errors()));
+		}
+		TEMPLATE_SELECTION = new TemplateSelectionService(templateRepository, TEMPLATE_RUNTIME, CONFIG);
 		TemplateOperationResult<ServerTemplate> initialTemplate = TEMPLATE_SELECTION.initializeDefault();
 		if (!initialTemplate.success()) {
 			LOGGER.warn("Не удалось выбрать начальный шаблон: {}", initialTemplate.errorMessage());

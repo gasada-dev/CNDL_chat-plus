@@ -69,9 +69,14 @@ public final class TemplatesScreen extends Screen {
 		addAction(actionX, 102, actionWidth, "Сделать шаблоном по умолчанию", this::setDefault);
 		addAction(actionX, 126, actionWidth, "Привязать текущий адрес", this::bindCurrentAddress);
 		addAction(actionX, 150, actionWidth, "Удалить", this::deleteSelected);
-		addRenderableWidget(Button.builder(Component.literal("Импорт настроек"), ignored ->
+		int importButtonWidth = (actionWidth - 4) / 2;
+		addRenderableWidget(Button.builder(Component.literal("Импорт между"), ignored ->
 				minecraft.gui.setScreen(new TemplateImportScreen(this)))
-				.bounds(actionX, 174, actionWidth, 20).build());
+				.bounds(actionX, 174, importButtonWidth, 20).build());
+		addRenderableWidget(Button.builder(Component.literal("Загрузить шаблоны из папки"), ignored ->
+				loadFromFolder()).bounds(actionX + importButtonWidth + 4, 174,
+						actionWidth - importButtonWidth - 4, 20)
+				.tooltip(help(ConfigManager.templateImportDirectory().toString())).build());
 
 		int createY = height - 91;
 		idBox = new EditBox(font, x + 16, createY, 150, 20, Component.literal("ID шаблона"));
@@ -145,6 +150,19 @@ public final class TemplatesScreen extends Screen {
 		}
 		TemplateOperationResult<Void> result = manager.bindAddress(address, selectedId);
 		setStatus(result.success() ? "Адрес привязан постоянно" : result.errorMessage(), result.success());
+	}
+
+	private void loadFromFolder() {
+		TemplateCatalogService catalog = GasadaChatResponderClient.TEMPLATE_CATALOG != null
+				? GasadaChatResponderClient.TEMPLATE_CATALOG
+				: new TemplateCatalogService(repository, ConfigManager.templateImportDirectory());
+		TemplateCatalogService.ImportSummary result = catalog.importUserTemplates();
+		if (result.success()) {
+			setStatus("Загружено: " + result.installed() + ", пропущено: " + result.skipped(), true);
+		} else {
+			setStatus("Ошибки импорта: " + String.join("; ", result.errors()), false);
+		}
+		rebuild();
 	}
 
 	private void deleteSelected() {

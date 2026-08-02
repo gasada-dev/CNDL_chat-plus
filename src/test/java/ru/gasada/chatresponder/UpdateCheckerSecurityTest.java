@@ -10,8 +10,8 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 final class UpdateCheckerSecurityTest {
-	private static final String VALID_URL = "https://raw.githubusercontent.com/gasada-dev/"
-			+ "MineModChat-/main/CNDL_chat+-0.4.4.jar";
+	private static final String VALID_URL = "https://github.com/gasada-dev/"
+			+ "MineModChat-/releases/download/v0.4.4/CNDL_chat+-0.4.4.jar";
 
 	@Test
 	void exactRepositoryJarAndVersionAreAccepted() {
@@ -22,7 +22,7 @@ final class UpdateCheckerSecurityTest {
 	@Test
 	void schemeHostRepositoryFilenameAndVersionAreAllRestricted() {
 		assertRejected(VALID_URL.replace("https:", "http:"));
-		assertRejected(VALID_URL.replace("raw.githubusercontent.com", "example.org"));
+		assertRejected(VALID_URL.replace("github.com", "example.org"));
 		assertRejected(VALID_URL.replace("gasada-dev/MineModChat-", "other/repository"));
 		assertRejected(VALID_URL.replace("0.4.4.jar", "0.4.5.jar"));
 		assertRejected(VALID_URL.replace(".jar", ".zip"));
@@ -41,14 +41,23 @@ final class UpdateCheckerSecurityTest {
 	}
 
 	@Test
-	void manifestParsingUsesStrictUtf8AndBodyLimit() {
-		String json = "{\"version\":\"0.4.4\",\"downloadUrl\":\"" + VALID_URL
-				+ "\",\"message\":\"ok\"}";
-		UpdateChecker.UpdateInfo parsed = UpdateChecker.parseManifest(json.getBytes(StandardCharsets.UTF_8));
+	void latestReleaseParsingUsesTagAndMatchingJarAsset() {
+		String json = "{\"tag_name\":\"v0.4.4\",\"body\":\"ok\",\"assets\":["
+				+ "{\"name\":\"CNDL_chat+-0.4.4-sources.jar\",\"browser_download_url\":\"ignored\"},"
+				+ "{\"name\":\"CNDL_chat+-0.4.4.jar\",\"browser_download_url\":\"" + VALID_URL + "\"}]}";
+		UpdateChecker.UpdateInfo parsed = UpdateChecker.parseRelease(json.getBytes(StandardCharsets.UTF_8));
 		assertEquals("0.4.4", parsed.version());
-		assertNull(UpdateChecker.parseManifest(new byte[] {(byte) 0xC3, (byte) 0x28}));
-		assertNull(UpdateChecker.parseManifest(new byte[UpdateChecker.MAX_BODY_BYTES + 1]));
-		assertNull(UpdateChecker.parseManifest("not json".getBytes(StandardCharsets.UTF_8)));
+		assertEquals(VALID_URL, parsed.downloadUrl());
+		assertEquals("ok", parsed.message());
+		assertNull(UpdateChecker.parseRelease(
+				"{\"tag_name\":\"v0.4.4\",\"assets\":[]}".getBytes(StandardCharsets.UTF_8)));
+		assertNull(UpdateChecker.parseRelease(
+				"{\"tag_name\":\"latest\",\"assets\":[]}".getBytes(StandardCharsets.UTF_8)));
+		assertNull(UpdateChecker.parseRelease(
+				"{\"tag_name\":\"0.4.4\",\"assets\":[]}".getBytes(StandardCharsets.UTF_8)));
+		assertNull(UpdateChecker.parseRelease(new byte[] {(byte) 0xC3, (byte) 0x28}));
+		assertNull(UpdateChecker.parseRelease(new byte[UpdateChecker.MAX_BODY_BYTES + 1]));
+		assertNull(UpdateChecker.parseRelease("not json".getBytes(StandardCharsets.UTF_8)));
 	}
 
 	@Test

@@ -13,9 +13,12 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 
 public final class ResponderScreen extends Screen {
@@ -67,6 +70,7 @@ public final class ResponderScreen extends Screen {
 		panelWidth = Math.min(820, width - 20);
 		panelX = (width - panelWidth) / 2;
 		pageSize = Math.max(3, Math.min(8, (height - 126) / ROW_HEIGHT));
+		initTemplateSelector();
 
 		int quarter = panelWidth / 4;
 		addTabButton(Tab.RULES, panelX, 27, quarter);
@@ -90,6 +94,55 @@ public final class ResponderScreen extends Screen {
 		}).bounds(x, y, buttonWidth, 20).build());
 		button.active = tab != target;
 		button.setTooltip(help(target.help));
+	}
+
+	private void initTemplateSelector() {
+		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
+		String activeId = GasadaChatResponderClient.TEMPLATE_RUNTIME == null ? null
+				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+						.map(ActiveTemplateSnapshot::id).orElse(null);
+		if (loaded.success() && !loaded.value().templates.isEmpty()) {
+			List<String> ids = loaded.value().templates.stream().map(info -> info.id).toList();
+			String initial = activeId != null && ids.contains(activeId) ? activeId : ids.getFirst();
+			CycleButton<String> selector = CycleButton.builder(
+					id -> Component.literal(templateName(loaded.value(), id)), initial)
+					.withValues(ids).displayOnlyValue()
+					.create(panelX + 6, 2, Math.min(190, panelWidth - 42), 18,
+							Component.empty(), (button, id) -> selectTemplate(id));
+			addRenderableWidget(selector);
+			selector.setTooltip(help("Активный серверный шаблон"));
+		}
+		addRenderableWidget(Button.builder(Component.literal("⚙"), ignored ->
+				minecraft.gui.setScreen(new TemplatesScreen(this)))
+				.bounds(panelX + Math.min(198, panelWidth - 34), 2, 28, 18)
+				.tooltip(help("Настройки серверных шаблонов")).build());
+	}
+
+	private String templateName(RootConfig root, String id) {
+		return root.templates.stream().filter(info -> id.equals(info.id))
+				.map(info -> info.name).findFirst().orElse(id);
+	}
+
+	private void selectTemplate(String id) {
+		String current = GasadaChatResponderClient.TEMPLATE_RUNTIME == null ? null
+				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+						.map(ActiveTemplateSnapshot::id).orElse(null);
+		if (id.equals(current)) return;
+		if (!saveCurrentTab()) {
+			setStatus("Не удалось сохранить текущий шаблон", 0xFFFF7777);
+			rebuildContents();
+			return;
+		}
+		TemplateOperationResult<ServerTemplate> selected = GasadaChatResponderClient.TEMPLATE_SELECTION.select(id);
+		if (!selected.success()) {
+			setStatus(selected.errorMessage(), 0xFFFF7777);
+			rebuildContents();
+			return;
+		}
+		selectedFriend = null;
+		friendLookupsQueued = false;
+		setStatus("Активный шаблон: " + selected.value().name, 0xFF75D98B);
+		rebuildContents();
 	}
 
 	private void initRulesTab() {
@@ -121,11 +174,6 @@ public final class ResponderScreen extends Screen {
 		}).bounds(panelX + 75, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Создать новое правило автоответа")).build());
 
-		addRenderableWidget(Button.builder(Component.literal("Шаблоны"), ignored ->
-				minecraft.gui.setScreen(new TemplatesScreen(this)))
-				.bounds(panelX + 170, bottomY, 86, FIELD_HEIGHT)
-				.tooltip(help("Управление серверными шаблонами")).build());
-
 		Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
 			page--;
 			rebuildContents();
@@ -141,10 +189,8 @@ public final class ResponderScreen extends Screen {
 		next.active = page < maxPage;
 
 		int saveX = panelX + panelWidth - 90;
-		addRenderableWidget(Button.builder(Component.literal("Рассылки"), ignored ->
-				minecraft.gui.setScreen(new PeriodicMessageScreen(this, config)))
-				.bounds(panelX + 260, bottomY, 80, FIELD_HEIGHT)
-				.tooltip(help("Настроить до трёх периодических сообщений")).build());
+		addRenderableWidget(new InvisibleButton(0, 0, 15, 15,
+				() -> minecraft.gui.setScreen(new PeriodicMessageScreen(this, config))));
 		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> saveConfig())
 				.bounds(saveX, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Сохранить все настройки мода")).build());
@@ -786,12 +832,6 @@ public final class ResponderScreen extends Screen {
 		graphics.fill(panelX - 2, 20, panelX + panelWidth + 2, height - 2, PANEL_BORDER);
 		graphics.fill(panelX, 22, panelX + panelWidth, height - 4, PANEL_COLOR);
 		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
-		if (GasadaChatResponderClient.TEMPLATE_RUNTIME != null) {
-			String activeTemplate = GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
-					.map(ActiveTemplateSnapshot::name).orElse("нет");
-			graphics.text(font, "Шаблон: " + activeTemplate, panelX + 8, 8, MUTED_COLOR);
-		}
-
 		if (tab == Tab.RULES) {
 			graphics.text(font, "Слева — входящая фраза (* означает любой текст), справа — ответ", panelX + 8, 53, MUTED_COLOR);
 			graphics.centeredText(font, (page + 1) + " / " + (maxPage() + 1), width / 2, height - 32, MUTED_COLOR);
@@ -915,6 +955,28 @@ public final class ResponderScreen extends Screen {
 	private enum BlacklistMode {
 		NICKS,
 		WORDS
+	}
+
+	private static final class InvisibleButton extends AbstractWidget {
+		private final Runnable action;
+
+		private InvisibleButton(int x, int y, int width, int height, Runnable action) {
+			super(x, y, width, height, Component.empty());
+			this.action = action;
+		}
+
+		@Override
+		public void onClick(MouseButtonEvent event, boolean doubleClick) {
+			action.run();
+		}
+
+		@Override
+		protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		}
+
+		@Override
+		protected void updateWidgetNarration(NarrationElementOutput output) {
+		}
 	}
 
 }

@@ -15,6 +15,12 @@
 
 Vanilla strings определены только в `ServerCommandSettings.vanillaBoxDefaults()`. Другие classes не конкатенируют эти команды. `CommandTemplateValidator` требует точный набор placeholders и хранение без leading `/`. Если active template не содержит команду или template invalid, сервис возвращает понятную ошибку и ничего не отправляет; скрытого fallback Vanilla-box нет.
 
+Страница «Команды» в `TemplateEditorScreen` позволяет для каждого template заменить,
+например, `w {player} {message}` на `msg {player} {message}`, `call {player}` на
+`tpa {player}` или `ignoreplayer {player}` на серверный аналог. Пользователь вводит
+команду без начального `/` и не меняет обязательные placeholders. Там же редактируется
+private reply prefix автоответчика; Discord marker/name находятся на соседней странице.
+
 `PlayerNameValidator` принимает только `[A-Za-z0-9_]{1,16}`. `InputSanitizer`/message validators отклоняют CR, LF, NUL и control/format/line/paragraph characters. Sensitive private/mail text и суммы не логируются.
 
 ## Автоответчик

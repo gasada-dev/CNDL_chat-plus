@@ -122,7 +122,7 @@ public final class ServerTemplateRepository {
 		return templatesDirectory.resolve(id + ".json");
 	}
 
-	private static boolean isSafeId(String id) {
+	static boolean isSafeId(String id) {
 		return id != null && SAFE_ID.matcher(id).matches();
 	}
 }

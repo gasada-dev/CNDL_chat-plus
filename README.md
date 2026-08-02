@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер и настраиваемый автоответчик для Minecraft 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.4.3-B76EF5)
+![Version](https://img.shields.io/badge/version-0.4.4-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
@@ -15,11 +15,9 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 ## Скачать
 
-Готовая сборка хранится прямо в репозитории:
-
-**[Скачать CNDL_chat+ 0.4.3](CNDL_chat+-0.4.3.jar)**
-
-На странице файла в GitHub нажмите кнопку **Download raw file**.
+Актуальный JAR публикуется в разделе
+**[GitHub Releases](https://github.com/gasada-dev/MineModChat-/releases/latest)**.
+Файлы из корня репозитория и build artifacts не считаются релизом.
 
 ## Возможности
 
@@ -76,7 +74,8 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 - подсказки при наведении на видимые кнопки;
 - автодополнение ников клавишей `Tab`;
 - автоматическое сохранение конфигурации;
-- видимая кнопка «Рассылки» для трёх периодических сообщений;
+- скрытая зона `15×15` в левом верхнем углу первой вкладки открывает три рассылки;
+- сверху расположен выпадающий список активного шаблона и кнопка его настроек;
 - экран templates: empty/copy, rename, address patterns, default, temporary/exact binding;
 - выборочный preview/import категорий с REPLACE/MERGE/SKIP;
 - подпись `create by CNDL` с фирменным градиентом.
@@ -88,13 +87,17 @@ CNDL_chat+ объединяет правила автоответа, маршр�
   commands и parser patterns изолированы между серверами;
 - выбор: exact binding → exact/wildcard address pattern → default;
 - при переключении очищаются guards, lookup/presence и timers;
+- команды `/w`/`/msg`, teleport, blacklist, lookup, pay/mail и Discord patterns
+  редактируются отдельно для каждого шаблона;
+- встроенные шаблоны поставляются в JAR, дополнительные JSON загружаются из
+  `.minecraft/config/gasada-chat-responder-template-imports/`;
 - hot path использует immutable snapshot и не читает JSON.
 
 ## Установка
 
 1. Установите Minecraft 26.2 и Fabric Loader 0.19.3 или новее.
 2. Установите Fabric API версии `0.156.0+26.2` или новее для Minecraft 26.2.
-3. Поместите `CNDL_chat+-0.4.3.jar` в папку `.minecraft/mods`.
+3. Поместите `CNDL_chat+-0.4.4.jar` в папку `.minecraft/mods`.
 4. Запустите игру и нажмите `F8`.
 
 Мод работает только на клиенте. Устанавливать его на сервер не требуется.
@@ -107,6 +110,7 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 .minecraft/config/gasada-chat-responder.json
 .minecraft/config/server-templates.json
 .minecraft/config/server-templates/*.json
+.minecraft/config/gasada-chat-responder-template-imports/*.json
 ```
 
 Внутренний ID и имя файла конфигурации сохранены для совместимости с ранними
@@ -114,19 +118,11 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 ## Проверка обновлений
 
-Один раз за запуск, после фактического входа на сервер, мод асинхронно проверяет
-файл [`version.json`](version.json) в ветке `main`. Проверка не выполняется в
-главном меню или на экране подключения. Если указанная версия новее установленной,
-в игре появляется информационное окно с прямой ссылкой на JAR.
-
-Текущие адреса:
-
-- манифест: `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/version.json`;
-- JAR: `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/CNDL_chat%2B-0.4.3.jar`.
-
-При публикации следующей сборки нужно поместить новый JAR в корень репозитория и
-изменить поля `version` и `downloadUrl` в `version.json`. Ошибка сети не мешает
-запуску и работе мода.
+Один раз за запуск, после фактического входа на сервер, мод асинхронно читает
+`https://api.github.com/repos/gasada-dev/MineModChat-/releases/latest`. Версия
+берётся из release tag, а ссылка — только из asset с именем
+`CNDL_chat+-<version>.jar`. Проверка не выполняется в главном меню или на экране
+подключения. Ошибка сети или некорректный release не мешает работе мода.
 
 ## Сборка из исходников
 
@@ -140,8 +136,9 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 Готовый JAR появится в `build/libs/`.
 
-GitHub Actions выполняет те же проверки на Java 25 и загружает build artifacts,
-но не публикует release автоматически. Ручная процедура: [`docs/RELEASE.md`](docs/RELEASE.md).
+GitHub Actions выполняет проверки на Java 25. Push тега `v<mod_version>` после
+успешной сборки автоматически создаёт GitHub Release и прикладывает основной JAR.
+Процедура: [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ## Лицензия
 
