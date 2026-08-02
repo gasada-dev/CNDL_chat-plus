@@ -67,7 +67,9 @@ ClientReceiveMessageEvents.ALLOW_GAME
 5. displayed содержит обязательный `(!)` или `globalMarkers` → `GLOBAL`.
 6. Иначе → `LOCAL`.
 
-Кандидаты: исходный content, displayed text, текст без global/clan prefix и части после последнего `: `, `» `, `] ` и `→ `. Они нормализуются через lowercase `Locale.ROOT`, trim и схлопывание whitespace. `WildcardMatcher` сопоставляет маску rule с кандидатом целиком в режиме `FULL_MATCH`; muted words используют `CONTAINS_MATCH`. Только `*` означает любую последовательность, остальные regex-символы экранируются. Скомпилированные patterns хранятся в ограниченных кешах экземпляров и обновляются при появлении изменённого source.
+`ChatResponderEngine` координирует вызовы, а состояние и алгоритмы разделены: `OwnMessageGuard`, `DuplicateMessageGuard`, `ReplyCandidateBuilder` и compiled-on-switch `ReplyRuleMatcher`. Оба временных guard используют инъецируемый `LongSupplier`; matcher читает только rule snapshots активного шаблона и сохраняет правило «первое подходящее включённое правило побеждает».
+
+Кандидаты: исходный content, displayed text, текст без global/clan prefix и части после последнего separator активного шаблона. Они нормализуются через lowercase `Locale.ROOT`, trim и схлопывание whitespace. `WildcardMatcher` сопоставляет маску rule с кандидатом целиком в режиме `FULL_MATCH`; muted words используют `CONTAINS_MATCH`. Только `*` означает любую последовательность, остальные regex-символы экранируются. Скомпилированные rules и filters заменяются вместе с active snapshot.
 
 ### Формирование ответа
 

@@ -10,9 +10,9 @@
 | CRUD rules и порядок | `ResponderScreen.initRulesTab/addRuleRow` | `ReplyRule`, `ConfigManager` | `rules` | Создать два совпадающих rules; отвечает только первый; удалить/отключить rule |
 | Wildcard rule `*` | `WildcardMatcher` (`FULL_MATCH`) | `ChatResponderEngine`, `CompiledWildcard`, `ReplyRule` | `rules[].trigger` | Проверить exact, prefix*, *suffix, *contains*, `*` |
 | Определение канала | `ChatChannelDetector` | `CompiledParserSettings`, `DiscordMessageParser`, `ChatResponderEngine` | active template prefixes/markers/patterns | Отправить LOCAL/GLOBAL/CLAN/PRIVATE/Discord samples и проверить канал ответа |
-| Кандидаты текста | `ChatResponderEngine.buildCandidates` | — | global/clan prefix | Проверить decorated server messages после `: `, `» `, `] `, `→ ` |
-| Игнорирование своих сообщений | `handlePlayerMessage`, `isLikelyOwnDisplayedMessage`, `isRecentOwnMessage` | Minecraft profile/connection | channel prefixes | Ответ мода не должен повторно активировать rule в течение 5 секунд |
-| Защита от дублей | `ChatResponderEngine.handleIncoming` | — | — | Два одинаковых callback в пределах 400 мс дают один ответ |
+| Кандидаты текста | `ReplyCandidateBuilder` | `ChatResponderEngine` | active prefix и separators | Проверить decorated server messages после server-specific separators |
+| Игнорирование своих сообщений | `OwnMessageGuard` | `ChatResponderEngine`, Minecraft profile/connection | active channel prefixes | Ответ мода не должен повторно активировать rule в течение 5 секунд |
+| Защита от дублей | `DuplicateMessageGuard` | `ChatResponderEngine` | — | Два одинаковых callback в пределах 400 мс дают один ответ |
 | Полное скрытие Discord | `ChatVisibilityFilter` | `CompiledFilterSet`, `DiscordMessageParser` | active template `discordChatEnabled` | Выключить toggle; Discord-сообщение скрыто и не запускает rule |
 | Распознавание Discord sender | `DiscordMessageParser` | `CompiledParserSettings` | active template Discord patterns | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
 | Локальный Discord-мут | `ResponderScreen.addDiscordMutedPlayer` | Discord filter | `discordMutedPlayers` | Добавить Unicode name, получить сообщение, затем снять мут |

@@ -10,6 +10,7 @@ public final class ServerTemplateRuntime {
 	private volatile ActiveTemplateSnapshot activeSnapshot;
 	private volatile CompiledParserSettings compiledParsers;
 	private volatile CompiledFilterSet compiledFilters;
+	private volatile ReplyRuleMatcher compiledReplyRules;
 	private long generation;
 
 	public ServerTemplateRuntime(TemplateSwitchCoordinator switchCoordinator) {
@@ -31,6 +32,7 @@ public final class ServerTemplateRuntime {
 		activeSnapshot = ActiveTemplateSnapshot.from(template, ++generation);
 		compiledParsers = CompiledParserSettings.compile(activeSnapshot.parsers());
 		compiledFilters = CompiledFilterSet.compile(activeSnapshot);
+		compiledReplyRules = ReplyRuleMatcher.compile(activeSnapshot.rules());
 		return activeSnapshot;
 	}
 
@@ -40,6 +42,7 @@ public final class ServerTemplateRuntime {
 		activeSnapshot = null;
 		compiledParsers = null;
 		compiledFilters = null;
+		compiledReplyRules = null;
 		generation++;
 	}
 
@@ -53,6 +56,10 @@ public final class ServerTemplateRuntime {
 
 	public Optional<CompiledFilterSet> compiledFilters() {
 		return Optional.ofNullable(compiledFilters);
+	}
+
+	public Optional<ReplyRuleMatcher> compiledReplyRules() {
+		return Optional.ofNullable(compiledReplyRules);
 	}
 
 	public synchronized void putTemporaryOverride(String key, String value) {
