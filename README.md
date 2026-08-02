@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер и настраиваемый автоответчик для Minecraft 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.4.0-B76EF5)
+![Version](https://img.shields.io/badge/version-0.4.1-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
@@ -16,7 +16,7 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 Готовая сборка хранится прямо в репозитории:
 
-**[Скачать CNDL_chat+ 0.4.0](CNDL_chat+-0.4.0.jar)**
+**[Скачать CNDL_chat+ 0.4.1](CNDL_chat+-0.4.1.jar)**
 
 На странице файла в GitHub нажмите кнопку **Download raw file**.
 
@@ -88,7 +88,7 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 1. Установите Minecraft 26.2 и Fabric Loader 0.19.3 или новее.
 2. Установите Fabric API версии `0.156.0+26.2` или новее для Minecraft 26.2.
-3. Поместите `CNDL_chat+-0.4.0.jar` в папку `.minecraft/mods`.
+3. Поместите `CNDL_chat+-0.4.1.jar` в папку `.minecraft/mods`.
 4. Запустите игру и нажмите `F8`.
 
 Мод работает только на клиенте. Устанавливать его на сервер не требуется.
@@ -114,7 +114,7 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 Текущие адреса:
 
 - манифест: `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/version.json`;
-- JAR: `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/CNDL_chat%2B-0.4.0.jar`.
+- JAR: `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/CNDL_chat%2B-0.4.1.jar`.
 
 При публикации следующей сборки нужно поместить новый JAR в корень репозитория и
 изменить поля `version` и `downloadUrl` в `version.json`. Ошибка сети не мешает

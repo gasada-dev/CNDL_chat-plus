@@ -1,6 +1,6 @@
 # Текст для Telegram
 
-🟣 **CNDL_chat+ 0.4.0 — умный чат-менеджер для Minecraft 26.2 Fabric**
+🟣 **CNDL_chat+ 0.4.1 — умный чат-менеджер для Minecraft 26.2 Fabric**
 
 CNDL_chat+ помогает автоматизировать общение на сервере, фильтровать ненужные
 сообщения и быстро взаимодействовать с друзьями. Все функции собраны в удобном
@@ -51,7 +51,7 @@ GUI, который открывается клавишей **F8**.
 • Fabric Loader 0.19.3+  
 • Fabric API 0.156.0+26.2 или новее
 
-📦 **Скачать JAR:** `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/CNDL_chat%2B-0.4.0.jar`
+📦 **Скачать JAR:** `https://raw.githubusercontent.com/gasada-dev/MineModChat-/main/CNDL_chat%2B-0.4.1.jar`
 💻 **Исходный код:** `[вставьте ссылку на GitHub]`
 
 Создано CNDL 💜
