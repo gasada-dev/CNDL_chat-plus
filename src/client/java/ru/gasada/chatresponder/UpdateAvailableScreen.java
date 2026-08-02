@@ -25,8 +25,8 @@ public final class UpdateAvailableScreen extends Screen {
 	protected void init() {
 		int panelX = (width - PANEL_WIDTH) / 2;
 		int panelY = (height - PANEL_HEIGHT) / 2;
-		addRenderableWidget(Button.builder(Component.literal("Скачать " + update.version), ignored ->
-				ConfirmLinkScreen.confirmLinkNow(this, update.downloadUrl))
+		addRenderableWidget(Button.builder(Component.literal("Скачать " + update.version()), ignored ->
+				ConfirmLinkScreen.confirmLinkNow(this, update.downloadUrl()))
 				.bounds(panelX + 24, panelY + 105, 150, 20)
 				.tooltip(Tooltip.create(Component.literal("Открыть полный JAR-файл на GitHub")))
 				.build());
@@ -49,11 +49,11 @@ public final class UpdateAvailableScreen extends Screen {
 				0xFF536178);
 		graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xF0242B38);
 		graphics.centeredText(font, title, width / 2, panelY + 16, 0xFFE8ECF2);
-		graphics.centeredText(font, "Установлена: " + currentVersion + "  →  Новая: " + update.version,
+		graphics.centeredText(font, "Установлена: " + currentVersion + "  →  Новая: " + update.version(),
 				width / 2, panelY + 42, 0xFFB76EF5);
-		String message = update.message == null || update.message.isBlank()
+		String message = update.message() == null || update.message().isBlank()
 				? "Рекомендуется установить актуальную версию мода."
-				: update.message;
+				: update.message();
 		graphics.textWithWordWrap(font, Component.literal(message), panelX + 24, panelY + 62,
 				PANEL_WIDTH - 48, 0xFFCED5E0);
 		CreditRenderer.draw(graphics, font, panelX + 6, panelY + PANEL_HEIGHT - 12, 0xFF9DA8B8);

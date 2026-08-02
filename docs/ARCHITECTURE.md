@@ -142,7 +142,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 
 ## Проверка обновлений
 
-`UpdateChecker.start` создаёт `HttpClient`, добавляет cache-busting timestamp и асинхронно читает `version.json`. Он требует status 200, числовую версию из 2–4 частей, HTTPS, host `raw.githubusercontent.com` и окончание path `CNDL_chat+-<version>.jar`. Body size, content type, точный repository path, redirects, user info, fragment и длины полей сейчас не ограничены. Async callback меняет только `AtomicReference`; экран открывается из client tick.
+`UpdateChecker` использует один shared `HttpClient` с redirect policy `NEVER`, explicit `CheckState` и асинхронно читает не более 64 KiB manifest body. Требуются status 200, JSON/plain Content-Type, строгий UTF-8, ограниченные поля, numeric version, HTTPS без user info/query/fragment, разрешённый host, точный repository path и JAR `CNDL_chat+-<version>.jar`. `UpdateVersion` отдельно сохраняет прежнюю comparison semantics. Async callback публикует только состояние/immutable DTO; экран открывается из client tick.
 
 ## Исходящие вызовы
 

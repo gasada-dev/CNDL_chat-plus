@@ -37,8 +37,8 @@
 | Legacy periodic migration | `ResponderConfig.sanitize` | `PeriodicMessageConfig` | три legacy periodic поля | Загрузить JSON только со старыми полями; появляется один slot |
 | Legacy default rules migration | `ResponderConfig.hasOldDefaultRules` | `ReplyRule` | `rules` | Старую точную пару rules заменить на текущий default rule |
 | Проверка обновлений | `UpdateChecker` | `UpdateAvailableScreen` | — | Войти на сервер; manifest проверяется один раз асинхронно, network failure не ломает мод |
-| Валидация download URL | `UpdateChecker.isValid` | `URI`, manifest DTO | — | HTTP/другой host/неверное JAR name отклоняются; правильный raw GitHub URL принимается |
-| Сравнение версий | `UpdateChecker.compareVersions` | — | — | Проверить newer/equal и trailing zero |
+| Валидация download URL | `UpdateChecker.validate` | `URI`, immutable manifest DTO | — | HTTP/redirect/другой host/repository/user info/fragment/неверное JAR name отклоняются |
+| Сравнение версий | `UpdateVersion.compare` | — | — | Проверить newer/equal, trailing zero и characterization invalid versions |
 | Подтверждение ссылки | `UpdateAvailableScreen.init` | `ConfirmLinkScreen` | — | «Скачать» сначала открывает стандартное подтверждение URL |
 | Фирменная подпись | `CreditRenderer.draw` | все screens | — | На основном, periodic и update screens виден прежний gradient CNDL |
 
