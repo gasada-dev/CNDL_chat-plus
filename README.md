@@ -8,7 +8,8 @@
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
 
 CNDL_chat+ объединяет правила автоответа, маршрутизацию по каналам, фильтрацию
-чата и быстрые действия с друзьями в одном GUI.
+чата и быстрые действия с друзьями в одном GUI. Настройки изолируются в
+серверных шаблонах, выбираемых по фактическому адресу сервера.
 Экран мода открывается клавишей **F8**. Привязку можно изменить в стандартных
 настройках управления Minecraft.
 
@@ -75,7 +76,19 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 - подсказки при наведении на видимые кнопки;
 - автодополнение ников клавишей `Tab`;
 - автоматическое сохранение конфигурации;
+- видимая кнопка «Рассылки» для трёх периодических сообщений;
+- экран templates: empty/copy, rename, address patterns, default, temporary/exact binding;
+- выборочный preview/import категорий с REPLACE/MERGE/SKIP;
 - подпись `create by CNDL` с фирменным градиентом.
+
+### Серверные шаблоны
+
+- старый config безопасно мигрирует в `Vanilla-box` с побайтовым backup;
+- rules, channels, filters, Discord, friends/last seen/HUD, periodic messages,
+  commands и parser patterns изолированы между серверами;
+- выбор: exact binding → exact/wildcard address pattern → default;
+- при переключении очищаются guards, lookup/presence и timers;
+- hot path использует immutable snapshot и не читает JSON.
 
 ## Установка
 
@@ -92,6 +105,8 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 ```text
 .minecraft/config/gasada-chat-responder.json
+.minecraft/config/server-templates.json
+.minecraft/config/server-templates/*.json
 ```
 
 Внутренний ID и имя файла конфигурации сохранены для совместимости с ранними
@@ -119,10 +134,14 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 установка Gradle не нужна.
 
 ```bash
+./gradlew test
 ./gradlew build
 ```
 
 Готовый JAR появится в `build/libs/`.
+
+GitHub Actions выполняет те же проверки на Java 25 и загружает build artifacts,
+но не публикует release автоматически. Ручная процедура: [`docs/RELEASE.md`](docs/RELEASE.md).
 
 ## Лицензия
 

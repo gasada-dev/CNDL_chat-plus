@@ -63,6 +63,10 @@ public final class ServerTemplateRepository {
 			if (template == null || !id.equals(template.id)) {
 				return TemplateOperationResult.failure("Файл шаблона не соответствует ID: " + id, null);
 			}
+			if (template.name == null || template.name.isBlank()) {
+				return TemplateOperationResult.failure("Шаблон не содержит имя: " + id, null);
+			}
+			template.sanitize();
 			return TemplateOperationResult.success(template);
 		} catch (Exception error) {
 			return TemplateOperationResult.failure("Не удалось прочитать шаблон: " + id, error);
@@ -73,6 +77,10 @@ public final class ServerTemplateRepository {
 		if (template == null || !isSafeId(template.id)) {
 			return TemplateOperationResult.failure("Некорректный ID шаблона", null);
 		}
+		if (template.name == null || template.name.isBlank()) {
+			return TemplateOperationResult.failure("Шаблон не содержит имя", null);
+		}
+		template.sanitize();
 		return writeAtomic(templatePath(template.id), GSON.toJson(template));
 	}
 

@@ -47,6 +47,32 @@ final class ServerTemplateRepositoryTest {
 	}
 
 	@Test
+	void structurallyNullFieldsAreSanitizedWithoutVanillaFallback() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
+		ServerTemplate template = ServerTemplate.empty("safe", "Safe");
+		template.globalPrefix = null;
+		template.rules = null;
+		template.periodicMessages = null;
+		template.commands = null;
+		template.parsers = null;
+		assertTrue(repository.saveTemplate(template).success());
+
+		ServerTemplate loaded = repository.loadTemplate("safe").value();
+		assertEquals("", loaded.globalPrefix);
+		assertTrue(loaded.rules.isEmpty());
+		assertTrue(loaded.periodicMessages.isEmpty());
+		assertEquals("", loaded.commands.pay);
+		assertEquals("", loaded.parsers.lastSeenPattern);
+	}
+
+	@Test
+	void missingTemplateNameFailsInsteadOfPublishingCorruptData() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
+		ServerTemplate template = ServerTemplate.empty("bad-name", null);
+		assertFalse(repository.saveTemplate(template).success());
+	}
+
+	@Test
 	void managerCreatesAndCopiesIndependentTemplates() {
 		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
 		ServerTemplateManager manager = new ServerTemplateManager(repository);

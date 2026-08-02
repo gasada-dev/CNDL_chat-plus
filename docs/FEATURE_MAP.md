@@ -1,62 +1,25 @@
-# Карта существующих функций
+# Карта функций CNDL_chat+
 
-Таблица отражает фактическую реализацию версии 0.4.3. Она не является перечнем будущих функций.
+| Функция | Основной владелец | Active/template data | Проверка |
+|---|---|---|---|
+| Bootstrap, F8, Fabric events | `GasadaChatResponderClient` | active runtime | Запуск, F8, connect/disconnect |
+| Автовыбор template | `TemplateSelectionService`, `ServerTemplateResolver` | root bindings/patterns/default | exact, wildcard, default, unknown server |
+| Template CRUD/UI | `ServerTemplateManager`, `TemplatesScreen`, `TemplateEditorScreen` | root + template files | create/copy/rename/delete/default/bind/temp select |
+| Выборочный import | `TemplateImportService`, `TemplateImportScreen` | source/target template | preview, confirmation, REPLACE/MERGE/SKIP |
+| Wildcard rules | `WildcardMatcher`, `ReplyRuleMatcher` | compiled active rules | exact/все позиции `*`/regex literals/first wins |
+| Канал ответа | `ChatChannelDetector` | active prefixes/markers/parsers | Discord → private → clan → global → LOCAL |
+| Candidates/normalization | `ReplyCandidateBuilder`, `ChatTextNormalizer` | active separators | prefixes, Unicode whitespace, punctuation |
+| Echo и duplicate guards | `OwnMessageGuard`, `DuplicateMessageGuard` | runtime only | окна 5 с и 400 мс, reset on switch |
+| Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | active Discord/mutes/words | hidden message не активирует responder |
+| Исходящий chat/command | `OutgoingChatService` | connection | единственные Minecraft API send calls |
+| Именованные команды | `ServerCommandService` | active command templates | validators, missing command → no send |
+| Friend actions | `FriendActionService` | active friends/commands | `/w`, `/pay`, `/call`, `/mail send` |
+| Friend lookup | `FriendLookupManager`, `FriendLookupParser` | active friends/patterns/last seen | delay/timeout/block interception/switch reset |
+| Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
+| Периодические сообщения | `PeriodicMessageScheduler` | active periodic slots | полный interval, reset, chat vs command, max 3 |
+| Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, visible «Рассылки», status/suggestions |
+| Legacy config/migration | `ConfigManager`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration` | legacy + Vanilla-box | backup, sanitize, no repeat/no loss |
+| Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
+| Update check | `UpdateChecker`, `UpdateVersion` | global runtime state | async/status/type/size/UTF-8/URL/version/client tick |
 
-| Функция | Основной класс/метод | Связанные классы | Config-поля | Ручная проверка |
-|---|---|---|---|---|
-| Загрузка клиента | `GasadaChatResponderClient.onInitializeClient` | все сервисы, Fabric events | весь config | Запустить client, войти на сервер, проверить отсутствие startup error |
-| Открытие GUI по F8 | `GasadaChatResponderClient` END_CLIENT_TICK | `ResponderScreen` | — | Нажать F8 в игре; экран открывается и не ставит игру на паузу |
-| Импорт шаблонов | `TemplateImportScreen` | `TemplateImportService`, `TemplateImportPreview` | source/target template files | Выбрать категории и list mode, проверить preview, подтвердить и сверить только target |
-| Включение автоответчика | rules tab `ResponderScreen` | `ChatResponderEngine` | `enabled` | Выключить, получить trigger, убедиться в отсутствии ответа; включить обратно |
-| CRUD rules и порядок | `ResponderScreen.initRulesTab/addRuleRow` | `ReplyRule`, `ConfigManager` | `rules` | Создать два совпадающих rules; отвечает только первый; удалить/отключить rule |
-| Wildcard rule `*` | `WildcardMatcher` (`FULL_MATCH`) | `ChatResponderEngine`, `CompiledWildcard`, `ReplyRule` | `rules[].trigger` | Проверить exact, prefix*, *suffix, *contains*, `*` |
-| Определение канала | `ChatChannelDetector` | `CompiledParserSettings`, `DiscordMessageParser`, `ChatResponderEngine` | active template prefixes/markers/patterns | Отправить LOCAL/GLOBAL/CLAN/PRIVATE/Discord samples и проверить канал ответа |
-| Кандидаты текста | `ReplyCandidateBuilder` | `ChatResponderEngine` | active prefix и separators | Проверить decorated server messages после server-specific separators |
-| Игнорирование своих сообщений | `OwnMessageGuard` | `ChatResponderEngine`, Minecraft profile/connection | active channel prefixes | Ответ мода не должен повторно активировать rule в течение 5 секунд |
-| Защита от дублей | `DuplicateMessageGuard` | `ChatResponderEngine` | — | Два одинаковых callback в пределах 400 мс дают один ответ |
-| Полное скрытие Discord | `ChatVisibilityFilter` | `CompiledFilterSet`, `DiscordMessageParser` | active template `discordChatEnabled` | Выключить toggle; Discord-сообщение скрыто и не запускает rule |
-| Распознавание Discord sender | `DiscordMessageParser` | `CompiledParserSettings` | active template Discord patterns | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
-| Локальный Discord-мут | `ResponderScreen.addDiscordMutedPlayer` | Discord filter | `discordMutedPlayers` | Добавить Unicode name, получить сообщение, затем снять мут |
-| Чёрный список слов | `ChatVisibilityFilter`, `CompiledFilterSet` | `WildcardMatcher` (`CONTAINS_MATCH`), blacklist tab | active template `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
-| Серверный мут игрока | `ServerCommandService.ignorePlayer` | `ResponderScreen`, `OutgoingChatService` | active template command | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
-| Список друзей | friends tab `ResponderScreen` | `ConfigManager` | `friends`, `friendLastSeen` | Добавить/выбрать/удалить друга, закрыть и открыть экран |
-| Подсказки ников | `PlayerSuggestionProvider` | `ResponderScreen`, `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
-| Online/offline во вкладке | `ResponderScreen.tick/currentOnlineFriends` | connection player list | `friends`, `friendLastSeen` | Открыть вкладку; дождаться обновления примерно через 20 ticks |
-| Lookup последнего входа | `FriendLookupManager` | `FriendLookupParser`, `ServerCommandService`, Fabric ALLOW events | active template patterns; `friends`, `friendLastSeen` | Дождаться `/clan lookup`, проверить скрытие блока и сохранённый timestamp |
-| HUD online-друзей | `FriendsHud.render` | `FriendPresenceTracker`, `FriendHudSnapshot`, HUD registry | active template friends/HUD | Включить HUD; online friend виден справа снизу; выключить toggle |
-| Уведомление/звук входа | `FriendPresenceTracker`, `FriendsHud.tick` | `FriendHudSnapshot`, `SoundEvents.PLAYER_LEVELUP` | active template HUD/sound | После warmup подтвердить offline ≥5 с, затем online; одно notice на 4 с и один звук |
-| Личное сообщение другу | `ServerCommandService.privateMessage` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, ввести текст, нажать «Отправить ЛС», проверить `/w` |
-| Перевод другу | `ServerCommandService.pay` | `ResponderScreen`, `AmountValidator` | active template command/friends | Проверить положительную сумму, десятичную с `,`, invalid format и отправку `/pay` |
-| Запрос телепорта | `ServerCommandService.call` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, нажать «Отправить ТП», проверить `/call` |
-| Почта другу | `ServerCommandService.mail` | `ResponderScreen`, `MessageValidator` | active template command/friends | Ввести независимый mail text, проверить `/mail send` и очистку поля |
-| До трёх рассылок | видимая кнопка «Рассылки», `PeriodicMessageScreen` | `PeriodicMessageConfig.MAX_PERIODIC_MESSAGES`, scheduler | active template `periodicMessages` | Открыть кнопку, добавить 3, четвёртая недоступна |
-| Планирование рассылки | `PeriodicMessageScheduler.tick` | active template runtime | active template `periodicMessages` | Первый send только после полного interval; edit/disable/switch сбрасывает timer |
-| Periodic chat/command | `PeriodicMessageScheduler.send` | `OutgoingChatService` | active template message | Plain text идёт как chat; leading `/` — как command |
-| Загрузка/санитизация config | `ConfigManager.load`, `ResponderConfig.sanitize` | Gson | все поля | Проверить отсутствующий, старый, null-filled и вручную отредактированный JSON |
-| Атомарное сохранение config | `ConfigManager.save` | NIO Files | все поля | Save создаёт итоговый JSON; `.tmp` не остаётся после успешного move |
-| Legacy periodic migration | `ResponderConfig.sanitize` | `PeriodicMessageConfig` | три legacy periodic поля | Загрузить JSON только со старыми полями; появляется один slot |
-| Legacy default rules migration | `ResponderConfig.hasOldDefaultRules` | `ReplyRule` | `rules` | Старую точную пару rules заменить на текущий default rule |
-| Проверка обновлений | `UpdateChecker` | `UpdateAvailableScreen` | — | Войти на сервер; manifest проверяется один раз асинхронно, network failure не ломает мод |
-| Валидация download URL | `UpdateChecker.validate` | `URI`, immutable manifest DTO | — | HTTP/redirect/другой host/repository/user info/fragment/неверное JAR name отклоняются |
-| Сравнение версий | `UpdateVersion.compare` | — | — | Проверить newer/equal, trailing zero и characterization invalid versions |
-| Подтверждение ссылки | `UpdateAvailableScreen.init` | `ConfirmLinkScreen` | — | «Скачать» сначала открывает стандартное подтверждение URL |
-| Фирменная подпись | `CreditRenderer.draw` | все screens | — | На основном, periodic и update screens виден прежний gradient CNDL |
-
-## Класс → ответственность в текущем коде
-
-| Класс | Фактическая ответственность |
-|---|---|
-| `GasadaChatResponderClient` | bootstrapping, global dependencies, key/tick/message events, Discord parse и visibility filter, muted wildcard matching |
-| `ConfigManager` | JSON load/save и temp→move |
-| `ResponderConfig` | data model, defaults, sanitization и legacy migrations |
-| `ChatResponderEngine` | own/duplicate guards, normalization, Discord/channel detection, candidate building, wildcard rule matching, reply construction и send |
-| `FriendLookupManager` | queue/state/timing, command send, response parsing, visibility decision, config mutation/save |
-| `FriendsHud` | presence state machine, sound, snapshot calculation и render |
-| `PeriodicMessageScheduler` | три timers и direct chat/command send |
-| `ResponderScreen` | четыре tabs, live config mutation, validation, commands, friends/online/suggestions, pagination и save |
-| `PeriodicMessageScreen` | periodic drafts, validation, config mutation/save и UI |
-| `UpdateChecker` | async HTTP, manifest/URL/version validation и tick handoff to UI |
-| `UpdateAvailableScreen` | update presentation и confirmed link opening |
-| `CreditRenderer` | CNDL signature rendering |
-
-Подробный аудит вызовов, regex, tick/render, сохранений и static state находится в `docs/ARCHITECTURE.md`.
+Подробные потоки описаны в `docs/ARCHITECTURE.md`, schema — в `docs/CONFIG.md` и `docs/SERVER_TEMPLATES.md`, команды — в `docs/SERVER_COMMANDS.md`.

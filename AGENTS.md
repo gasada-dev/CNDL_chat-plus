@@ -2,7 +2,7 @@
 
 ## Назначение проекта
 
-CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он сохраняет правила автоответа, распознаёт существующие каналы сервера, фильтрует сообщения, ведёт список друзей, выполняет связанные с друзьями серверные команды, отправляет до трёх периодических сообщений и проверяет наличие обновления.
+CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он сохраняет изолированные серверные шаблоны, правила автоответа, распознаёт каналы, фильтрует сообщения, ведёт друзей, выполняет связанные серверные команды, отправляет до трёх периодических сообщений и проверяет обновления.
 
 Мод не должен получать новые пользовательские функции без отдельной явной задачи. При рефакторинге сохраняйте текущее поведение, интерфейс и совместимость конфигурации.
 
@@ -32,13 +32,14 @@ CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он с
 ## Подсистемы
 
 - Инициализация и Fabric events: `GasadaChatResponderClient`.
-- Конфигурация: `ConfigManager`, `ResponderConfig`, `ReplyRule`, `PeriodicMessageConfig`.
-- Автоответ и каналы: `ChatResponderEngine`, `ChatChannel`.
-- Discord- и word-фильтры: `GasadaChatResponderClient`.
-- Друзья и lookup: `FriendLookupManager`, `FriendsHud`, вкладка друзей в `ResponderScreen`.
+- Конфигурация/templates: `ConfigManager`, `ServerTemplateRepository`, `ServerTemplateManager`, `TemplateSelectionService`, `ServerTemplateRuntime`.
+- Автоответ и каналы: `ChatResponderEngine`, `ChatChannelDetector`, `ReplyRuleMatcher`, guards.
+- Discord- и word-фильтры: `ChatVisibilityFilter`, `CompiledFilterSet`, `DiscordMessageParser`.
+- Исходящие команды: `OutgoingChatService`, `ServerCommandService`, `FriendActionService`.
+- Друзья и lookup: `FriendLookupManager`, `FriendPresenceTracker`, `FriendsHud`.
 - Периодические сообщения: `PeriodicMessageScheduler`, `PeriodicMessageScreen`.
-- Основной GUI: `ResponderScreen`, `CreditRenderer`.
-- Проверка обновлений: `UpdateChecker`, `UpdateAvailableScreen`.
+- Основной GUI: `ResponderScreen` и tab controllers; templates/import screens; `CreditRenderer`.
+- Проверка обновлений: `UpdateChecker`, `UpdateVersion`, `UpdateAvailableScreen`.
 
 Подробные потоки и известные пересечения ответственности описаны в `docs/ARCHITECTURE.md`; соответствие функций классам — в `docs/FEATURE_MAP.md`.
 
@@ -50,6 +51,7 @@ CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он с
 - файл `.minecraft/config/gasada-chat-responder.json`;
 - клавишу F8 по умолчанию;
 - существующие JSON-поля;
+- template ID `vanilla-box`, root/template paths и безопасную migration старого config;
 - значения `ChatChannel`: `AUTO`, `LOCAL`, `GLOBAL`, `CLAN`, `PRIVATE`;
 - текущие префиксы и маркеры по умолчанию;
 - максимум три периодических сообщения;
@@ -60,10 +62,12 @@ CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он с
 ## Изменения конфигурации
 
 - Прочитайте `docs/CONFIG.md` и найдите всех читателей и писателей изменяемого поля.
+- Server-specific данные не добавляйте в root/global config и не применяйте без active snapshot.
 - Старые поля не удаляйте до появления явной версионированной миграции.
 - Новый формат обязан загружать старый JSON без потери настроек.
 - Валидируйте данные после загрузки и перед использованием, а не только в UI.
 - Сохраняйте схему `temporary file -> move -> основной файл` и имя файла.
+- Не добавляйте скрытый fallback `Vanilla-box`: unknown/missing template должен завершаться безопасной ошибкой/no active template.
 - Ошибки чтения/записи нельзя игнорировать: логируйте их и передавайте понятный результат вызывающему коду.
 - Не сохраняйте config из render callback.
 
@@ -91,5 +95,6 @@ CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он с
 1. Запустите `./gradlew test`.
 2. Запустите `./gradlew build`.
 3. Проверьте отсутствие несвязанных правок и массового форматирования.
-4. Перечислите изменённые файлы, ручные проверки, риски и известные ограничения.
-5. Убедитесь, что ошибки не подавляются пустым `catch` и одна подсистема не ломает остальные.
+4. Для release/CI изменений выполните `./gradlew clean test build` и проверьте отсутствие JUnit в runtime JAR.
+5. Перечислите изменённые файлы, ручные проверки, риски и известные ограничения.
+6. Убедитесь, что ошибки не подавляются пустым `catch` и одна подсистема не ломает остальные.

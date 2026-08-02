@@ -35,6 +35,51 @@ public final class ServerTemplate {
 		return template;
 	}
 
+	public void sanitize() {
+		if (rules == null) rules = new ArrayList<>();
+		rules.removeIf(rule -> rule == null);
+		for (ReplyRule rule : rules) {
+			if (rule.trigger == null) rule.trigger = "";
+			if (rule.response == null) rule.response = "";
+			if (rule.channel == null) rule.channel = ChatChannel.AUTO;
+		}
+		globalPrefix = safe(globalPrefix);
+		clanReplyPrefix = safe(clanReplyPrefix);
+		privateReplyCommand = safe(privateReplyCommand);
+		globalMarkers = safe(globalMarkers);
+		clanMarkers = safe(clanMarkers);
+		privateMarkers = safe(privateMarkers);
+		mutedWords = sanitizeStrings(mutedWords);
+		discordMutedPlayers = sanitizeStrings(discordMutedPlayers);
+		mutedMinecraftPlayers = sanitizeStrings(mutedMinecraftPlayers);
+		friends = sanitizeStrings(friends);
+		if (friendLastSeen == null) friendLastSeen = new LinkedHashMap<>();
+		friendLastSeen.entrySet().removeIf(entry -> entry.getKey() == null || entry.getValue() == null);
+		if (periodicMessages == null) periodicMessages = new ArrayList<>();
+		periodicMessages.removeIf(value -> value == null);
+		if (periodicMessages.size() > PeriodicMessageConfig.MAX_PERIODIC_MESSAGES) {
+			periodicMessages = new ArrayList<>(periodicMessages.subList(
+					0, PeriodicMessageConfig.MAX_PERIODIC_MESSAGES));
+		}
+		for (PeriodicMessageConfig value : periodicMessages) {
+			if (value.message == null) value.message = "";
+		}
+		if (commands == null) commands = new ServerCommandSettings();
+		if (parsers == null) parsers = new ParserSettings();
+		if (parsers.replyCandidateSeparators == null) parsers.replyCandidateSeparators = new ArrayList<>();
+		parsers.replyCandidateSeparators.removeIf(value -> value == null);
+	}
+
+	private static String safe(String value) {
+		return value == null ? "" : value;
+	}
+
+	private static List<String> sanitizeStrings(List<String> source) {
+		List<String> result = new ArrayList<>(source == null ? List.of() : source);
+		result.removeIf(value -> value == null);
+		return result;
+	}
+
 	public ServerTemplate deepCopy(String newId, String newName) {
 		ServerTemplate copy = new ServerTemplate();
 		copy.id = newId;

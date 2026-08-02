@@ -1,254 +1,94 @@
-# Серверные шаблоны CNDL_chat+
+# Серверные шаблоны
 
-## Статус документа
+Server templates предотвращают смешивание rules, commands, parsers, filters, friends и timers серверов с разными форматами/командами. Runtime всегда работает с одним immutable active snapshot и не угадывает настройки по display name сервера.
 
-Документ описывает систему серверных шаблонов на основе архитектуры версии 0.4.3. Модель `RootConfig`/`ServerTemplate` и файловый `ServerTemplateRepository` уже существуют как изолированный слой данных, но пока не подключены к runtime, UI или старому config. Следующие разделы одновременно фиксируют реализованные инварианты модели и требования следующих этапов.
+## Модель и хранение
 
-Первый встроенный шаблон называется `Vanilla-box`. Он является точкой совместимости с текущим серверно-зависимым поведением мода, а не новым набором настроек.
+- `RootConfig` хранит schema version, default template, `ServerTemplateInfo` и exact address bindings.
+- `ServerTemplate` хранит server-specific данные.
+- `ServerTemplateRepository` читает/атомарно пишет `server-templates.json` и `server-templates/<id>.json`.
+- `ServerTemplateManager` выполняет CRUD/metadata/default/bind operations.
+- `ServerTemplateRuntime` публикует `ActiveTemplateSnapshot` и compiled derivatives.
 
-## Зачем нужны серверные шаблоны
+Между templates изолированы:
 
-Сейчас `ConfigManager` загружает один `ResponderConfig`, а `GasadaChatResponderClient` передаёт тот же изменяемый объект в `ChatResponderEngine`, `PeriodicMessageScheduler`, `FriendLookupManager`, `FriendsHud` и экраны. В результате правила, распознавание формата чата, друзья, фильтры и команды одинаково применяются на любом сервере.
+- ordered reply rules и responder enabled;
+- channel prefixes/markers и reply command;
+- muted words и Minecraft/Discord mute lists;
+- Discord toggle/settings;
+- friends и last seen;
+- friend HUD/sound;
+- periodic messages;
+- server command templates;
+- Discord/channel/friend lookup parser patterns и separators.
 
-Серверные шаблоны должны:
+Глобальными остаются MOD ID, F8 key mapping (Minecraft controls), update-check runtime, UI theme, root schema/default/bindings и transient application services. Guards/queues/presence/timers/compiled objects не являются config и сбрасываются на switch.
 
-- отделить настройки, зависящие от формата и команд конкретного сервера;
-- исключить отправку ответа, lookup или периодического сообщения с настройками другого сервера;
-- сохранить независимые списки друзей, last seen и фильтры для разных серверов;
-- позволить переиспользовать проверенный набор настроек через копирование и выборочный импорт;
-- сохранить текущее поведение без потерь после миграции в `Vanilla-box`.
+## Vanilla-box migration
 
-Шаблон не является сервером и не должен хранить сетевое соединение или runtime-состояние. Один шаблон можно явно привязать к нескольким адресам, если пользователь намеренно использует там одинаковый формат.
+Первый успешный migration старого `gasada-chat-responder.json` создаёт template ID `vanilla-box`, name `Vanilla-box`. Переносятся все server-specific legacy fields без потери rules/friends/blacklists/last seen/periodic data. Команды и parsers получают `ServerCommandSettings.vanillaBoxDefaults()` и `ParserSettings.vanillaBoxDefaults()`.
 
-## Планируемая модель данных
+Порядок безопасности: byte-for-byte backup → read/sanitize → atomic template save → reread/equality check → root save → root reread. Старый config не удаляется и повторная migration не создаёт duplicates.
 
-Будущая корневая конфигурация должна логически разделяться на три части:
+## Выбор по адресу
 
-1. Глобальные настройки мода.
-2. Реестр шаблонов с устойчивыми внутренними идентификаторами.
-3. Привязки нормализованных адресов серверов к идентификаторам шаблонов.
+`TemplateSelectionService` использует фактический `ServerData.ip`, а `ServerAddressNormalizer` приводит hostname/register/default port к canonical form. Приоритет:
 
-Активный шаблон выбирается для текущего соединения. `ServerTemplateRuntime` публикует один согласованный immutable `ActiveTemplateSnapshot` с generation, а `TemplateSwitchCoordinator` сбрасывает старое runtime-состояние. Сохранение из UI всегда должно иметь явный целевой идентификатор. Имя шаблона предназначено для пользователя и может изменяться; привязки не ссылаются на имя.
+```text
+exact permanent binding
+→ exact address pattern
+→ most-specific wildcard subdomain pattern
+→ default template
+→ no active template
+```
 
-Корневая схема хранится в `server-templates.json`, а каждый шаблон — в `server-templates/<id>.json`. Это пока отдельный repository рядом с прежним `.minecraft/config/gasada-chat-responder.json`; старый файл остаётся единственным runtime-config до безопасной миграции.
+Ручной «Выбрать временно» действует до следующего connection change. «Привязать текущий адрес» сохраняет exact normalized binding. Display server name не используется как identity.
 
-## Данные, изолируемые между шаблонами
+## Создание и редактирование
 
-Все перечисленные ниже данные являются серверно-зависимыми и не должны разделять изменяемые коллекции между шаблонами.
+`TemplatesScreen` создаёт:
 
-| Категория | Текущие поля и владельцы | Требование к шаблону |
-|---|---|---|
-| Автоответчик | `ResponderConfig.enabled`, `rules`; `ReplyRule`; `ChatResponderEngine` | Отдельные master toggle, порядок и содержимое правил. Сохраняется правило «первое подходящее включённое правило побеждает». |
-| Каналы | `globalPrefix`, `clanReplyPrefix`, `privateReplyCommand`, `globalMarkers`, `clanMarkers`, `privateMarkers`; `ChatResponderEngine` | Отдельные префиксы, команды ответа и маркеры. Значения `ChatChannel` остаются `AUTO`, `LOCAL`, `GLOBAL`, `CLAN`, `PRIVATE`. |
-| Чёрный список слов | `mutedWords`; фильтр в `GasadaChatResponderClient` | Отдельный список и отдельно скомпилированные фильтры. |
-| Discord | `discordChatEnabled`, `discordMutedPlayers`, распознавание marker/sender в `GasadaChatResponderClient` | Отдельный toggle, список muted players и серверные patterns распознавания Discord-моста. |
-| Друзья | `friends`; `ResponderScreen`, `FriendLookupManager`, `FriendsHud` | Отдельный список для каждого шаблона. |
-| Last seen | `friendLastSeen`; `FriendLookupManager` | Отдельная карта, связанная с друзьями того же шаблона. Записи другого шаблона не показываются и не обновляются. |
-| HUD и звук друзей | `friendHudEnabled`; state и `PLAYER_LEVELUP` в `FriendsHud` | Включение HUD и параметры серверно-зависимого presence/уведомления относятся к шаблону. Текущие hardcoded timing и sound переносятся в `Vanilla-box` как поведение совместимости, если позднее станут данными. |
-| Периодические сообщения | `periodicMessages`; `PeriodicMessageConfig`; `PeriodicMessageScheduler` | Отдельные сообщения и интервалы, не более трёх записей. Таймеры не являются данными шаблона. |
-| Серверные команды | hardcoded construction в `ResponderScreen`, `FriendLookupManager`, а также channel reply fields | Синтаксис поддерживаемых действий должен принадлежать шаблону. Добавление новых команд не следует из этой модели. Перед отправкой сохраняется повторная валидация аргументов. |
-| Friend lookup patterns | `LAST_SEEN`, `INACTIVE`, `LOOKUP_END`, `LOOKUP_OUTPUT`, `TIMESTAMP_ONLY` в `FriendLookupManager` | Patterns и правила извлечения/скрытия ответа принадлежат шаблону. Очередь, pending result и timeout являются runtime-состоянием. |
+- пустой template;
+- deep copy `Vanilla-box`;
+- deep copy выбранного template.
 
-Копирование шаблона всегда выполняется глубоко: `rules`, `periodicMessages`, списки, maps и command/pattern definitions нового шаблона не должны ссылаться на коллекции исходного.
+`TemplateEditorScreen` редактирует display name и address patterns через deep-copy draft. До успешного repository save runtime не меняется. Можно выбрать default, временно активировать или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
 
-## Глобальные настройки
+Основные server settings выбранного active template продолжают редактироваться четырьмя вкладками `ResponderScreen`; compatible `ResponderConfig` служит view и при save маршрутизируется в active template. Non-Vanilla save не перезаписывает legacy Vanilla data.
 
-Глобальными должны оставаться только данные, не описывающие конкретный сервер:
+## Импорт
 
-- версия схемы и служебное состояние миграции;
-- идентификаторы, пользовательские имена и порядок отображения шаблонов;
-- привязки адресов, шаблон по умолчанию и сохранённая политика fallback;
-- глобальная политика ручного выбора: одно соединение или сохранённая привязка;
-- MOD ID, имя config-файла и клавиша F8 по умолчанию;
-- настройка и состояние проверки обновлений `UpdateChecker`;
-- общие параметры логирования, приватности и интерфейса, если они появятся и не зависят от сервера.
+`TemplateImportOptions` выбирает категории:
 
-`enabled`, Discord toggle, friend HUD toggle и содержимое экранов не следует делать глобальными: их применение на неизвестном сервере может создать утечку поведения из другого шаблона. Сетевое соединение, таймеры, очереди, compiled objects и UI drafts вообще не сохраняются в config.
+- reply rules;
+- channels/markers;
+- muted words/Minecraft/Discord lists;
+- Discord settings;
+- friends/last seen/HUD/sound;
+- periodic messages;
+- commands;
+- parser patterns.
 
-## Автоматический выбор по адресу сервера
+Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Merge строковых lists выполняет case-insensitive dedup, где это допустимо; rules учитывают trigger/response/channel/enabled. Periodic result обрезается до трёх. Existing target last seen не заменяется source value без explicit overwrite. Commands и regex parsers валидируются до записи.
 
-Адрес берётся из данных текущего соединения Minecraft, а не из текста чата, MOTD или DNS-результата. Перед поиском привязки он нормализуется единым `ServerAddressNormalizer`:
+`TemplateImportPreview` содержит proposed target и summary, но не пишет файлы. `TemplateImportScreen` требует preview и отдельное подтверждение. `TemplateImportService.apply` сохраняет только target; source не изменяется. Если target active, runtime перепубликуется после успешной записи.
 
-- hostname приводится к каноническому регистру и без завершающей точки;
-- IDN и IPv6 получают одно однозначное каноническое представление;
-- явный порт сохраняется, а стандартный порт обрабатывается одинаково при записи и поиске;
-- username, path и query не входят в ключ;
-- DNS lookup не используется: IP может измениться, а несколько имён могут вести на один адрес.
+## Runtime reset и hot path
 
-Выбор `ServerTemplateResolver` выполняет в порядке:
+При connect/manual switch сбрасываются duplicate/own guards, lookup/pending queue, presence/HUD notices, periodic timers, compiled reply rules/filters/parsers и temporary overrides. Новый periodic schedule начинает полный interval; старые накопленные сообщения не отправляются. Snapshot deep immutable; JSON в incoming message/render не читается.
 
-1. Явная точная привязка нормализованного `host:port`.
-2. Точный `addressPattern`.
-3. Wildcard `*.domain` (при конфликте побеждает наиболее специфичный suffix).
-4. Явно настроенный fallback/default template.
-5. Безопасное состояние «шаблон не выбран», если fallback отсутствует.
+## Hardcode Vanilla-box
 
-`AddressPatternValidator` разрешает wildcard только как один левый label `*.`; bare domain не совпадает с wildcard. Singleplayer, Realms и соединение без достоверного адреса должны иметь отдельный устойчивый ключ либо оставаться без шаблона; нельзя молча использовать последний шаблон другого соединения.
+Vanilla-only strings локализованы в двух factories:
 
-## Ручной выбор
+- `ServerCommandSettings.vanillaBoxDefaults()` — `/ignoreplayer`, `/clan lookup`, `/w`, `/pay`, `/call`, `/mail send`;
+- `ParserSettings.vanillaBoxDefaults()` — Discord marker/name, channel separators, last seen/inactive/end/output/timestamp patterns.
 
-Ручной выбор должен явно различать два действия:
+Общий command/parser/filter/responder runtime не содержит fallback на эти defaults. Статический legacy parser helper остаётся только для characterization compatibility tests.
 
-- применить шаблон только до конца текущего соединения;
-- применить и сохранить привязку к показанному нормализованному адресу.
+## Ограничения
 
-Сохранённая привязка создаётся только после подтверждения пользователя. При конфликте показываются текущий адрес, прежний и новый шаблоны. Вне соединения можно редактировать и копировать шаблоны, но выбор в редакторе не должен незаметно менять активный runtime.
-
-Переключение выполняется на Minecraft client thread как одна операция: сначала прекращается работа со старым template generation, затем публикуется новый snapshot, сбрасывается runtime-состояние и пересобираются производные данные.
-
-## Создание шаблонов
-
-### Пустой шаблон
-
-Пустой шаблон создаётся с новым ID и безопасными инвариантами, но без пользовательских правил, muted lists, друзей, last seen и активных периодических сообщений. Он не должен наследовать серверные команды и lookup patterns `Vanilla-box` незаметно. Если обязательные поля пока не допускают отсутствие значения, UI должен потребовать их заполнить до активации, а не подставлять команды другого сервера.
-
-### Копия `Vanilla-box`
-
-Создаётся глубокий snapshot совместимого шаблона `Vanilla-box` с новым ID и именем. Адресные привязки, runtime-state и UI drafts не копируются. Последующие изменения копии и оригинала независимы.
-
-### Копия другого шаблона
-
-Работает так же, но источником является явно выбранный шаблон. Копирование использует сохранённые данные выбранной версии, проверяет их и создаёт новый объект одной транзакцией. Ошибка не должна оставлять частично созданный шаблон.
-
-## Выборочный импорт категорий
-
-Импорт выполняется через предварительный `ImportPlan`, не прямыми изменениями live config. Пользователь выбирает источник, целевой шаблон и категории из таблицы выше. До применения показываются количество добавляемых, заменяемых и пропускаемых элементов и ошибки проверки.
-
-Правила импорта:
-
-- scalar-настройки выбранной категории заменяются как единое согласованное целое;
-- `friendLastSeen` импортируется вместе с друзьями либо только для имён, существующих в целевом списке без учёта регистра; orphan entries не создаются;
-- command definitions и lookup patterns импортируются целыми категориями, чтобы не получить несовместимую половину протокола;
-- periodic messages проверяются до применения; превышение лимита трёх не обрезается молча;
-- отмена или ошибка оставляет целевой шаблон неизменным;
-- после успешной проверки применяется глубокая копия и выполняется одно атомарное сохранение.
-
-### Режимы импорта списков
-
-Для `rules`, `mutedWords`, `discordMutedPlayers`, `friends`, `periodicMessages` и других списков доступны три явных режима:
-
-- **Заменить** — целевой список полностью заменяется глубокой копией списка источника.
-- **Объединить** — сначала сохраняется порядок целевого списка, затем добавляются отсутствующие элементы источника.
-- **Пропустить** — целевой список не меняется.
-
-Для строковых списков сравнение выполняется без учёта регистра после той же trim-нормализации, которую использует `ResponderConfig.sanitize()`. Для rules и periodic entries начальная политика дубликатов должна сравнивать все сохраняемые поля, пока у элементов нет собственных ID. Результат обязан проходить общую валидацию; неоднозначность или превышение лимита показывается пользователю, а не разрешается скрытой потерей данных.
-
-## Защита от смешивания настроек серверов
-
-Чтобы данные разных серверов не смешивались:
-
-- все связи используют стабильный template ID, а не изменяемое имя;
-- каждый callback, draft и асинхронный результат связывается с template ID и generation;
-- устаревший lookup/result после переключения игнорируется и не сохраняется в новый шаблон;
-- `ConfigManager.save` получает явную целевую корневую конфигурацию, а UI — явный template ID;
-- все runtime consumers читают один опубликованный snapshot, а не разные mutable copies;
-- коллекции шаблонов не разделяют mutable references;
-- disconnect удаляет session override и server identity согласно выбранной политике;
-- при неизвестном адресе запрещено автоматически продолжать таймеры и lookup последнего сервера;
-- лог сообщает ID/имя шаблона и адресную привязку без текста личных сообщений, ответов и сумм.
-
-## Безопасная миграция старого config
-
-Миграцию выполняет `LegacyConfigToVanillaBoxMigration`; она идемпотентна:
-
-1. Прочитать старый `.minecraft/config/gasada-chat-responder.json`, не перезаписывая его при ошибке parsing.
-2. Применить существующие migrations/sanitize к рабочей копии: nullable fields, legacy periodic fields, старые default rules, лимит трёх и обязательные defaults.
-3. Создать единственный шаблон `Vanilla-box` и перенести в него без потерь все серверно-зависимые поля текущего `ResponderConfig`.
-4. Создать глобальную часть, schema version и default/fallback на `Vanilla-box`. Не угадывать исторический адрес сервера: старый config его не хранит.
-5. Проверить новый объект и сериализовать его во временный файл рядом с основным.
-6. Сохранить recoverable backup `gasada-chat-responder.legacy-backup.json`, затем выполнить схему `temporary file -> move -> основной файл` для новых файлов.
-7. Только после успешного чтения нового файла считать миграцию завершённой. При сбое оставить старый config/backup и вернуть понятную ошибку без запуска с частично мигрированными данными.
-
-Повторный запуск не создаёт второй `Vanilla-box` и не повторяет импорт. Неизвестные будущие версии схемы нельзя открывать с последующей записью старым кодом. Миграционные тесты должны сравнивать каждое старое поле с данными `Vanilla-box` и подтверждать прежнее runtime-поведение.
-
-## Сброс runtime-состояния при смене шаблона
-
-Смена шаблона не является обычным редактированием config. На client thread требуется согласованный reset:
-
-| Состояние | Текущий владелец | Необходимое действие |
-|---|---|---|
-| Duplicate guard | `ChatResponderEngine.lastIncomingFingerprint`, `lastIncomingAt` | Очистить fingerprint и время, чтобы событие старого шаблона не влияло на новый. |
-| Own-message guard | `lastSentText`, `lastSentAt` | Очистить недавно отправленный текст и окно 5 секунд. |
-| Friend lookup | queue, `pendingFriend`, `pendingLastSeen`, timing в `FriendLookupManager` | Отменить queue/pending, сбросить delay/timeout и отклонить поздние строки старого generation. |
-| Presence tracker | static state `FriendsHud`: `previousOnline`, `offlineSince`, `onlineNotices`, `notificationsArmed`, `activeConnection`, `notificationsEnabledAt` | Полностью очистить состояние, заново пройти warmup и не воспроизводить уведомление при переключении. |
-| Periodic scheduler | три `PeriodicMessageScheduler.State`, connection identity/timers | Сбросить все слоты и начать первое планирование по новому шаблону без накопленной отправки. |
-| Compiled rules | будущий compiled rule set | Удалить старый set и атомарно собрать его из правил нового snapshot с сохранением порядка. |
-| Compiled filters | muted-word, Discord и channel/lookup patterns | Пересобрать только из нового шаблона; старые patterns больше не используются. |
-
-Открытые screen drafts должны быть закрыты либо явно перепривязаны после подтверждения; сохранить draft старого шаблона в новый нельзя.
-
-## Hardcode, относящийся к `Vanilla-box`
-
-Следующие существующие значения описывают конкретный формат сервера и при реализации должны стать содержимым совместимого шаблона, а не универсальными defaults для всех серверов.
-
-### Каналы и Discord
-
-- `globalPrefix`: `!`.
-- `clanReplyPrefix`: `/.`.
-- `privateReplyCommand`: `/r`.
-- `globalMarkers`: `(!),[g],[global],[глобальный],глобальный чат`; `(!)` также проверяется в `ChatResponderEngine.detectChannel` отдельно и восстанавливается `ResponderConfig.sanitize()`.
-- `clanMarkers`: `(клан),<клан>,〈клан〉,‹клан›`.
-- `privateMarkers`: `[pm],[лс],личное сообщение,шепчет,->,→`.
-- Discord marker: `(?iu)(?:\(|\[|<|\{|«|‹|〈)\s*discord\s*(?:\)|\]|>|\}|»|›|〉)`.
-- Discord sender token: `[\p{L}\p{N}_]{1,32}`; `»` используется как separator автора и текста.
-- Порядок detect: Discord, private markers, clan markers, content с global prefix, `(!)`/global markers, fallback `LOCAL`.
-- Candidate separators: `: `, `» `, `] `, `→ `.
-- Own-message formatting распознаёт `»`, `<name>`, `〈name〉`, `‹name›` и имя между последним `]` и `:`.
-
-### Команды
-
-- `clan lookup <player>` — `FriendLookupManager`.
-- `w <player> <message>` — личное сообщение другу.
-- `pay <player> <amount>` — перевод.
-- `call <player>` — запрос телепорта.
-- `mail send <player> <message>` — почта.
-- `ignoreplayer <player>` — серверный mute.
-
-Minecraft API получает команды без первого `/`; в пользовательской документации они отображаются как `/clan lookup`, `/w`, `/pay`, `/call`, `/mail send`, `/ignoreplayer`. Универсальные command/chat paths rule response и periodic message сохраняют нынешнее правило: leading `/` означает command.
-
-### Friend lookup
-
-- Последнее посещение: `(?iu)Был\s+(?:в\s+сети|онлайн)\s*:\s*([^\r\n]+)`.
-- Неактивность: `(?iu)Неактивен\s*:\s*([^\r\n]+)`.
-- Конец lookup: `(?iu)Тип\s+убийства\s*:`.
-- Timestamp-only: `\s*\[\d{1,2}:\d{2}(?::\d{2})?]\s*`.
-- Служебный output: `информация об игроке`, `профиль игрока`, последнее посещение/активность, `ранг:`, `КПД:`/`KDR:`, `убийств:`, `нейтральных:`, `смертей:`, `дата вступления:`, `прошлые кланы:`, `неактивен:`, `тип убийства:`, `статус:`, `клан:` с текущей whitespace- и case-insensitive семантикой `LOOKUP_OUTPUT`.
-- Timing: задержка между командами 2,5 секунды и timeout ответа 7 секунд.
-
-Широкое скрытие `статус:`, `клан:` и других lookup-строк действует даже вне активного lookup. Это странное текущее поведение должно быть сохранено в `Vanilla-box` при миграции и исправляться только отдельной задачей.
-
-### Presence/HUD
-
-Текущее поведение включает warmup 30 секунд, подтверждение offline 5 секунд, notice 4 секунды и `SimpleSoundInstance.forUI(SoundEvents.PLAYER_LEVELUP, 1.0F, 0.75F)`. Пока эти значения остаются hardcoded; если они будут вынесены в данные, исходные значения переходят в `Vanilla-box`.
-
-## Будущие классы и ответственность
-
-Имена ниже фиксируют границы ответственности, но классы в рамках этого документа не создаются:
-
-- `ServerTemplate` — данные одного шаблона и его инварианты;
-- `ServerTemplateRegistry` — владение шаблонами, уникальные ID, create/copy/delete;
-- `ServerTemplateBinding` — связь нормализованного server key с template ID;
-- `ServerAddressNormalizer` — единая канонизация адреса;
-- `ServerTemplateSelector` — автоматический выбор, session override и ручная привязка;
-- `ActiveServerTemplateManager` — публикация активного immutable snapshot/generation на client thread;
-- `LegacyConfigToVanillaBoxMigration` — версионированный перенос старого `ResponderConfig`;
-- `ServerTemplateImportService`, `TemplateImportPlan`, `ListImportMode` — preview, проверка и транзакционный выборочный импорт;
-- `TemplateRuntimeResetCoordinator` — сброс guards, lookup, presence, scheduler и compiled data;
-- `ServerCommandSettings` и `ParserSettings` — server-specific command definitions и parser sources; `CompiledParserSettings` изолированно валидирует и компилирует их при switch;
-- `CompiledReplyRules` и `CompiledMessageFilters` — производные immutable runtime-структуры.
-
-`ConfigManager` остаётся ответственным за совместимый legacy view и атомарную запись данных, а `TemplateSelectionService` — за выбор активного сервера. `ChatResponderEngine`, `FriendLookupManager`, `FriendsHud`, `PeriodicMessageScheduler` и command/filter services потребляют active snapshot через явную зависимость.
-
-`TemplatesScreen` и `TemplateEditorScreen` поддерживают создание пустого шаблона, копию `Vanilla-box` или выбранного шаблона, display-name rename, address patterns, default, временный выбор и exact binding текущего `ServerData.ip`. Editor работает с deep-copy draft; runtime меняется только после успешного save. Удаление требует повторного нажатия и запрещено для активного, единственного и default template. Основной экран показывает active template.
-
-`TemplateImportScreen` строит `TemplateImportPreview` до записи и требует отдельного подтверждения. `TemplateImportOptions` выбирает категории и независимый режим списка `REPLACE`, `MERGE` или `SKIP`. Merge дедуплицирует допустимые строковые списки без учёта регистра, ограничивает periodic slots тремя, по умолчанию сохраняет существующий target last seen и заменяет его только при явном выборе. Команды и parser patterns валидируются до `TemplateImportService.apply`; source и target на preview не меняются.
-
-## Критерии совместимости будущей реализации
-
-- Старый config после миграции ведёт себя в `Vanilla-box` так же, как до миграции.
-- Ни одно существующее поле, правило, друг, last seen или periodic slot не теряется молча.
-- Максимум три периодических сообщения и текущая семантика первого rule сохраняются.
-- Имя config-файла, MOD ID, F8 и значения `ChatChannel` не меняются.
-- Неизвестный сервер не получает автоматически команды, правила, фильтры или таймеры другого шаблона.
-- Любая смена шаблона выполняет полный runtime reset до обработки следующего сообщения/tick.
-- Серверные шаблоны не добавляют новые серверные команды и не ослабляют валидацию существующих.
+- Root schema version сейчас 1.
+- UI metadata editor использует comma-separated address patterns.
+- Удаление после успешного root update удаляет отдельный template file; active/default protections предотвращают loss текущего selection.
+- Minecraft client и реальные серверные formats требуют ручной проверки после изменения patterns/commands.

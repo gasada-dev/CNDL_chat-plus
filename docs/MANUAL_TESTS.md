@@ -14,6 +14,25 @@
 
 Ожидается: экран не ставит игру на паузу; F8 открывает `ResponderScreen`; сохранённое значение восстанавливается после перезапуска.
 
+### 1.1. Серверные шаблоны
+
+1. Нажать видимую кнопку «Шаблоны» и проверить active name на основном и template screen.
+2. Создать empty template, copy Vanilla-box и copy выбранного; переименовать draft и задать exact/wildcard patterns.
+3. Проверить временный выбор, default и permanent binding текущего address после reconnect.
+4. Убедиться, что active/default/единственный template нельзя удалить; для обычного delete требуется второе нажатие.
+5. Настроить разные rule/friend/filter в двух templates и переключаться между ними.
+
+Ожидается: настройки не смешиваются, старые guards/lookup/notices/timers не переносятся, неизвестный сервер без default не получает чужой template.
+
+### 1.2. Импорт
+
+1. Открыть «Импорт настроек», выбрать разные source/target.
+2. Выбрать часть categories и поочерёдно REPLACE/MERGE/SKIP.
+3. Создать preview и до confirmation проверить, что оба файла не изменились.
+4. Подтвердить импорт, проверить только target; source должен совпадать с backup.
+5. Проверить case-insensitive dedup, максимум три periodic slots и last seen overwrite toggle.
+6. Вручную создать invalid command/parser в source и убедиться, что apply заблокирован.
+
 ## 2. Правила автоответа
 
 1. Создать enabled rule с trigger `привет` и уникальным response.
@@ -116,7 +135,7 @@
 
 ## 12. Периодические сообщения
 
-1. На rules screen нажать существующую невидимую область 12×12 в левом верхнем углу экрана (текущий способ доступа к `PeriodicMessageScreen`).
+1. На rules screen нажать видимую кнопку «Рассылки».
 2. Добавить до трёх slots; убедиться, что четвёртый недоступен.
 3. Для chat slot задать короткий interval, включить и сохранить.
 4. Проверить отсутствие немедленной отправки и первую отправку после полного интервала.
@@ -126,7 +145,7 @@
 8. Отключиться/подключиться и проверить отсутствие накопленной отправки с прошлого connection.
 9. Настроить три независимых slots и проверить, что ошибка/disable одного не меняет остальные.
 
-Ожидается: максимум три, интервалы 1..525600, enabled blank отклоняется, отсчёт и тип отправки соответствуют текущей реализации. Сценарий reconnect особенно важен: текущий scheduler проверяет только наличие connection, поэтому результат следует зафиксировать перед будущим исправлением.
+Ожидается: максимум три, интервалы 1..525600, enabled blank отклоняется, отсчёт и тип отправки соответствуют текущей реализации. Disconnect и template switch удаляют старые timers; новый template начинает полный interval без накопленной отправки.
 
 ## 13. Проверка обновления
 
@@ -134,7 +153,7 @@
 2. Убедиться, что в main menu/connection screen окно не появляется.
 3. Войти на сервер и дождаться освобождения GUI.
 4. Нажать «Скачать» и проверить появление `ConfirmLinkScreen`, затем отменить.
-5. Повторить с равной/старой version, HTTP URL, другим host и неправильным JAR filename.
+5. Повторить с равной/старой version, redirect, неверным Content-Type/UTF-8, body >64 KiB, HTTP URL, user info, fragment/query, другим host/repository и неправильным JAR filename/version.
 6. Запустить без сети.
 
 Ожидается: проверка один раз за запуск, async; показывается только valid newer update; URL не открывается без confirmation; invalid/network failure не мешают работе мода.
@@ -148,7 +167,7 @@
 5. Повторить, открыть и закрыть F8 screen, затем проверить файл.
 6. Восстановить backup вручную.
 
-Текущее ожидаемое поведение аудита: ошибка логируется и runtime получает defaults; broken backup автоматически не создаётся. После закрытия `ResponderScreen` его `removed()` вызывает save, поэтому повреждённый файл может быть перезаписан defaults. Это известный риск, а не желаемое целевое поведение.
+Ожидается: migration/load error логируется, runtime получает defaults, а `gasada-chat-responder.legacy-backup.json` сохраняет исходные повреждённые bytes, потому что backup создаётся до parse. После закрытия `ResponderScreen` основной файл может быть перезаписан defaults; восстановление выполняется из backup вручную.
 
 ## 15. Старый config и sanitize
 
@@ -166,11 +185,12 @@
 
 ## 16. Минимальный smoke test перед релизом
 
-1. `./gradlew clean test build`.
+1. `./gradlew clean test build` и `git diff --check`.
 2. Проверить итоговый JAR в `build/libs/` и его имя.
 3. Запустить client с существующим config.
 4. F8, один rule на каждом channel, один word/Discord filter.
 5. Friend add/lookup/HUD и одна безопасная friend action.
 6. Один periodic chat и command.
 7. Update check failure и success paths.
-8. Убедиться, что `.tmp`, пользовательский config и временные файлы не попали в commit.
+8. Убедиться, что JUnit отсутствует в runtime classpath/JAR, а `.tmp`, пользовательский config и временные файлы не попали в commit.
+9. Проверить GitHub Actions build artifact; release/tag не должны создаваться автоматически.

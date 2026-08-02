@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 
 import com.google.gson.Gson;
@@ -62,16 +63,18 @@ public final class ConfigManager {
 			Files.writeString(temporaryPath, GSON.toJson(config), StandardCharsets.UTF_8);
 			try {
 				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-			} catch (IOException ignored) {
+			} catch (AtomicMoveNotSupportedException unsupported) {
 				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
 			}
-			ServerTemplate vanilla = templateRepository().loadTemplate(
-					LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID).value();
-			if (vanilla == null) {
-				vanilla = LegacyConfigToVanillaBoxMigration.fromLegacy(config);
-			} else {
-				LegacyConfigToVanillaBoxMigration.applyLegacyFields(vanilla, config);
+			TemplateOperationResult<ServerTemplate> loadedVanilla = templateRepository().loadTemplate(
+					LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID);
+			if (!loadedVanilla.success()) {
+				GasadaChatResponderClient.LOGGER.error("Не удалось безопасно обновить Vanilla-box: {}",
+						loadedVanilla.errorMessage(), loadedVanilla.error());
+				return false;
 			}
+			ServerTemplate vanilla = loadedVanilla.value();
+			LegacyConfigToVanillaBoxMigration.applyLegacyFields(vanilla, config);
 			if (!templateRepository().saveTemplate(vanilla).success()) {
 				return false;
 			}
@@ -80,6 +83,11 @@ public final class ConfigManager {
 			}
 			return true;
 		} catch (IOException exception) {
+			try {
+				Files.deleteIfExists(temporaryPath);
+			} catch (IOException cleanupError) {
+				exception.addSuppressed(cleanupError);
+			}
 			GasadaChatResponderClient.LOGGER.error("Не удалось сохранить настройки автоответчика", exception);
 			return false;
 		}
