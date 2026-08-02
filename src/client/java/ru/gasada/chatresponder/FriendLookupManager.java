@@ -4,8 +4,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -13,20 +11,9 @@ import net.minecraft.network.chat.Component;
 public final class FriendLookupManager {
 	private static final long COMMAND_DELAY_MS = 2_500;
 	private static final long RESPONSE_TIMEOUT_MS = 7_000;
-	private static final Pattern LAST_SEEN = Pattern.compile(
-			"(?iu)Был\\s+(?:в\\s+сети|онлайн)\\s*:\\s*([^\\r\\n]+)");
-	private static final Pattern INACTIVE = Pattern.compile(
-			"(?iu)Неактивен\\s*:\\s*([^\\r\\n]+)");
-	private static final Pattern LOOKUP_END = Pattern.compile("(?iu)Тип\\s+убийства\\s*:");
-	private static final Pattern LOOKUP_OUTPUT = Pattern.compile(
-			"(?iu)(?:информация\\s+об\\s+игроке|профиль\\s+игрока|был\\s+(?:в\\s+сети|онлайн)|"
-					+ "последн(?:ий|яя)\\s+(?:вход|активность)|ранг\\s*:|(?:кпд|kdr)\\s*:|убийств\\s*:|"
-					+ "нейтральных\\s*:|смертей\\s*:|дата\\s+вступления\\s*:|прошлые\\s+кланы\\s*:|"
-					+ "неактивен\\s*:|тип\\s+убийства\\s*:|статус\\s*:|клан\\s*:)");
-	private static final Pattern TIMESTAMP_ONLY = Pattern.compile("\\s*\\[\\d{1,2}:\\d{2}(?::\\d{2})?]\\s*");
-
 	private final ResponderConfig config;
 	private final ServerCommandService commandService;
+	private final ServerTemplateRuntime templateRuntime;
 	private final Deque<String> queue = new ArrayDeque<>();
 	private String pendingFriend;
 	private String pendingLastSeen;
@@ -34,12 +21,18 @@ public final class FriendLookupManager {
 	private long nextCommandAt;
 
 	public FriendLookupManager(ResponderConfig config) {
-		this(config, null);
+		this(config, null, ServerTemplateRuntime.fromLegacyConfig(config));
 	}
 
 	public FriendLookupManager(ResponderConfig config, ServerCommandService commandService) {
+		this(config, commandService, ServerTemplateRuntime.fromLegacyConfig(config));
+	}
+
+	public FriendLookupManager(ResponderConfig config, ServerCommandService commandService,
+			ServerTemplateRuntime templateRuntime) {
 		this.config = config;
 		this.commandService = commandService;
+		this.templateRuntime = templateRuntime;
 	}
 
 	public void queueFriends(Collection<String> friends) {
@@ -94,7 +87,7 @@ public final class FriendLookupManager {
 		}
 
 		String text = message.getString();
-		LookupParseResult parsed = parseMessage(text);
+		LookupParseResult parsed = parseMessage(activeParser(), text);
 		switch (parsed.type()) {
 			case EMPTY_OR_TIMESTAMP, LOOKUP_OUTPUT -> {
 				return false;
@@ -132,26 +125,18 @@ public final class FriendLookupManager {
 	}
 
 	static LookupParseResult parseMessage(String text) {
-		if (text.isBlank() || TIMESTAMP_ONLY.matcher(text).matches()) {
-			return new LookupParseResult(LookupMessageType.EMPTY_OR_TIMESTAMP, null);
-		}
+		return parseMessage(new FriendLookupParser(
+				CompiledParserSettings.compile(ParserSettings.vanillaBoxDefaults())), text);
+	}
 
-		Matcher lastSeen = LAST_SEEN.matcher(text);
-		if (lastSeen.find()) {
-			return new LookupParseResult(LookupMessageType.LAST_SEEN, lastSeen.group(1).trim());
-		}
+	private static LookupParseResult parseMessage(FriendLookupParser parser, String text) {
+		FriendLookupParser.ParseResult result = parser.parse(text);
+		return new LookupParseResult(LookupMessageType.valueOf(result.type().name()), result.value());
+	}
 
-		Matcher inactive = INACTIVE.matcher(text);
-		if (inactive.find()) {
-			return new LookupParseResult(LookupMessageType.INACTIVE, inactive.group(1).trim());
-		}
-		if (LOOKUP_END.matcher(text).find()) {
-			return new LookupParseResult(LookupMessageType.LOOKUP_END, null);
-		}
-		if (LOOKUP_OUTPUT.matcher(text).find()) {
-			return new LookupParseResult(LookupMessageType.LOOKUP_OUTPUT, null);
-		}
-		return new LookupParseResult(LookupMessageType.UNRELATED, null);
+	private FriendLookupParser activeParser() {
+		return new FriendLookupParser(templateRuntime.compiledParsers().orElseGet(() ->
+				CompiledParserSettings.compile(new ParserSettings())));
 	}
 
 	private void finishLookup() {

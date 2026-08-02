@@ -18,6 +18,7 @@ public final class ChatResponderEngine {
 	private final ResponderConfig config;
 	private final WildcardMatcher wildcardMatcher = new WildcardMatcher();
 	private final OutgoingChatService outgoingChatService;
+	private ServerTemplateRuntime templateRuntime;
 	private String lastIncomingFingerprint = "";
 	private long lastIncomingAt;
 	private String lastSentText = "";
@@ -26,10 +27,15 @@ public final class ChatResponderEngine {
 	public ChatResponderEngine(ResponderConfig config) {
 		this.config = config;
 		this.outgoingChatService = OutgoingChatService.forMinecraft(this::recordOutgoing);
+		this.templateRuntime = ServerTemplateRuntime.fromLegacyConfig(config);
 	}
 
 	OutgoingChatService outgoingChatService() {
 		return outgoingChatService;
+	}
+
+	public void setTemplateRuntime(ServerTemplateRuntime templateRuntime) {
+		this.templateRuntime = templateRuntime;
 	}
 
 	public void handlePlayerMessage(Component displayedMessage, PlayerChatMessage signedMessage, GameProfile sender) {
@@ -106,67 +112,40 @@ public final class ChatResponderEngine {
 	}
 
 	ChatChannel detectChannel(String content, String displayed) {
-		String normalizedContent = normalize(content);
-		String normalizedDisplayed = normalize(displayed);
-
-		// Сообщения Discord-моста на этом сервере всегда относятся к глобальному чату.
-		if (isDiscordMessage(normalizedDisplayed)) {
-			return ChatChannel.GLOBAL;
-		}
-		if (containsAnyMarker(normalizedDisplayed, config.privateMarkers)) {
-			return ChatChannel.PRIVATE;
-		}
-		if (containsAnyMarker(normalizedDisplayed, config.clanMarkers)) {
-			return ChatChannel.CLAN;
-		}
-		if (!config.globalPrefix.isBlank() && normalizedContent.startsWith(normalize(config.globalPrefix))) {
-			return ChatChannel.GLOBAL;
-		}
-		if (normalizedDisplayed.contains("(!)")
-				|| containsAnyMarker(normalizedDisplayed, config.globalMarkers)) {
-			return ChatChannel.GLOBAL;
-		}
-		return ChatChannel.LOCAL;
-	}
-
-	private static boolean isDiscordMessage(String text) {
-		return text.matches(".*(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉).*");
-	}
-
-	private static boolean containsAnyMarker(String text, String commaSeparatedMarkers) {
-		for (String marker : commaSeparatedMarkers.split(",")) {
-			String normalizedMarker = normalize(marker);
-			if (!normalizedMarker.isEmpty() && text.contains(normalizedMarker)) {
-				return true;
-			}
-		}
-		return false;
+		ActiveTemplateSnapshot template = activeTemplate();
+		CompiledParserSettings parsers = activeParsers();
+		return template == null || parsers == null
+				? ChatChannel.LOCAL
+				: new ChatChannelDetector(template, parsers).detect(content, displayed);
 	}
 
 	private List<String> buildCandidates(String content, String displayed, ChatChannel channel) {
+		ActiveTemplateSnapshot template = activeTemplate();
+		CompiledParserSettings parsers = activeParsers();
 		Set<String> candidates = new LinkedHashSet<>();
 		addCandidate(candidates, content);
 		addCandidate(candidates, displayed);
 
-		if (channel == ChatChannel.GLOBAL && !config.globalPrefix.isBlank()) {
+		if (template != null && channel == ChatChannel.GLOBAL && !template.globalPrefix().isBlank()) {
 			String normalized = normalize(content);
-			String prefix = normalize(config.globalPrefix);
+			String prefix = normalize(template.globalPrefix());
 			if (normalized.startsWith(prefix)) {
 				addCandidate(candidates, normalized.substring(prefix.length()));
 			}
 		}
-		if (channel == ChatChannel.CLAN && !config.clanReplyPrefix.isBlank()) {
+		if (template != null && channel == ChatChannel.CLAN && !template.clanReplyPrefix().isBlank()) {
 			String normalized = normalize(content);
-			String prefix = normalize(config.clanReplyPrefix);
+			String prefix = normalize(template.clanReplyPrefix());
 			if (normalized.startsWith(prefix)) {
 				addCandidate(candidates, normalized.substring(prefix.length()));
 			}
 		}
 
-		addTextAfterLastSeparator(candidates, displayed, ": ");
-		addTextAfterLastSeparator(candidates, displayed, "» ");
-		addTextAfterLastSeparator(candidates, displayed, "] ");
-		addTextAfterLastSeparator(candidates, displayed, "→ ");
+		if (parsers != null) {
+			for (String separator : parsers.replyCandidateSeparators()) {
+				addTextAfterLastSeparator(candidates, displayed, separator);
+			}
+		}
 		return new ArrayList<>(candidates);
 	}
 
@@ -204,11 +183,15 @@ public final class ChatResponderEngine {
 	}
 
 	private String stripKnownPrefix(String text) {
-		String globalPrefix = normalize(config.globalPrefix);
+		ActiveTemplateSnapshot template = activeTemplate();
+		if (template == null) {
+			return text;
+		}
+		String globalPrefix = normalize(template.globalPrefix());
 		if (!globalPrefix.isEmpty() && text.startsWith(globalPrefix)) {
 			return text.substring(globalPrefix.length()).trim();
 		}
-		String clanPrefix = normalize(config.clanReplyPrefix);
+		String clanPrefix = normalize(template.clanReplyPrefix());
 		if (!clanPrefix.isEmpty() && text.startsWith(clanPrefix)) {
 			return text.substring(clanPrefix.length()).trim();
 		}
@@ -220,26 +203,30 @@ public final class ChatResponderEngine {
 	}
 
 	private void sendReply(String response, ChatChannel channel) {
+		ActiveTemplateSnapshot template = activeTemplate();
+		if (template == null) {
+			return;
+		}
 		String outgoing = response.trim();
 		if (channel == ChatChannel.GLOBAL) {
-			if (config.globalPrefix.isBlank()) {
+			if (template.globalPrefix().isBlank()) {
 				return;
 			}
-			if (!outgoing.startsWith(config.globalPrefix)) {
-				outgoing = config.globalPrefix + outgoing;
+			if (!outgoing.startsWith(template.globalPrefix())) {
+				outgoing = template.globalPrefix() + outgoing;
 			}
 		} else if (channel == ChatChannel.CLAN) {
-			if (config.clanReplyPrefix.isBlank()) {
+			if (template.clanReplyPrefix().isBlank()) {
 				return;
 			}
-			if (!outgoing.startsWith(config.clanReplyPrefix)) {
-				outgoing = config.clanReplyPrefix.trim() + " " + outgoing;
+			if (!outgoing.startsWith(template.clanReplyPrefix())) {
+				outgoing = template.clanReplyPrefix().trim() + " " + outgoing;
 			}
 		} else if (channel == ChatChannel.PRIVATE && !outgoing.startsWith("/")) {
-			if (config.privateReplyCommand.isBlank()) {
+			if (template.privateReplyCommand().isBlank()) {
 				return;
 			}
-			outgoing = config.privateReplyCommand.trim() + " " + outgoing;
+			outgoing = template.privateReplyCommand().trim() + " " + outgoing;
 		}
 
 		String finalOutgoing = outgoing.trim();
@@ -300,5 +287,13 @@ public final class ChatResponderEngine {
 
 	private static String normalize(String text) {
 		return ChatTextNormalizer.normalizeForMatching(text);
+	}
+
+	private ActiveTemplateSnapshot activeTemplate() {
+		return templateRuntime.activeSnapshot().orElse(null);
+	}
+
+	private CompiledParserSettings activeParsers() {
+		return templateRuntime.compiledParsers().orElse(null);
 	}
 }

@@ -9,19 +9,19 @@
 | Включение автоответчика | rules tab `ResponderScreen` | `ChatResponderEngine` | `enabled` | Выключить, получить trigger, убедиться в отсутствии ответа; включить обратно |
 | CRUD rules и порядок | `ResponderScreen.initRulesTab/addRuleRow` | `ReplyRule`, `ConfigManager` | `rules` | Создать два совпадающих rules; отвечает только первый; удалить/отключить rule |
 | Wildcard rule `*` | `WildcardMatcher` (`FULL_MATCH`) | `ChatResponderEngine`, `CompiledWildcard`, `ReplyRule` | `rules[].trigger` | Проверить exact, prefix*, *suffix, *contains*, `*` |
-| Определение канала | `ChatResponderEngine.detectChannel` | `ChatChannel` | prefixes и markers | Отправить LOCAL/GLOBAL/CLAN/PRIVATE/Discord samples и проверить канал ответа |
+| Определение канала | `ChatChannelDetector` | `CompiledParserSettings`, `DiscordMessageParser`, `ChatResponderEngine` | active template prefixes/markers/patterns | Отправить LOCAL/GLOBAL/CLAN/PRIVATE/Discord samples и проверить канал ответа |
 | Кандидаты текста | `ChatResponderEngine.buildCandidates` | — | global/clan prefix | Проверить decorated server messages после `: `, `» `, `] `, `→ ` |
 | Игнорирование своих сообщений | `handlePlayerMessage`, `isLikelyOwnDisplayedMessage`, `isRecentOwnMessage` | Minecraft profile/connection | channel prefixes | Ответ мода не должен повторно активировать rule в течение 5 секунд |
 | Защита от дублей | `ChatResponderEngine.handleIncoming` | — | — | Два одинаковых callback в пределах 400 мс дают один ответ |
 | Полное скрытие Discord | `GasadaChatResponderClient.shouldShowDiscordMessage` | `ResponderScreen` | `discordChatEnabled` | Выключить toggle; Discord-сообщение скрыто и не запускает rule |
-| Распознавание Discord sender | `extractDiscordSender` | bootstrap patterns | — | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
+| Распознавание Discord sender | `DiscordMessageParser` | `CompiledParserSettings` | active template Discord patterns | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
 | Локальный Discord-мут | `ResponderScreen.addDiscordMutedPlayer` | Discord filter | `discordMutedPlayers` | Добавить Unicode name, получить сообщение, затем снять мут |
 | Чёрный список слов | `WildcardMatcher` (`CONTAINS_MATCH`) | `GasadaChatResponderClient`, blacklist tab | `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
 | Серверный мут игрока | `ServerCommandService.ignorePlayer` | `ResponderScreen`, `OutgoingChatService` | active template command | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
 | Список друзей | friends tab `ResponderScreen` | `ConfigManager` | `friends`, `friendLastSeen` | Добавить/выбрать/удалить друга, закрыть и открыть экран |
 | Подсказки ников | `refreshSuggestions`, `refreshFriendSuggestions` | `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
 | Online/offline во вкладке | `ResponderScreen.tick/currentOnlineFriends` | connection player list | `friends`, `friendLastSeen` | Открыть вкладку; дождаться обновления примерно через 20 ticks |
-| Lookup последнего входа | `FriendLookupManager` | friends tab, Fabric ALLOW events | `friends`, `friendLastSeen` | Дождаться `/clan lookup`, проверить скрытие блока и сохранённый timestamp |
+| Lookup последнего входа | `FriendLookupManager` | `FriendLookupParser`, `ServerCommandService`, Fabric ALLOW events | active template patterns; `friends`, `friendLastSeen` | Дождаться `/clan lookup`, проверить скрытие блока и сохранённый timestamp |
 | HUD online-друзей | `FriendsHud.render` | HUD registry | `friends`, `friendHudEnabled` | Включить HUD; online friend виден справа снизу; выключить toggle |
 | Уведомление/звук входа | `FriendsHud.render` | `SoundEvents.PLAYER_LEVELUP` | `friends`, `friendHudEnabled` | После warmup подтвердить offline ≥5 с, затем online; одно notice на 4 с и один звук |
 | Личное сообщение другу | `ServerCommandService.privateMessage` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, ввести текст, нажать «Отправить ЛС», проверить `/w` |

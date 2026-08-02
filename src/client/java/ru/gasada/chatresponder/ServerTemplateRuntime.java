@@ -8,10 +8,17 @@ public final class ServerTemplateRuntime {
 	private final TemplateSwitchCoordinator switchCoordinator;
 	private final Map<String, String> temporaryOverrides = new LinkedHashMap<>();
 	private volatile ActiveTemplateSnapshot activeSnapshot;
+	private volatile CompiledParserSettings compiledParsers;
 	private long generation;
 
 	public ServerTemplateRuntime(TemplateSwitchCoordinator switchCoordinator) {
 		this.switchCoordinator = switchCoordinator;
+	}
+
+	public static ServerTemplateRuntime fromLegacyConfig(ResponderConfig config) {
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		runtime.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(config));
+		return runtime;
 	}
 
 	public synchronized ActiveTemplateSnapshot switchTo(ServerTemplate template) {
@@ -21,6 +28,7 @@ public final class ServerTemplateRuntime {
 		switchCoordinator.resetAll();
 		temporaryOverrides.clear();
 		activeSnapshot = ActiveTemplateSnapshot.from(template, ++generation);
+		compiledParsers = CompiledParserSettings.compile(activeSnapshot.parsers());
 		return activeSnapshot;
 	}
 
@@ -28,11 +36,16 @@ public final class ServerTemplateRuntime {
 		switchCoordinator.resetAll();
 		temporaryOverrides.clear();
 		activeSnapshot = null;
+		compiledParsers = null;
 		generation++;
 	}
 
 	public Optional<ActiveTemplateSnapshot> activeSnapshot() {
 		return Optional.ofNullable(activeSnapshot);
+	}
+
+	public Optional<CompiledParserSettings> compiledParsers() {
+		return Optional.ofNullable(compiledParsers);
 	}
 
 	public synchronized void putTemporaryOverride(String key, String value) {

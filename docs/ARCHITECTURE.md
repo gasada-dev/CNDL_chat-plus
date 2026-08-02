@@ -58,7 +58,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 
 ### Определение канала и кандидаты
 
-`ChatResponderEngine.detectChannel` проверяет признаки строго в таком порядке:
+`ChatChannelDetector` использует `ActiveTemplateSnapshot` и заранее созданный `CompiledParserSettings`, проверяя признаки строго в таком порядке:
 
 1. Discord marker → `GLOBAL`.
 2. Любой `privateMarkers` → `PRIVATE`.
@@ -92,7 +92,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 
 `PeriodicMessageScheduler.tick` проходит ровно три `State`, сбрасывает неактивные/невалидные/отключённые слоты, сравнивает текст+интервал с сохранённым fingerprint, планирует первый запуск после полного интервала и отправляет просроченные сообщения.
 
-`FriendLookupManager.tick` очищает очередь при disconnect, обрабатывает timeout 7 секунд, выдерживает 2,5 секунды между командами и отправляет следующий `/clan lookup`.
+`FriendLookupManager.tick` очищает очередь при disconnect, обрабатывает timeout 7 секунд, выдерживает 2,5 секунды между командами и запрашивает следующий `/clan lookup` через `ServerCommandService`. Ответ разбирает `FriendLookupParser` с compiled patterns активного шаблона.
 
 `UpdateChecker.tick` запускает единственную асинхронную проверку после входа на сервер и при отсутствии GUI; затем на tick открывает `UpdateAvailableScreen`, когда проверенный результат готов и экран свободен.
 
@@ -150,14 +150,8 @@ ClientReceiveMessageEvents.ALLOW_GAME
 
 | Класс:строка | Назначение | Частота |
 |---|---|---|
-| `GasadaChatResponderClient:20` | Discord marker | один раз при загрузке класса |
-| `GasadaChatResponderClient:22` | Discord sender token | один раз при загрузке класса |
 | `WildcardMatcher` | wildcard rules и muted words | при первом использовании нового source; cache экземпляра ограничен 512 entries |
-| `FriendLookupManager:16` | `LAST_SEEN` | один раз при загрузке класса |
-| `FriendLookupManager:18` | `INACTIVE` | один раз при загрузке класса |
-| `FriendLookupManager:20` | `LOOKUP_END` | один раз при загрузке класса |
-| `FriendLookupManager:21` | `LOOKUP_OUTPUT` | один раз при загрузке класса |
-| `FriendLookupManager:26` | `TIMESTAMP_ONLY` | один раз при загрузке класса |
+| `ParserPatternValidator` / `CompiledParserSettings` | Discord, channel separators и friend lookup patterns | один раз при публикации active snapshot; ошибка одного pattern изолирована |
 
 ### `String.matches` (неявная компиляция regex)
 

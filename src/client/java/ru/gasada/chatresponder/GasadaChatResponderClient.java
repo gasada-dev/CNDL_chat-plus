@@ -1,8 +1,6 @@
 package ru.gasada.chatresponder;
 
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
@@ -18,9 +16,6 @@ import org.slf4j.LoggerFactory;
 public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static final String MOD_ID = "gasada_chat_responder";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	private static final Pattern DISCORD_MARKER = Pattern.compile(
-			"(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)");
-	private static final Pattern DISCORD_NAME = Pattern.compile("[\\p{L}\\p{N}_]{1,32}");
 	private static final WildcardMatcher MUTED_WORD_MATCHER = new WildcardMatcher();
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
@@ -40,8 +35,9 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		switchCoordinator.register(MUTED_WORD_MATCHER::clear);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
+		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
-		FRIEND_LOOKUP = new FriendLookupManager(CONFIG, SERVER_COMMANDS);
+		FRIEND_LOOKUP = new FriendLookupManager(CONFIG, SERVER_COMMANDS, TEMPLATE_RUNTIME);
 		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		FriendsHud.register(CONFIG);
 
@@ -75,16 +71,17 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 
 	private static boolean shouldShowDiscordMessage(Component message) {
 		String text = message.getString();
-		Matcher discordMarker = DISCORD_MARKER.matcher(text);
-		boolean discordMessage = discordMarker.find();
-		if (discordMessage && !Boolean.TRUE.equals(CONFIG.discordChatEnabled)) {
+		DiscordMessageParser.DiscordMessageInfo discord = TEMPLATE_RUNTIME.compiledParsers()
+				.map(DiscordMessageParser::new)
+				.map(parser -> parser.parse(text))
+				.orElse(new DiscordMessageParser.DiscordMessageInfo(false, null));
+		if (discord.discordMessage() && !Boolean.TRUE.equals(CONFIG.discordChatEnabled)) {
 			return false;
 		}
 
-		if (discordMessage) {
-			String sender = extractDiscordSender(text, discordMarker.end());
-			if (sender != null && CONFIG.discordMutedPlayers.stream()
-					.anyMatch(name -> name.equalsIgnoreCase(sender))) {
+		if (discord.discordMessage()) {
+			if (discord.sender() != null && CONFIG.discordMutedPlayers.stream()
+					.anyMatch(name -> name.equalsIgnoreCase(discord.sender()))) {
 				return false;
 			}
 		}
@@ -100,17 +97,4 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		return MUTED_WORD_MATCHER.matches(wildcard, text, WildcardMatchMode.CONTAINS_MATCH);
 	}
 
-	private static String extractDiscordSender(String text, int markerEnd) {
-		int separator = text.indexOf('»', markerEnd);
-		String authorPart = separator >= 0 ? text.substring(markerEnd, separator) : text.substring(markerEnd);
-		Matcher names = DISCORD_NAME.matcher(authorPart);
-		if (separator < 0) {
-			return names.find() ? names.group() : null;
-		}
-		String lastName = null;
-		while (names.find()) {
-			lastName = names.group();
-		}
-		return lastName;
-	}
 }

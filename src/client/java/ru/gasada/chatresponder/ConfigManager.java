@@ -55,6 +55,10 @@ public final class ConfigManager {
 			} catch (IOException ignored) {
 				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
 			}
+			if (GasadaChatResponderClient.TEMPLATE_RUNTIME != null) {
+				GasadaChatResponderClient.TEMPLATE_RUNTIME.switchTo(
+						LegacyConfigToVanillaBoxMigration.fromLegacy(config));
+			}
 			return true;
 		} catch (IOException exception) {
 			GasadaChatResponderClient.LOGGER.error("Не удалось сохранить настройки автоответчика", exception);

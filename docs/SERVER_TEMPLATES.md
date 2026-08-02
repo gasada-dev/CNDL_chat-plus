@@ -234,7 +234,7 @@ Minecraft API получает команды без первого `/`; в по
 - `LegacyConfigToVanillaBoxMigration` — версионированный перенос старого `ResponderConfig`;
 - `ServerTemplateImportService`, `TemplateImportPlan`, `ListImportMode` — preview, проверка и транзакционный выборочный импорт;
 - `TemplateRuntimeResetCoordinator` — сброс guards, lookup, presence, scheduler и compiled data;
-- `ServerCommandCatalog` и `FriendLookupPatternSet` — серверные command definitions и lookup patterns без выполнения команд;
+- `ServerCommandSettings` и `ParserSettings` — server-specific command definitions и parser sources; `CompiledParserSettings` изолированно валидирует и компилирует их при switch;
 - `CompiledReplyRules` и `CompiledMessageFilters` — производные immutable runtime-структуры.
 
 `ConfigManager` должен оставаться ответственным за чтение/валидацию/атомарную запись корневого файла, а не за выбор активного сервера. `ChatResponderEngine`, `FriendLookupManager`, `FriendsHud`, `PeriodicMessageScheduler` и будущие command/filter services должны потреблять только активный snapshot через явную зависимость. Изменение `ResponderScreen` и новый UI выбора/импорта относятся к отдельному UI-этапу.
