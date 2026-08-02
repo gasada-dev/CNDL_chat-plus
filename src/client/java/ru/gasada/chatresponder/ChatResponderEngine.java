@@ -5,7 +5,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
@@ -17,6 +16,7 @@ public final class ChatResponderEngine {
 	private static final long OWN_MESSAGE_WINDOW_MS = 5_000;
 
 	private final ResponderConfig config;
+	private final WildcardMatcher wildcardMatcher = new WildcardMatcher();
 	private String lastIncomingFingerprint = "";
 	private long lastIncomingAt;
 	private String lastSentText = "";
@@ -64,7 +64,7 @@ public final class ChatResponderEngine {
 
 		ChatChannel detectedChannel = detectChannel(content, displayed);
 		List<String> candidates = buildCandidates(content, displayed, detectedChannel);
-		ReplyRule rule = findFirstMatchingRule(config.rules, detectedChannel, candidates);
+		ReplyRule rule = findFirstMatchingRuleCached(config.rules, detectedChannel, candidates);
 		if (rule != null) {
 			ChatChannel replyChannel = rule.channel == ChatChannel.AUTO ? detectedChannel : rule.channel;
 			sendReply(rule.response, replyChannel);
@@ -73,6 +73,16 @@ public final class ChatResponderEngine {
 
 	static ReplyRule findFirstMatchingRule(List<ReplyRule> rules, ChatChannel detectedChannel,
 			List<String> candidates) {
+		return findFirstMatchingRule(rules, detectedChannel, candidates, new WildcardMatcher());
+	}
+
+	private ReplyRule findFirstMatchingRuleCached(List<ReplyRule> rules, ChatChannel detectedChannel,
+			List<String> candidates) {
+		return findFirstMatchingRule(rules, detectedChannel, candidates, wildcardMatcher);
+	}
+
+	private static ReplyRule findFirstMatchingRule(List<ReplyRule> rules, ChatChannel detectedChannel,
+			List<String> candidates, WildcardMatcher wildcardMatcher) {
 		for (ReplyRule rule : rules) {
 			if (!rule.enabled || rule.trigger.isBlank() || rule.response.isBlank()) {
 				continue;
@@ -81,7 +91,8 @@ public final class ChatResponderEngine {
 				continue;
 			}
 
-			if (candidates.stream().anyMatch(candidate -> wildcardMatches(rule.trigger, candidate))) {
+			CompiledWildcard wildcard = wildcardMatcher.compile(rule.trigger, WildcardMatchMode.FULL_MATCH);
+			if (candidates.stream().anyMatch(wildcard::matches)) {
 				return rule;
 			}
 		}
@@ -168,18 +179,7 @@ public final class ChatResponderEngine {
 	}
 
 	static boolean wildcardMatches(String wildcard, String text) {
-		String normalizedWildcard = normalize(wildcard);
-		String normalizedText = normalize(text);
-		StringBuilder regex = new StringBuilder("^");
-		int start = 0;
-		for (int index = 0; index < normalizedWildcard.length(); index++) {
-			if (normalizedWildcard.charAt(index) == '*') {
-				regex.append(Pattern.quote(normalizedWildcard.substring(start, index))).append(".*");
-				start = index + 1;
-			}
-		}
-		regex.append(Pattern.quote(normalizedWildcard.substring(start))).append('$');
-		return normalizedText.matches(regex.toString());
+		return new WildcardMatcher().matches(wildcard, text, WildcardMatchMode.FULL_MATCH);
 	}
 
 	private boolean isRecentOwnMessage(String content, String displayed, long now) {

@@ -65,7 +65,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 5. displayed содержит обязательный `(!)` или `globalMarkers` → `GLOBAL`.
 6. Иначе → `LOCAL`.
 
-Кандидаты: исходный content, displayed text, текст без global/clan prefix и части после последнего `: `, `» `, `] ` и `→ `. Они нормализуются через lowercase `Locale.ROOT`, trim и схлопывание whitespace. Маска rule сопоставляется с кандидатом целиком; `*` означает любую последовательность. Regex строится заново при каждой проверке.
+Кандидаты: исходный content, displayed text, текст без global/clan prefix и части после последнего `: `, `» `, `] ` и `→ `. Они нормализуются через lowercase `Locale.ROOT`, trim и схлопывание whitespace. `WildcardMatcher` сопоставляет маску rule с кандидатом целиком в режиме `FULL_MATCH`; muted words используют `CONTAINS_MATCH`. Только `*` означает любую последовательность, остальные regex-символы экранируются. Скомпилированные patterns хранятся в ограниченных кешах экземпляров и обновляются при появлении изменённого source.
 
 ### Формирование ответа
 
@@ -161,7 +161,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 |---|---|---|
 | `GasadaChatResponderClient:20` | Discord marker | один раз при загрузке класса |
 | `GasadaChatResponderClient:22` | Discord sender token | один раз при загрузке класса |
-| `GasadaChatResponderClient:99` | wildcard muted word | на каждую проверку wildcard против сообщения |
+| `WildcardMatcher` | wildcard rules и muted words | при первом использовании нового source; cache экземпляра ограничен 512 entries |
 | `FriendLookupManager:16` | `LAST_SEEN` | один раз при загрузке класса |
 | `FriendLookupManager:18` | `INACTIVE` | один раз при загрузке класса |
 | `FriendLookupManager:20` | `LOOKUP_END` | один раз при загрузке класса |
@@ -171,7 +171,6 @@ ClientReceiveMessageEvents.ALLOW_GAME
 ### `String.matches` (неявная компиляция regex)
 
 - `ChatResponderEngine:109`: Discord detection на каждое определение канала.
-- `ChatResponderEngine:175`: собранная wildcard mask на каждую пару rule/candidate.
 - `ResponderScreen:503`: Minecraft nickname при добавлении друга.
 - `ResponderScreen:553`: сумма `/pay`.
 - `ResponderScreen:688`: Minecraft nickname для `/ignoreplayer`.
@@ -251,7 +250,7 @@ Static final ссылки на изменяемые контейнеры:
 - Повреждённый JSON приводит к default config без backup; последующее `ResponderScreen.removed()` может перезаписать исходный повреждённый файл значениями по умолчанию.
 - Значения из вручную изменённого config почти не валидируются по длине/управляющим символам; friend names и channel commands могут попасть в команды.
 - `/w` и `/mail send` проверяют только непустоту UI текста; CR/LF/control characters не отклоняются. Selected friend повторно не валидируется. `/pay` допускает ноль и не ограничивает число цифр за пределами UI max length.
-- Regex wildcard и normalization компилируются/выполняются повторно в горячем пути каждого сообщения.
+- Нормализация всё ещё вызывается многократно в горячем пути; wildcard regex централизованы и кешируются ограниченными instance-cache.
 - Friend lookup скрывает широкий набор строк даже вне активного lookup и сохраняет config после каждого завершённого friend result.
 - HUD вычисляет state transitions и запускает звук внутри render.
 - Config mutations часто происходят до проверки результата save; большинство результатов save игнорируется.

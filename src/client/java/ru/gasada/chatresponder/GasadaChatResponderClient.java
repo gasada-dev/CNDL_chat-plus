@@ -1,7 +1,6 @@
 package ru.gasada.chatresponder;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -22,6 +21,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	private static final Pattern DISCORD_MARKER = Pattern.compile(
 			"(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)");
 	private static final Pattern DISCORD_NAME = Pattern.compile("[\\p{L}\\p{N}_]{1,32}");
+	private static final WildcardMatcher MUTED_WORD_MATCHER = new WildcardMatcher();
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
 
@@ -82,27 +82,11 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	}
 
 	static boolean matchesAnyMutedPattern(List<String> mutedWords, String text) {
-		String normalizedText = text.toLowerCase(Locale.ROOT);
-		return mutedWords.stream().anyMatch(word -> matchesMutedPattern(word, normalizedText));
+		return mutedWords.stream().anyMatch(word -> matchesMutedPattern(word, text));
 	}
 
-	static boolean matchesMutedPattern(String wildcard, String normalizedText) {
-		String normalizedWildcard = wildcard.toLowerCase(Locale.ROOT).trim();
-		if (!normalizedWildcard.contains("*")) {
-			return normalizedText.contains(normalizedWildcard);
-		}
-
-		StringBuilder regex = new StringBuilder();
-		int start = 0;
-		for (int index = 0; index < normalizedWildcard.length(); index++) {
-			if (normalizedWildcard.charAt(index) == '*') {
-				regex.append(Pattern.quote(normalizedWildcard.substring(start, index))).append(".*");
-				start = index + 1;
-			}
-		}
-		regex.append(Pattern.quote(normalizedWildcard.substring(start)));
-		return Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.DOTALL)
-				.matcher(normalizedText).find();
+	static boolean matchesMutedPattern(String wildcard, String text) {
+		return MUTED_WORD_MATCHER.matches(wildcard, text, WildcardMatchMode.CONTAINS_MATCH);
 	}
 
 	private static String extractDiscordSender(String text, int markerEnd) {

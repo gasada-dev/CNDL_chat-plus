@@ -8,7 +8,7 @@
 | Открытие GUI по F8 | `GasadaChatResponderClient` END_CLIENT_TICK | `ResponderScreen` | — | Нажать F8 в игре; экран открывается и не ставит игру на паузу |
 | Включение автоответчика | rules tab `ResponderScreen` | `ChatResponderEngine` | `enabled` | Выключить, получить trigger, убедиться в отсутствии ответа; включить обратно |
 | CRUD rules и порядок | `ResponderScreen.initRulesTab/addRuleRow` | `ReplyRule`, `ConfigManager` | `rules` | Создать два совпадающих rules; отвечает только первый; удалить/отключить rule |
-| Wildcard rule `*` | `ChatResponderEngine.wildcardMatches` | `ReplyRule` | `rules[].trigger` | Проверить exact, prefix*, *suffix, *contains*, `*` |
+| Wildcard rule `*` | `WildcardMatcher` (`FULL_MATCH`) | `ChatResponderEngine`, `CompiledWildcard`, `ReplyRule` | `rules[].trigger` | Проверить exact, prefix*, *suffix, *contains*, `*` |
 | Определение канала | `ChatResponderEngine.detectChannel` | `ChatChannel` | prefixes и markers | Отправить LOCAL/GLOBAL/CLAN/PRIVATE/Discord samples и проверить канал ответа |
 | Кандидаты текста | `ChatResponderEngine.buildCandidates` | — | global/clan prefix | Проверить decorated server messages после `: `, `» `, `] `, `→ ` |
 | Игнорирование своих сообщений | `handlePlayerMessage`, `isLikelyOwnDisplayedMessage`, `isRecentOwnMessage` | Minecraft profile/connection | channel prefixes | Ответ мода не должен повторно активировать rule в течение 5 секунд |
@@ -16,7 +16,7 @@
 | Полное скрытие Discord | `GasadaChatResponderClient.shouldShowDiscordMessage` | `ResponderScreen` | `discordChatEnabled` | Выключить toggle; Discord-сообщение скрыто и не запускает rule |
 | Распознавание Discord sender | `extractDiscordSender` | bootstrap patterns | — | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
 | Локальный Discord-мут | `ResponderScreen.addDiscordMutedPlayer` | Discord filter | `discordMutedPlayers` | Добавить Unicode name, получить сообщение, затем снять мут |
-| Чёрный список слов | `matchesMutedPattern` | blacklist tab | `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
+| Чёрный список слов | `WildcardMatcher` (`CONTAINS_MATCH`) | `GasadaChatResponderClient`, blacklist tab | `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
 | Серверный мут игрока | `ResponderScreen.addMutedPlayer` | connection | — | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
 | Список друзей | friends tab `ResponderScreen` | `ConfigManager` | `friends`, `friendLastSeen` | Добавить/выбрать/удалить друга, закрыть и открыть экран |
 | Подсказки ников | `refreshSuggestions`, `refreshFriendSuggestions` | `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
