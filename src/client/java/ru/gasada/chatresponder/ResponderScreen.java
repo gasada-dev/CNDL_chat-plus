@@ -1,7 +1,8 @@
 package ru.gasada.chatresponder;
 
+import static ru.gasada.chatresponder.UiConstants.*;
+
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.HashSet;
@@ -12,24 +13,19 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 
 public final class ResponderScreen extends Screen {
-	private static final int FIELD_HEIGHT = 20;
-	private static final int ROW_HEIGHT = 28;
-	private static final int PANEL_COLOR = 0xD9242B38;
-	private static final int PANEL_BORDER = 0xFF536178;
-	private static final int TEXT_COLOR = 0xFFE8ECF2;
-	private static final int MUTED_COLOR = 0xFF9DA8B8;
-
 	private final ResponderConfig config;
+	private final RulesTabController rulesController;
+	private final ChannelsTabController channelsController;
+	private final BlacklistTabController blacklistController;
+	private final FriendsTabController friendsController;
+	private final PlayerSuggestionProvider suggestionProvider = new PlayerSuggestionProvider();
+	private final ScreenStatus status = new ScreenStatus();
 	private final List<Button> suggestionButtons = new ArrayList<>();
 	private final List<Button> friendSuggestionButtons = new ArrayList<>();
 	private Tab tab = Tab.RULES;
@@ -56,12 +52,14 @@ public final class ResponderScreen extends Screen {
 	private boolean friendLookupsQueued;
 	private Set<String> onlineFriends = Set.of();
 	private BlacklistMode blacklistMode = BlacklistMode.NICKS;
-	private String statusText = "";
-	private int statusColor = 0xFF75D98B;
 
 	public ResponderScreen(ResponderConfig config) {
 		super(Component.literal("CNDL_chat+"));
 		this.config = config;
+		this.rulesController = new RulesTabController(config);
+		this.channelsController = new ChannelsTabController(config);
+		this.blacklistController = new BlacklistTabController(config);
+		this.friendsController = new FriendsTabController(config);
 	}
 
 	@Override
@@ -87,7 +85,7 @@ public final class ResponderScreen extends Screen {
 	private void addTabButton(Tab target, int x, int y, int buttonWidth) {
 		Button button = addRenderableWidget(Button.builder(Component.literal(target.title), ignored -> {
 			tab = target;
-			statusText = "";
+			status.clear();
 			rebuildContents();
 		}).bounds(x, y, buttonWidth, 20).build());
 		button.active = tab != target;
@@ -96,7 +94,7 @@ public final class ResponderScreen extends Screen {
 
 	private void initRulesTab() {
 		int maxPage = maxPage();
-		page = Math.max(0, Math.min(page, maxPage));
+		page = Pagination.clampPage(page, config.rules.size(), pageSize);
 		int start = page * pageSize;
 		int end = Math.min(config.rules.size(), start + pageSize);
 		int rowY = 67;
@@ -109,12 +107,12 @@ public final class ResponderScreen extends Screen {
 		int bottomY = height - 38;
 		CycleButton<Boolean> masterToggle = CycleButton.onOffBuilder(config.enabled)
 				.create(panelX, bottomY, 70, FIELD_HEIGHT, Component.literal("Мод"),
-						(button, enabled) -> config.enabled = enabled);
+						(button, enabled) -> rulesController.setEnabled(enabled));
 		addRenderableWidget(masterToggle);
 		masterToggle.setTooltip(help("Полностью включает или выключает автоматические ответы"));
 
 		addRenderableWidget(Button.builder(Component.literal("+ Правило"), ignored -> {
-			config.rules.add(new ReplyRule("", "", ChatChannel.AUTO));
+			rulesController.addRule();
 			page = maxPage();
 			if (config.rules.size() > pageSize) {
 				page = (config.rules.size() - 1) / pageSize;
@@ -143,8 +141,10 @@ public final class ResponderScreen extends Screen {
 		next.active = page < maxPage;
 
 		int saveX = panelX + panelWidth - 90;
-		addRenderableWidget(new InvisibleButton(0, 0, 12, 12,
-				() -> minecraft.gui.setScreen(new PeriodicMessageScreen(this, config))));
+		addRenderableWidget(Button.builder(Component.literal("Рассылки"), ignored ->
+				minecraft.gui.setScreen(new PeriodicMessageScreen(this, config)))
+				.bounds(panelX + 260, bottomY, 80, FIELD_HEIGHT)
+				.tooltip(help("Настроить до трёх периодических сообщений")).build());
 		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> saveConfig())
 				.bounds(saveX, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Сохранить все настройки мода")).build());
@@ -196,7 +196,7 @@ public final class ResponderScreen extends Screen {
 		x += channelWidth + 4;
 
 		addRenderableWidget(Button.builder(Component.literal("×"), ignored -> {
-			config.rules.remove(ruleIndex);
+			rulesController.removeRule(ruleIndex);
 			page = Math.min(page, maxPage());
 			rebuildContents();
 		}).bounds(x, y, deleteWidth, FIELD_HEIGHT)
@@ -257,7 +257,7 @@ public final class ResponderScreen extends Screen {
 		int modesX = panelX + (panelWidth - modeWidth * 2) / 2;
 		Button nickMode = addRenderableWidget(Button.builder(Component.literal("Ники"), ignored -> {
 			blacklistMode = BlacklistMode.NICKS;
-			statusText = "";
+			status.clear();
 			rebuildContents();
 		}).bounds(modesX, 55, modeWidth, FIELD_HEIGHT)
 				.tooltip(help("Открыть мут обычных и Discord-пользователей")).build());
@@ -265,7 +265,7 @@ public final class ResponderScreen extends Screen {
 
 		Button wordMode = addRenderableWidget(Button.builder(Component.literal("Слова"), ignored -> {
 			blacklistMode = BlacklistMode.WORDS;
-			statusText = "";
+			status.clear();
 			rebuildContents();
 		}).bounds(modesX + modeWidth, 55, modeWidth, FIELD_HEIGHT)
 				.tooltip(help("Открыть чёрный список слов и фраз")).build());
@@ -330,8 +330,7 @@ public final class ResponderScreen extends Screen {
 		for (int index = 0; index < mutedCount; index++) {
 			String name = config.discordMutedPlayers.get(index);
 			addRenderableWidget(Button.builder(Component.literal(name + " (discord)  ×"), ignored -> {
-				config.discordMutedPlayers.removeIf(value -> value.equalsIgnoreCase(name));
-				ConfigManager.save(config);
+				blacklistController.removeDiscord(name);
 				rebuildContents();
 			}).bounds(mutedX, listY + index * 22, columnWidth, FIELD_HEIGHT)
 					.tooltip(help("Нажмите, чтобы снять локальный Discord-мут")).build());
@@ -364,8 +363,7 @@ public final class ResponderScreen extends Screen {
 		for (int index = 0; index < count; index++) {
 			String word = config.mutedWords.get(index);
 			addRenderableWidget(Button.builder(Component.literal("\"" + word + "\"  ×"), ignored -> {
-				config.mutedWords.removeIf(value -> value.equalsIgnoreCase(word));
-				ConfigManager.save(config);
+				blacklistController.removeWord(word);
 				rebuildContents();
 			}).bounds(panelX + 18, 118 + index * 22, Math.min(400, panelWidth - 36), FIELD_HEIGHT)
 					.tooltip(help("Нажмите, чтобы удалить слово из чёрного списка")).build());
@@ -491,8 +489,7 @@ public final class ResponderScreen extends Screen {
 				.create(rightX + halfActionWidth + 4, 153, columnWidth - halfActionWidth - 4,
 						FIELD_HEIGHT, Component.literal("HUD друзей"),
 						(button, enabled) -> {
-							config.friendHudEnabled = enabled;
-							ConfigManager.save(config);
+							friendsController.setHudEnabled(enabled);
 						});
 		addRenderableWidget(hudToggle);
 		hudToggle.setTooltip(help("Показывать онлайн-друзей справа снизу во время игры"));
@@ -501,23 +498,23 @@ public final class ResponderScreen extends Screen {
 	}
 
 	private int maxFriendPage(int pageSize) {
-		return Math.max(0, (activeFriends().size() - 1) / pageSize);
+		return Pagination.maxPage(activeFriends().size(), pageSize);
 	}
 
 	private void addFriend() {
 		String name = friendNameBox.getValue().trim();
-		if (!name.matches("[A-Za-z0-9_]{1,16}")) {
-			setStatus("Некорректный ник друга", 0xFFFF7777);
+		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(name);
+		if (!validation.valid()) {
+			setStatus(validation.errorMessage(), 0xFFFF7777);
 			return;
 		}
 		if (config.friends.stream().anyMatch(value -> value.equalsIgnoreCase(name))) {
 			setStatus(name + " уже находится в друзьях", 0xFFFFCC66);
 			return;
 		}
-		config.friends.add(name);
+		friendsController.add(name);
 		selectedFriend = name;
 		friendNameValue = "";
-		ConfigManager.save(config);
 		if (GasadaChatResponderClient.FRIEND_LOOKUP != null) {
 			GasadaChatResponderClient.FRIEND_LOOKUP.queueFriends(List.of(name));
 		}
@@ -526,12 +523,10 @@ public final class ResponderScreen extends Screen {
 	}
 
 	private void removeFriend(String name) {
-		config.friends.removeIf(value -> value.equalsIgnoreCase(name));
-		config.friendLastSeen.keySet().removeIf(value -> value.equalsIgnoreCase(name));
+		friendsController.remove(name);
 		if (name.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend)) {
 			selectedFriend = null;
 		}
-		ConfigManager.save(config);
 		setStatus("Друг удалён: " + name, 0xFF75D98B);
 		rebuildContents();
 	}
@@ -560,12 +555,13 @@ public final class ResponderScreen extends Screen {
 		if (!checkFriendAction()) {
 			return;
 		}
-		String amount = friendAmountBox.getValue().trim().replace(',', '.');
-		if (!amount.matches("[0-9]+(?:\\.[0-9]{1,2})?")) {
-			setStatus("Введите корректную сумму", 0xFFFF7777);
+		AmountValidator.AmountValidationResult amountResult = AmountValidator.validate(friendAmountBox.getValue());
+		if (!amountResult.valid()) {
+			setStatus(amountResult.errorMessage(), 0xFFFF7777);
 			return;
 		}
-		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS.pay(selectedFriend, amount);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS
+				.pay(selectedFriend, amountResult.normalizedAmount());
 		if (!result.success()) {
 			setStatus(result.errorMessage(), 0xFFFF7777);
 			return;
@@ -671,17 +667,7 @@ public final class ResponderScreen extends Screen {
 			return;
 		}
 
-		String normalizedQuery = query.toLowerCase(Locale.ROOT);
-		String ownName = minecraft.getUser().getName();
-		List<String> names = minecraft.getConnection().getListedOnlinePlayers().stream()
-				.map(PlayerInfo::getProfile)
-				.map(profile -> profile.name())
-				.filter(name -> !name.equalsIgnoreCase(ownName))
-				.filter(name -> name.toLowerCase(Locale.ROOT).startsWith(normalizedQuery))
-				.sorted(Comparator.comparing(name -> name.toLowerCase(Locale.ROOT)))
-				.distinct()
-				.limit(suggestionButtons.size())
-				.toList();
+		List<String> names = suggestionProvider.suggest(minecraft, query, suggestionButtons.size());
 
 		for (int index = 0; index < suggestionButtons.size(); index++) {
 			Button button = suggestionButtons.get(index);
@@ -698,17 +684,7 @@ public final class ResponderScreen extends Screen {
 			return;
 		}
 
-		String normalizedQuery = query.toLowerCase(Locale.ROOT);
-		String ownName = minecraft.getUser().getName();
-		List<String> names = minecraft.getConnection().getListedOnlinePlayers().stream()
-				.map(PlayerInfo::getProfile)
-				.map(profile -> profile.name())
-				.filter(name -> !name.equalsIgnoreCase(ownName))
-				.filter(name -> name.toLowerCase(Locale.ROOT).startsWith(normalizedQuery))
-				.sorted(Comparator.comparing(name -> name.toLowerCase(Locale.ROOT)))
-				.distinct()
-				.limit(friendSuggestionButtons.size())
-				.toList();
+		List<String> names = suggestionProvider.suggest(minecraft, query, friendSuggestionButtons.size());
 
 		for (int index = 0; index < friendSuggestionButtons.size(); index++) {
 			Button button = friendSuggestionButtons.get(index);
@@ -722,8 +698,9 @@ public final class ResponderScreen extends Screen {
 
 	private void addMutedPlayer() {
 		String nickname = nicknameBox.getValue().trim();
-		if (!nickname.matches("[A-Za-z0-9_]{1,16}")) {
-			setStatus("Некорректный ник", 0xFFFF7777);
+		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(nickname);
+		if (!validation.valid()) {
+			setStatus(validation.errorMessage(), 0xFFFF7777);
 			return;
 		}
 
@@ -746,8 +723,9 @@ public final class ResponderScreen extends Screen {
 			return;
 		}
 		String nickname = nicknameBox.getValue().trim();
-		if (!nickname.matches("[\\p{L}\\p{N}_]{1,32}")) {
-			setStatus("Некорректный Discord-ник", 0xFFFF7777);
+		DiscordNameValidator.ValidationResult validation = DiscordNameValidator.validate(nickname);
+		if (!validation.valid()) {
+			setStatus(validation.errorMessage(), 0xFFFF7777);
 			return;
 		}
 		if (config.discordMutedPlayers.stream().anyMatch(value -> value.equalsIgnoreCase(nickname))) {
@@ -755,9 +733,8 @@ public final class ResponderScreen extends Screen {
 			return;
 		}
 
-		config.discordMutedPlayers.add(nickname);
+		blacklistController.addDiscord(nickname);
 		nicknameValue = "";
-		ConfigManager.save(config);
 		setStatus("Добавлен: " + nickname + " (discord)", 0xFF75D98B);
 		rebuildContents();
 	}
@@ -773,9 +750,8 @@ public final class ResponderScreen extends Screen {
 			return;
 		}
 
-		config.mutedWords.add(word);
+		blacklistController.addWord(word);
 		wordValue = "";
-		ConfigManager.save(config);
 		setStatus("Слово добавлено в чёрный список", 0xFF75D98B);
 		rebuildContents();
 	}
@@ -828,7 +804,7 @@ public final class ResponderScreen extends Screen {
 			drawFieldLabel(graphics, "Маркеры глобального чата", rightX, 58);
 			drawFieldLabel(graphics, "Маркеры кланового чата", rightX, 98);
 			drawFieldLabel(graphics, "Маркеры личных сообщений", rightX, 138);
-			if (statusText.isEmpty()) {
+			if (status.empty()) {
 				graphics.text(font, "Локальный ответ идёт без префикса. Первое подходящее правило имеет приоритет.",
 						panelX + 18, 181, MUTED_COLOR);
 			}
@@ -854,9 +830,9 @@ public final class ResponderScreen extends Screen {
 			}
 		}
 
-		if (!statusText.isEmpty()) {
+		if (!status.empty()) {
 			int statusY = height - 53;
-			graphics.centeredText(font, statusText, width / 2, statusY, statusColor);
+			graphics.centeredText(font, status.text(), width / 2, statusY, status.color());
 		}
 		CreditRenderer.draw(graphics, font, panelX + 4, height - 13, MUTED_COLOR);
 		super.extractRenderState(graphics, mouseX, mouseY, delta);
@@ -871,18 +847,26 @@ public final class ResponderScreen extends Screen {
 	}
 
 	private int maxPage() {
-		return Math.max(0, (config.rules.size() - 1) / Math.max(1, pageSize));
+		return Pagination.maxPage(config.rules.size(), pageSize);
 	}
 
 	private void saveConfig() {
-		boolean saved = ConfigManager.save(config);
+		boolean saved = saveCurrentTab();
 		setStatus(saved ? "Настройки сохранены" : "Ошибка сохранения",
 				saved ? 0xFF75D98B : 0xFFFF7777);
 	}
 
+	private boolean saveCurrentTab() {
+		return switch (tab) {
+			case RULES -> rulesController.save();
+			case CHANNELS -> channelsController.save();
+			case BLACKLIST -> blacklistController.save();
+			case FRIENDS -> friendsController.save();
+		};
+	}
+
 	private void setStatus(String text, int color) {
-		statusText = text;
-		statusColor = color;
+		status.set(text, color);
 	}
 
 	private void rebuildContents() {
@@ -905,7 +889,7 @@ public final class ResponderScreen extends Screen {
 
 	@Override
 	public void removed() {
-		ConfigManager.save(config);
+		saveCurrentTab();
 	}
 
 	@Override
@@ -933,25 +917,4 @@ public final class ResponderScreen extends Screen {
 		WORDS
 	}
 
-	private static final class InvisibleButton extends AbstractWidget {
-		private final Runnable action;
-
-		private InvisibleButton(int x, int y, int width, int height, Runnable action) {
-			super(x, y, width, height, Component.empty());
-			this.action = action;
-		}
-
-		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
-			action.run();
-		}
-
-		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {
-		}
-	}
 }

@@ -20,7 +20,7 @@
 | Чёрный список слов | `ChatVisibilityFilter`, `CompiledFilterSet` | `WildcardMatcher` (`CONTAINS_MATCH`), blacklist tab | active template `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
 | Серверный мут игрока | `ServerCommandService.ignorePlayer` | `ResponderScreen`, `OutgoingChatService` | active template command | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
 | Список друзей | friends tab `ResponderScreen` | `ConfigManager` | `friends`, `friendLastSeen` | Добавить/выбрать/удалить друга, закрыть и открыть экран |
-| Подсказки ников | `refreshSuggestions`, `refreshFriendSuggestions` | `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
+| Подсказки ников | `PlayerSuggestionProvider` | `ResponderScreen`, `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
 | Online/offline во вкладке | `ResponderScreen.tick/currentOnlineFriends` | connection player list | `friends`, `friendLastSeen` | Открыть вкладку; дождаться обновления примерно через 20 ticks |
 | Lookup последнего входа | `FriendLookupManager` | `FriendLookupParser`, `ServerCommandService`, Fabric ALLOW events | active template patterns; `friends`, `friendLastSeen` | Дождаться `/clan lookup`, проверить скрытие блока и сохранённый timestamp |
 | HUD online-друзей | `FriendsHud.render` | `FriendPresenceTracker`, `FriendHudSnapshot`, HUD registry | active template friends/HUD | Включить HUD; online friend виден справа снизу; выключить toggle |
@@ -29,7 +29,7 @@
 | Перевод другу | `ServerCommandService.pay` | `ResponderScreen`, `AmountValidator` | active template command/friends | Проверить положительную сумму, десятичную с `,`, invalid format и отправку `/pay` |
 | Запрос телепорта | `ServerCommandService.call` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, нажать «Отправить ТП», проверить `/call` |
 | Почта другу | `ServerCommandService.mail` | `ResponderScreen`, `MessageValidator` | active template command/friends | Ввести независимый mail text, проверить `/mail send` и очистку поля |
-| До трёх рассылок | `PeriodicMessageScreen` | `PeriodicMessageConfig.MAX_PERIODIC_MESSAGES`, scheduler | active template `periodicMessages` | Добавить 3, четвёртая недоступна |
+| До трёх рассылок | видимая кнопка «Рассылки», `PeriodicMessageScreen` | `PeriodicMessageConfig.MAX_PERIODIC_MESSAGES`, scheduler | active template `periodicMessages` | Открыть кнопку, добавить 3, четвёртая недоступна |
 | Планирование рассылки | `PeriodicMessageScheduler.tick` | active template runtime | active template `periodicMessages` | Первый send только после полного interval; edit/disable/switch сбрасывает timer |
 | Periodic chat/command | `PeriodicMessageScheduler.send` | `OutgoingChatService` | active template message | Plain text идёт как chat; leading `/` — как command |
 | Загрузка/санитизация config | `ConfigManager.load`, `ResponderConfig.sanitize` | Gson | все поля | Проверить отсутствующий, старый, null-filled и вручную отредактированный JSON |

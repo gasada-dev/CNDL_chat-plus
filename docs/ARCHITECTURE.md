@@ -212,15 +212,12 @@ Static final ссылки на изменяемые контейнеры:
 
 ### `ResponderScreen`
 
-- напрямую изменяет live `ResponderConfig` для rules, enabled, channel settings, Discord toggle, blacklist и friends;
-- валидирует Minecraft/Discord names и `/pay` amount;
-- формирует и напрямую отправляет пять серверных команд;
-- выполняет config save из многих callbacks и при `removed()`;
-- ставит friend lookups в очередь;
-- вычисляет online friends и last-seen presentation;
-- сортирует и фильтрует player suggestions двумя почти одинаковыми методами;
-- управляет пагинацией и всеми четырьмя вкладками;
-- открывает periodic screen через невидимую кнопку 12×12 в координатах (0,0).
+Layout четырёх вкладок остаётся в `ResponderScreen`, но повторяемые и stateful обязанности вынесены в `RulesTabController`, `ChannelsTabController`, `BlacklistTabController`, `FriendsTabController`, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`. Screen больше не вызывает `ConfigManager` напрямую, не собирает серверные команды и не содержит lookup/Discord/presence algorithms. Переход к periodic settings выполняется видимой кнопкой «Рассылки».
+
+- создаёт widgets четырёх существующих вкладок и связывает EditBox/CycleButton с draft view;
+- использует validators PR 3 и передаёт friend actions в `FriendActionService`;
+- ставит active friends в lookup queue и вычисляет только presentation-состояние открытой вкладки;
+- делегирует mutations/save соответствующему tab controller.
 
 ### `PeriodicMessageScreen`
 
