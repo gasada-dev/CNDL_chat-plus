@@ -76,35 +76,34 @@ public final class FriendLookupManager {
 		}
 
 		String text = message.getString();
-		if (text.isBlank() || TIMESTAMP_ONLY.matcher(text).matches()) {
-			return false;
-		}
-
-		Matcher matcher = LAST_SEEN.matcher(text);
-		if (matcher.find()) {
-			if (pendingFriend != null) {
-				pendingLastSeen = matcher.group(1).trim();
+		LookupParseResult parsed = parseMessage(text);
+		switch (parsed.type()) {
+			case EMPTY_OR_TIMESTAMP, LOOKUP_OUTPUT -> {
+				return false;
 			}
-			return false;
-		}
-
-		Matcher inactive = INACTIVE.matcher(text);
-		if (inactive.find()) {
-			if (pendingFriend != null && pendingLastSeen == null) {
-				String value = inactive.group(1).trim();
-				pendingLastSeen = value.toLowerCase(Locale.ROOT).endsWith("назад")
-						? value : value + " назад";
+			case LAST_SEEN -> {
+				if (pendingFriend != null) {
+					pendingLastSeen = parsed.value();
+				}
+				return false;
 			}
-			return false;
-		}
-		if (LOOKUP_END.matcher(text).find()) {
-			if (pendingFriend != null) {
-				finishLookup();
+			case INACTIVE -> {
+				if (pendingFriend != null && pendingLastSeen == null) {
+					String value = parsed.value();
+					pendingLastSeen = value.toLowerCase(Locale.ROOT).endsWith("назад")
+							? value : value + " назад";
+				}
+				return false;
 			}
-			return false;
-		}
-		if (LOOKUP_OUTPUT.matcher(text).find()) {
-			return false;
+			case LOOKUP_END -> {
+				if (pendingFriend != null) {
+					finishLookup();
+				}
+				return false;
+			}
+			case UNRELATED -> {
+				// The pending-player visibility check below is part of the existing manager state logic.
+			}
 		}
 		if (pendingFriend == null) {
 			return true;
@@ -112,6 +111,29 @@ public final class FriendLookupManager {
 
 		String normalized = text.toLowerCase(Locale.ROOT);
 		return !normalized.contains(pendingFriend.toLowerCase(Locale.ROOT));
+	}
+
+	static LookupParseResult parseMessage(String text) {
+		if (text.isBlank() || TIMESTAMP_ONLY.matcher(text).matches()) {
+			return new LookupParseResult(LookupMessageType.EMPTY_OR_TIMESTAMP, null);
+		}
+
+		Matcher lastSeen = LAST_SEEN.matcher(text);
+		if (lastSeen.find()) {
+			return new LookupParseResult(LookupMessageType.LAST_SEEN, lastSeen.group(1).trim());
+		}
+
+		Matcher inactive = INACTIVE.matcher(text);
+		if (inactive.find()) {
+			return new LookupParseResult(LookupMessageType.INACTIVE, inactive.group(1).trim());
+		}
+		if (LOOKUP_END.matcher(text).find()) {
+			return new LookupParseResult(LookupMessageType.LOOKUP_END, null);
+		}
+		if (LOOKUP_OUTPUT.matcher(text).find()) {
+			return new LookupParseResult(LookupMessageType.LOOKUP_OUTPUT, null);
+		}
+		return new LookupParseResult(LookupMessageType.UNRELATED, null);
 	}
 
 	private void finishLookup() {
@@ -132,5 +154,17 @@ public final class FriendLookupManager {
 		String normalized = friend.toLowerCase(Locale.ROOT);
 		return pendingFriend != null && pendingFriend.equalsIgnoreCase(friend)
 				|| queue.stream().anyMatch(value -> value.toLowerCase(Locale.ROOT).equals(normalized));
+	}
+
+	enum LookupMessageType {
+		EMPTY_OR_TIMESTAMP,
+		LAST_SEEN,
+		INACTIVE,
+		LOOKUP_END,
+		LOOKUP_OUTPUT,
+		UNRELATED
+	}
+
+	record LookupParseResult(LookupMessageType type, String value) {
 	}
 }

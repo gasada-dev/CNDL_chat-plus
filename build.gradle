@@ -23,6 +23,15 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	testImplementation "org.junit.jupiter:junit-jupiter:5.12.0"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.12.0"
+}
+
+sourceSets {
+	test {
+		compileClasspath += sourceSets.client.output
+		runtimeClasspath += sourceSets.client.output
+	}
 }
 
 tasks.named("processClientResources") {
@@ -36,6 +45,10 @@ tasks.named("processClientResources") {
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 25
 	it.options.encoding = 'UTF-8'
+}
+
+tasks.named("test") {
+	useJUnitPlatform()
 }
 
 java {

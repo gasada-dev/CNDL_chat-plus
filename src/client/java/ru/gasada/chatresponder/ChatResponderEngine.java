@@ -64,8 +64,16 @@ public final class ChatResponderEngine {
 
 		ChatChannel detectedChannel = detectChannel(content, displayed);
 		List<String> candidates = buildCandidates(content, displayed, detectedChannel);
+		ReplyRule rule = findFirstMatchingRule(config.rules, detectedChannel, candidates);
+		if (rule != null) {
+			ChatChannel replyChannel = rule.channel == ChatChannel.AUTO ? detectedChannel : rule.channel;
+			sendReply(rule.response, replyChannel);
+		}
+	}
 
-		for (ReplyRule rule : config.rules) {
+	static ReplyRule findFirstMatchingRule(List<ReplyRule> rules, ChatChannel detectedChannel,
+			List<String> candidates) {
+		for (ReplyRule rule : rules) {
 			if (!rule.enabled || rule.trigger.isBlank() || rule.response.isBlank()) {
 				continue;
 			}
@@ -74,14 +82,13 @@ public final class ChatResponderEngine {
 			}
 
 			if (candidates.stream().anyMatch(candidate -> wildcardMatches(rule.trigger, candidate))) {
-				ChatChannel replyChannel = rule.channel == ChatChannel.AUTO ? detectedChannel : rule.channel;
-				sendReply(rule.response, replyChannel);
-				break;
+				return rule;
 			}
 		}
+		return null;
 	}
 
-	private ChatChannel detectChannel(String content, String displayed) {
+	ChatChannel detectChannel(String content, String displayed) {
 		String normalizedContent = normalize(content);
 		String normalizedDisplayed = normalize(displayed);
 

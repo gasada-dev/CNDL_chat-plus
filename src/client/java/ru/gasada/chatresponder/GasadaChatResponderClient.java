@@ -1,5 +1,7 @@
 package ru.gasada.chatresponder;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -76,13 +78,16 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 			}
 		}
 
-		String normalizedText = text.toLowerCase(java.util.Locale.ROOT);
-		return CONFIG.mutedWords.stream()
-				.noneMatch(word -> matchesMutedPattern(word, normalizedText));
+		return !matchesAnyMutedPattern(CONFIG.mutedWords, text);
 	}
 
-	private static boolean matchesMutedPattern(String wildcard, String normalizedText) {
-		String normalizedWildcard = wildcard.toLowerCase(java.util.Locale.ROOT).trim();
+	static boolean matchesAnyMutedPattern(List<String> mutedWords, String text) {
+		String normalizedText = text.toLowerCase(Locale.ROOT);
+		return mutedWords.stream().anyMatch(word -> matchesMutedPattern(word, normalizedText));
+	}
+
+	static boolean matchesMutedPattern(String wildcard, String normalizedText) {
+		String normalizedWildcard = wildcard.toLowerCase(Locale.ROOT).trim();
 		if (!normalizedWildcard.contains("*")) {
 			return normalizedText.contains(normalizedWildcard);
 		}
