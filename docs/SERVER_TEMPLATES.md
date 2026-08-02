@@ -241,6 +241,8 @@ Minecraft API получает команды без первого `/`; в по
 
 `TemplatesScreen` и `TemplateEditorScreen` поддерживают создание пустого шаблона, копию `Vanilla-box` или выбранного шаблона, display-name rename, address patterns, default, временный выбор и exact binding текущего `ServerData.ip`. Editor работает с deep-copy draft; runtime меняется только после успешного save. Удаление требует повторного нажатия и запрещено для активного, единственного и default template. Основной экран показывает active template.
 
+`TemplateImportScreen` строит `TemplateImportPreview` до записи и требует отдельного подтверждения. `TemplateImportOptions` выбирает категории и независимый режим списка `REPLACE`, `MERGE` или `SKIP`. Merge дедуплицирует допустимые строковые списки без учёта регистра, ограничивает periodic slots тремя, по умолчанию сохраняет существующий target last seen и заменяет его только при явном выборе. Команды и parser patterns валидируются до `TemplateImportService.apply`; source и target на preview не меняются.
+
 ## Критерии совместимости будущей реализации
 
 - Старый config после миграции ведёт себя в `Vanilla-box` так же, как до миграции.

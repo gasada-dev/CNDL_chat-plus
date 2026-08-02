@@ -69,6 +69,9 @@ public final class TemplatesScreen extends Screen {
 		addAction(actionX, 102, actionWidth, "Сделать шаблоном по умолчанию", this::setDefault);
 		addAction(actionX, 126, actionWidth, "Привязать текущий адрес", this::bindCurrentAddress);
 		addAction(actionX, 150, actionWidth, "Удалить", this::deleteSelected);
+		addRenderableWidget(Button.builder(Component.literal("Импорт настроек"), ignored ->
+				minecraft.gui.setScreen(new TemplateImportScreen(this)))
+				.bounds(actionX, 174, actionWidth, 20).build());
 
 		int createY = height - 91;
 		idBox = new EditBox(font, x + 16, createY, 150, 20, Component.literal("ID шаблона"));

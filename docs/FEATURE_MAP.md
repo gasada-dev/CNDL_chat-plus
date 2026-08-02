@@ -6,6 +6,7 @@
 |---|---|---|---|---|
 | Загрузка клиента | `GasadaChatResponderClient.onInitializeClient` | все сервисы, Fabric events | весь config | Запустить client, войти на сервер, проверить отсутствие startup error |
 | Открытие GUI по F8 | `GasadaChatResponderClient` END_CLIENT_TICK | `ResponderScreen` | — | Нажать F8 в игре; экран открывается и не ставит игру на паузу |
+| Импорт шаблонов | `TemplateImportScreen` | `TemplateImportService`, `TemplateImportPreview` | source/target template files | Выбрать категории и list mode, проверить preview, подтвердить и сверить только target |
 | Включение автоответчика | rules tab `ResponderScreen` | `ChatResponderEngine` | `enabled` | Выключить, получить trigger, убедиться в отсутствии ответа; включить обратно |
 | CRUD rules и порядок | `ResponderScreen.initRulesTab/addRuleRow` | `ReplyRule`, `ConfigManager` | `rules` | Создать два совпадающих rules; отвечает только первый; удалить/отключить rule |
 | Wildcard rule `*` | `WildcardMatcher` (`FULL_MATCH`) | `ChatResponderEngine`, `CompiledWildcard`, `ReplyRule` | `rules[].trigger` | Проверить exact, prefix*, *suffix, *contains*, `*` |
