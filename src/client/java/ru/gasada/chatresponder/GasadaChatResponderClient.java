@@ -18,6 +18,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
 	public static ServerCommandService SERVER_COMMANDS;
 	public static FriendActionService FRIEND_ACTIONS;
+	public static TemplateSelectionService TEMPLATE_SELECTION;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -29,6 +30,12 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		switchCoordinator.register(engine::resetRuntimeState);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
+		TEMPLATE_SELECTION = new TemplateSelectionService(
+				ConfigManager.templateRepository(), TEMPLATE_RUNTIME, CONFIG);
+		TemplateOperationResult<ServerTemplate> initialTemplate = TEMPLATE_SELECTION.initializeDefault();
+		if (!initialTemplate.success()) {
+			LOGGER.warn("Не удалось выбрать начальный шаблон: {}", initialTemplate.errorMessage());
+		}
 		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
 		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(
@@ -51,6 +58,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 				category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
+			TEMPLATE_SELECTION.tick(minecraft);
 			while (openScreen.consumeClick()) {
 				minecraft.gui.setScreen(new ResponderScreen(CONFIG));
 			}

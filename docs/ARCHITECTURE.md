@@ -18,7 +18,7 @@ Fabric client entrypoint
 
 `GasadaChatResponderClient` хранит загруженный объект в публичном статическом поле `CONFIG`, а менеджер lookup — в `FRIEND_LOOKUP`. Один и тот же изменяемый экземпляр `ResponderConfig` передаётся engine, scheduler, lookup, HUD и экранам.
 
-Дополнительно bootstrap создаёт `ServerTemplateRuntime`. Его `ActiveTemplateSnapshot` является глубокой immutable-копией данных шаблона и имеет monotonically increasing generation. `TemplateSwitchCoordinator` при программном переключении очищает duplicate/own guards, lookup queue, HUD presence/notices, periodic timers и compiled wildcard filters. Потребители ещё переводятся со старого `ResponderConfig` на snapshot поэтапно; JSON в горячем пути не читается.
+Дополнительно bootstrap создаёт `ServerTemplateRuntime`. Его `ActiveTemplateSnapshot` является глубокой immutable-копией данных шаблона и имеет monotonically increasing generation. `TemplateSwitchCoordinator` при программном переключении очищает duplicate/own guards, lookup queue, HUD presence/notices, periodic timers и compiled wildcard filters. `TemplateSelectionService` загружает default до обработки сообщений и при новом connection разрешает шаблон по фактическому `ServerData.ip`; неуспех очищает runtime вместо применения чужих настроек. JSON в горячем пути не читается.
 
 ## Входящее сообщение
 

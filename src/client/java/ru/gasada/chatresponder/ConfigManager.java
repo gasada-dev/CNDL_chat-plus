@@ -18,6 +18,10 @@ public final class ConfigManager {
 	private ConfigManager() {
 	}
 
+	public static ServerTemplateRepository templateRepository() {
+		return new ServerTemplateRepository(CONFIG_PATH.getParent());
+	}
+
 	public static ResponderConfig load() {
 		if (!Files.exists(CONFIG_PATH)) {
 			return ResponderConfig.defaults();
@@ -45,6 +49,12 @@ public final class ConfigManager {
 
 	public static boolean save(ResponderConfig config) {
 		config.sanitize();
+		String activeId = GasadaChatResponderClient.TEMPLATE_RUNTIME == null ? null
+				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+						.map(ActiveTemplateSnapshot::id).orElse(null);
+		if (activeId != null && !LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID.equals(activeId)) {
+			return saveActiveTemplateView(config, activeId);
+		}
 		Path temporaryPath = CONFIG_PATH.resolveSibling(CONFIG_PATH.getFileName() + ".tmp");
 
 		try {
@@ -55,14 +65,47 @@ public final class ConfigManager {
 			} catch (IOException ignored) {
 				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
 			}
+			ServerTemplate vanilla = templateRepository().loadTemplate(
+					LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID).value();
+			if (vanilla == null) {
+				vanilla = LegacyConfigToVanillaBoxMigration.fromLegacy(config);
+			} else {
+				LegacyConfigToVanillaBoxMigration.applyLegacyFields(vanilla, config);
+			}
+			if (!templateRepository().saveTemplate(vanilla).success()) {
+				return false;
+			}
 			if (GasadaChatResponderClient.TEMPLATE_RUNTIME != null) {
-				GasadaChatResponderClient.TEMPLATE_RUNTIME.switchTo(
-						LegacyConfigToVanillaBoxMigration.fromLegacy(config));
+				GasadaChatResponderClient.TEMPLATE_RUNTIME.switchTo(vanilla);
 			}
 			return true;
 		} catch (IOException exception) {
 			GasadaChatResponderClient.LOGGER.error("Не удалось сохранить настройки автоответчика", exception);
 			return false;
 		}
+	}
+
+	private static boolean saveActiveTemplateView(ResponderConfig config, String activeId) {
+		ServerTemplateRepository repository = templateRepository();
+		TemplateOperationResult<ServerTemplate> loaded = repository.loadTemplate(activeId);
+		if (!loaded.success()) {
+			GasadaChatResponderClient.LOGGER.error("Не удалось загрузить активный шаблон: {}", activeId);
+			return false;
+		}
+		ServerTemplate template = loaded.value();
+		LegacyConfigToVanillaBoxMigration.applyLegacyFields(template, config);
+		TemplateOperationResult<Void> saved = repository.saveTemplate(template);
+		if (!saved.success()) {
+			GasadaChatResponderClient.LOGGER.error("Не удалось сохранить активный шаблон: {}", activeId,
+					saved.error());
+			return false;
+		}
+		GasadaChatResponderClient.TEMPLATE_RUNTIME.switchTo(template);
+		return true;
+	}
+
+	public static void populateView(ResponderConfig config, ServerTemplate template) {
+		LegacyConfigToVanillaBoxMigration.populateLegacyView(config, template);
+		config.sanitize();
 	}
 }

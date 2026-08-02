@@ -123,6 +123,11 @@ public final class ResponderScreen extends Screen {
 		}).bounds(panelX + 75, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Создать новое правило автоответа")).build());
 
+		addRenderableWidget(Button.builder(Component.literal("Шаблоны"), ignored ->
+				minecraft.gui.setScreen(new TemplatesScreen(this)))
+				.bounds(panelX + 170, bottomY, 86, FIELD_HEIGHT)
+				.tooltip(help("Управление серверными шаблонами")).build());
+
 		Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
 			page--;
 			rebuildContents();
@@ -805,6 +810,11 @@ public final class ResponderScreen extends Screen {
 		graphics.fill(panelX - 2, 20, panelX + panelWidth + 2, height - 2, PANEL_BORDER);
 		graphics.fill(panelX, 22, panelX + panelWidth, height - 4, PANEL_COLOR);
 		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
+		if (GasadaChatResponderClient.TEMPLATE_RUNTIME != null) {
+			String activeTemplate = GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+					.map(ActiveTemplateSnapshot::name).orElse("нет");
+			graphics.text(font, "Шаблон: " + activeTemplate, panelX + 8, 8, MUTED_COLOR);
+		}
 
 		if (tab == Tab.RULES) {
 			graphics.text(font, "Слева — входящая фраза (* означает любой текст), справа — ответ", panelX + 8, 53, MUTED_COLOR);

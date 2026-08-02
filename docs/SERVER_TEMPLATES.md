@@ -237,7 +237,9 @@ Minecraft API получает команды без первого `/`; в по
 - `ServerCommandSettings` и `ParserSettings` — server-specific command definitions и parser sources; `CompiledParserSettings` изолированно валидирует и компилирует их при switch;
 - `CompiledReplyRules` и `CompiledMessageFilters` — производные immutable runtime-структуры.
 
-`ConfigManager` должен оставаться ответственным за чтение/валидацию/атомарную запись корневого файла, а не за выбор активного сервера. `ChatResponderEngine`, `FriendLookupManager`, `FriendsHud`, `PeriodicMessageScheduler` и будущие command/filter services должны потреблять только активный snapshot через явную зависимость. Изменение `ResponderScreen` и новый UI выбора/импорта относятся к отдельному UI-этапу.
+`ConfigManager` остаётся ответственным за совместимый legacy view и атомарную запись данных, а `TemplateSelectionService` — за выбор активного сервера. `ChatResponderEngine`, `FriendLookupManager`, `FriendsHud`, `PeriodicMessageScheduler` и command/filter services потребляют active snapshot через явную зависимость.
+
+`TemplatesScreen` и `TemplateEditorScreen` поддерживают создание пустого шаблона, копию `Vanilla-box` или выбранного шаблона, display-name rename, address patterns, default, временный выбор и exact binding текущего `ServerData.ip`. Editor работает с deep-copy draft; runtime меняется только после успешного save. Удаление требует повторного нажатия и запрещено для активного, единственного и default template. Основной экран показывает active template.
 
 ## Критерии совместимости будущей реализации
 

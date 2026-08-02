@@ -27,7 +27,7 @@ public final class FriendActionService {
 			template.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(storedName));
 			template.friendLastSeen.put(storedName, value);
 		});
-		if (legacyConfig != null && "vanilla-box".equals(snapshot.id())) {
+		if (legacyConfig != null) {
 			legacyConfig.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(storedName));
 			legacyConfig.friendLastSeen.put(storedName, value);
 			ConfigManager.save(legacyConfig);

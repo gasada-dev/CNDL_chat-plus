@@ -84,6 +84,13 @@ public final class LegacyConfigToVanillaBoxMigration {
 
 	static ServerTemplate fromLegacy(ResponderConfig legacy) {
 		ServerTemplate template = ServerTemplate.empty(VANILLA_BOX_ID, VANILLA_BOX_NAME);
+		applyLegacyFields(template, legacy);
+		template.commands = ServerCommandSettings.vanillaBoxDefaults();
+		template.parsers = ParserSettings.vanillaBoxDefaults();
+		return template;
+	}
+
+	static void applyLegacyFields(ServerTemplate template, ResponderConfig legacy) {
 		template.responderEnabled = legacy.enabled;
 		template.rules = ServerTemplate.copyRules(legacy.rules);
 		template.globalPrefix = legacy.globalPrefix;
@@ -92,19 +99,35 @@ public final class LegacyConfigToVanillaBoxMigration {
 		template.globalMarkers = legacy.globalMarkers;
 		template.clanMarkers = legacy.clanMarkers;
 		template.privateMarkers = legacy.privateMarkers;
-		template.mutedWords.addAll(legacy.mutedWords);
+		template.mutedWords = new java.util.ArrayList<>(legacy.mutedWords);
 		template.discordChatEnabled = Boolean.TRUE.equals(legacy.discordChatEnabled);
-		template.discordMutedPlayers.addAll(legacy.discordMutedPlayers);
-		template.friends.addAll(legacy.friends);
-		template.friendLastSeen.putAll(legacy.friendLastSeen);
+		template.discordMutedPlayers = new java.util.ArrayList<>(legacy.discordMutedPlayers);
+		template.friends = new java.util.ArrayList<>(legacy.friends);
+		template.friendLastSeen = new java.util.LinkedHashMap<>(legacy.friendLastSeen);
 		template.friendHudEnabled = Boolean.TRUE.equals(legacy.friendHudEnabled);
 		template.friendSoundEnabled = true;
-		for (PeriodicMessageConfig entry : legacy.periodicMessages) {
-			template.periodicMessages.add(entry.copy());
-		}
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		return template;
+		template.periodicMessages = legacy.periodicMessages.stream()
+				.map(PeriodicMessageConfig::copy)
+				.collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+	}
+
+	static void populateLegacyView(ResponderConfig target, ServerTemplate template) {
+		target.enabled = template.responderEnabled;
+		target.rules = ServerTemplate.copyRules(template.rules);
+		target.globalPrefix = template.globalPrefix;
+		target.clanReplyPrefix = template.clanReplyPrefix;
+		target.privateReplyCommand = template.privateReplyCommand;
+		target.globalMarkers = template.globalMarkers;
+		target.clanMarkers = template.clanMarkers;
+		target.privateMarkers = template.privateMarkers;
+		target.mutedWords = new java.util.ArrayList<>(template.mutedWords);
+		target.discordChatEnabled = template.discordChatEnabled;
+		target.discordMutedPlayers = new java.util.ArrayList<>(template.discordMutedPlayers);
+		target.friends = new java.util.ArrayList<>(template.friends);
+		target.friendLastSeen = new java.util.LinkedHashMap<>(template.friendLastSeen);
+		target.friendHudEnabled = template.friendHudEnabled;
+		target.periodicMessages = template.periodicMessages.stream().map(PeriodicMessageConfig::copy)
+				.collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 	}
 
 	private TemplateOperationResult<Void> createAndVerifyBackup() {

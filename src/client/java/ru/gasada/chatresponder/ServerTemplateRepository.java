@@ -76,6 +76,18 @@ public final class ServerTemplateRepository {
 		return writeAtomic(templatePath(template.id), GSON.toJson(template));
 	}
 
+	public TemplateOperationResult<Void> deleteTemplate(String id) {
+		if (!isSafeId(id)) {
+			return TemplateOperationResult.failure("Некорректный ID шаблона", null);
+		}
+		try {
+			Files.deleteIfExists(templatePath(id));
+			return TemplateOperationResult.success(null);
+		} catch (IOException error) {
+			return TemplateOperationResult.failure("Не удалось удалить шаблон: " + id, error);
+		}
+	}
+
 	private TemplateOperationResult<Void> writeAtomic(Path path, String json) {
 		Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
 		try {
