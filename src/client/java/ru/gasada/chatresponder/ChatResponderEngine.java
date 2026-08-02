@@ -85,6 +85,10 @@ public final class ChatResponderEngine {
 		String normalizedContent = normalize(content);
 		String normalizedDisplayed = normalize(displayed);
 
+		// Сообщения Discord-моста на этом сервере всегда относятся к глобальному чату.
+		if (isDiscordMessage(normalizedDisplayed)) {
+			return ChatChannel.GLOBAL;
+		}
 		if (containsAnyMarker(normalizedDisplayed, config.privateMarkers)) {
 			return ChatChannel.PRIVATE;
 		}
@@ -94,10 +98,15 @@ public final class ChatResponderEngine {
 		if (!config.globalPrefix.isBlank() && normalizedContent.startsWith(normalize(config.globalPrefix))) {
 			return ChatChannel.GLOBAL;
 		}
-		if (containsAnyMarker(normalizedDisplayed, config.globalMarkers)) {
+		if (normalizedDisplayed.contains("(!)")
+				|| containsAnyMarker(normalizedDisplayed, config.globalMarkers)) {
 			return ChatChannel.GLOBAL;
 		}
 		return ChatChannel.LOCAL;
+	}
+
+	private static boolean isDiscordMessage(String text) {
+		return text.matches(".*(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉).*");
 	}
 
 	private static boolean containsAnyMarker(String text, String commaSeparatedMarkers) {

@@ -1,7 +1,9 @@
 package ru.gasada.chatresponder;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class ResponderConfig {
 	public boolean enabled = true;
@@ -9,6 +11,8 @@ public final class ResponderConfig {
 	public List<String> discordMutedPlayers = new ArrayList<>();
 	public List<String> mutedWords = new ArrayList<>();
 	public List<String> friends = new ArrayList<>();
+	public Map<String, String> friendLastSeen = new LinkedHashMap<>();
+	public Boolean friendHudEnabled = true;
 	public List<PeriodicMessageConfig> periodicMessages = new ArrayList<>();
 	public Boolean periodicEnabled;
 	public String periodicMessage;
@@ -17,7 +21,7 @@ public final class ResponderConfig {
 	public String globalPrefix = "!";
 	public String clanReplyPrefix = "/.";
 	public String privateReplyCommand = "/r";
-	public String globalMarkers = "[g],[global],[глобальный],глобальный чат";
+	public String globalMarkers = "(!),[g],[global],[глобальный],глобальный чат";
 	public String clanMarkers = "(клан),<клан>,〈клан〉,‹клан›";
 	public String privateMarkers = "[pm],[лс],личное сообщение,шепчет,->,→";
 
@@ -41,12 +45,20 @@ public final class ResponderConfig {
 		if (friends == null) {
 			friends = new ArrayList<>();
 		}
+		if (friendLastSeen == null) {
+			friendLastSeen = new LinkedHashMap<>();
+		}
+		if (friendHudEnabled == null) {
+			friendHudEnabled = true;
+		}
 		discordMutedPlayers.removeIf(value -> value == null || value.isBlank());
 		mutedWords.removeIf(value -> value == null || value.isBlank());
 		discordMutedPlayers = distinctIgnoringCase(discordMutedPlayers);
 		mutedWords = distinctIgnoringCase(mutedWords);
 		friends.removeIf(value -> value == null || value.isBlank());
 		friends = distinctIgnoringCase(friends);
+		friendLastSeen.entrySet().removeIf(entry -> entry.getKey() == null || entry.getKey().isBlank()
+				|| entry.getValue() == null || entry.getValue().isBlank());
 		if (rules == null) {
 			rules = new ArrayList<>();
 		}
@@ -88,6 +100,9 @@ public final class ResponderConfig {
 		if (globalMarkers == null) {
 			globalMarkers = "";
 		}
+		if (!containsMarker(globalMarkers, "(!)")) {
+			globalMarkers = globalMarkers.isBlank() ? "(!)" : "(!)," + globalMarkers;
+		}
 		if (clanMarkers == null) {
 			clanMarkers = "";
 		}
@@ -112,6 +127,15 @@ public final class ResponderConfig {
 			rules.clear();
 			rules.add(new ReplyRule("Всем привет", "привет", ChatChannel.AUTO));
 		}
+	}
+
+	private static boolean containsMarker(String markers, String expected) {
+		for (String marker : markers.split(",")) {
+			if (marker.trim().equalsIgnoreCase(expected)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private boolean hasOldDefaultRules() {

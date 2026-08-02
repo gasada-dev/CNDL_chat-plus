@@ -21,12 +21,16 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 			"(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)");
 	private static final Pattern DISCORD_NAME = Pattern.compile("[\\p{L}\\p{N}_]{1,32}");
 	public static ResponderConfig CONFIG;
+	public static FriendLookupManager FRIEND_LOOKUP;
 
 	@Override
 	public void onInitializeClient() {
 		CONFIG = ConfigManager.load();
 		ChatResponderEngine engine = new ChatResponderEngine(CONFIG);
 		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(CONFIG, engine);
+		UpdateChecker updateChecker = new UpdateChecker();
+		FRIEND_LOOKUP = new FriendLookupManager(CONFIG);
+		FriendsHud.register(CONFIG);
 
 		KeyMapping.Category category = KeyMapping.Category.register(
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
@@ -41,12 +45,15 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 				minecraft.gui.setScreen(new ResponderScreen(CONFIG));
 			}
 			periodicScheduler.tick(minecraft);
+			FRIEND_LOOKUP.tick(minecraft);
+			updateChecker.tick(minecraft);
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
-				shouldShowDiscordMessage(message));
+				FRIEND_LOOKUP.shouldShowSystemMessage(message, false) && shouldShowDiscordMessage(message));
 		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) ->
-				overlay || shouldShowDiscordMessage(message));
+				overlay || FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+						&& shouldShowDiscordMessage(message));
 
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
 				engine.handlePlayerMessage(message, signedMessage, sender));

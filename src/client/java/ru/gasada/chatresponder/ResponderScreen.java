@@ -41,15 +41,19 @@ public final class ResponderScreen extends Screen {
 	private EditBox wordBox;
 	private EditBox friendNameBox;
 	private EditBox friendMessageBox;
+	private EditBox friendMailBox;
 	private EditBox friendAmountBox;
 	private String nicknameValue = "";
 	private String wordValue = "";
 	private String friendNameValue = "";
 	private String friendMessageValue = "";
+	private String friendMailValue = "";
 	private String friendAmountValue = "";
 	private String selectedFriend;
 	private int friendPage;
 	private int friendOnlineRefreshTicks;
+	private int friendLastSeenHash;
+	private boolean friendLookupsQueued;
 	private Set<String> onlineFriends = Set.of();
 	private BlacklistMode blacklistMode = BlacklistMode.NICKS;
 	private String statusText = "";
@@ -134,7 +138,7 @@ public final class ResponderScreen extends Screen {
 		next.active = page < maxPage;
 
 		int saveX = panelX + panelWidth - 90;
-		addRenderableWidget(new InvisibleButton(saveX - 24, bottomY, 20, FIELD_HEIGHT,
+		addRenderableWidget(new InvisibleButton(0, 0, 12, 12,
 				() -> minecraft.gui.setScreen(new PeriodicMessageScreen(this, config))));
 		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> saveConfig())
 				.bounds(saveX, bottomY, 90, FIELD_HEIGHT)
@@ -365,6 +369,11 @@ public final class ResponderScreen extends Screen {
 
 	private void initFriendsTab() {
 		onlineFriends = currentOnlineFriends();
+		friendLastSeenHash = config.friendLastSeen.hashCode();
+		if (!friendLookupsQueued && GasadaChatResponderClient.FRIEND_LOOKUP != null) {
+			GasadaChatResponderClient.FRIEND_LOOKUP.queueFriends(config.friends);
+			friendLookupsQueued = true;
+		}
 		int columnGap = 10;
 		int columnWidth = (panelWidth - 46) / 2;
 		int leftX = panelX + 18;
@@ -375,7 +384,7 @@ public final class ResponderScreen extends Screen {
 				Component.literal("Ник друга"));
 		friendNameBox.setMaxLength(16);
 		friendNameBox.setValue(friendNameValue);
-		friendNameBox.setHint(Component.literal("ник игрока"));
+		friendNameBox.setHint(Component.literal("ник будущего друга"));
 		friendNameBox.setResponder(value -> {
 			friendNameValue = value;
 			refreshFriendSuggestions(value);
@@ -396,7 +405,7 @@ public final class ResponderScreen extends Screen {
 			friendSuggestionButtons.add(addRenderableWidget(suggestion));
 		}
 
-		int visibleRows = Math.max(2, Math.min(5, (height - 210) / 22));
+		int visibleRows = Math.max(2, Math.min(5, (height - 218) / 22));
 		int maxPage = maxFriendPage(visibleRows);
 		friendPage = Math.max(0, Math.min(friendPage, maxPage));
 		int start = friendPage * visibleRows;
@@ -404,16 +413,18 @@ public final class ResponderScreen extends Screen {
 		for (int offset = 0; offset < count; offset++) {
 			String friend = config.friends.get(start + offset);
 			boolean online = onlineFriends.contains(friend.toLowerCase(Locale.ROOT));
-			int y = 143 + offset * 22;
+			int y = 151 + offset * 22;
 			String selection = friend.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend) ? "▶ " : "";
-			String label = selection + friend + (online ? " — онлайн" : " — оффлайн");
+			String lastSeen = lastSeenFor(friend);
+			String label = selection + friend + (online ? " — онлайн" : " — был: " + lastSeen);
 			Component labelComponent = Component.literal(label).withColor(online ? 0x55FF55 : 0xA0A0A0);
 			addRenderableWidget(Button.builder(labelComponent, ignored -> {
 				selectedFriend = friend;
 				setStatus("Выбран друг: " + friend, 0xFF75D98B);
 				rebuildContents();
 			}).bounds(leftX, y, columnWidth - 26, FIELD_HEIGHT)
-					.tooltip(help("Выбрать друга для личного сообщения, перевода или телепорта")).build());
+					.tooltip(help(online ? "Друг сейчас онлайн"
+							: "Последний раз был в сети: " + lastSeen)).build());
 			addRenderableWidget(Button.builder(Component.literal("×"), ignored -> removeFriend(friend))
 					.bounds(leftX + columnWidth - 22, y, 22, FIELD_HEIGHT)
 					.tooltip(help("Удалить этого игрока из списка друзей")).build());
@@ -431,20 +442,30 @@ public final class ResponderScreen extends Screen {
 		}).bounds(leftX + 36, height - 38, 30, FIELD_HEIGHT)
 				.tooltip(help("Следующая страница списка друзей")).build());
 		next.active = friendPage < maxPage;
-
 		int actionWidth = 84;
 		friendMessageBox = new EditBox(font, rightX, 78, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Личное сообщение"));
 		friendMessageBox.setMaxLength(220);
 		friendMessageBox.setValue(friendMessageValue);
-		friendMessageBox.setHint(Component.literal("текст сообщения"));
+		friendMessageBox.setHint(Component.literal("текст личного сообщения"));
 		friendMessageBox.setResponder(value -> friendMessageValue = value);
 		addRenderableWidget(friendMessageBox);
 		addRenderableWidget(Button.builder(Component.literal("Отправить ЛС"), ignored -> sendPrivateToFriend())
 				.bounds(rightX + columnWidth - actionWidth, 78, actionWidth, FIELD_HEIGHT)
 				.tooltip(help("Отправить выбранному другу командой /w ник сообщение")).build());
 
-		friendAmountBox = new EditBox(font, rightX, 108, columnWidth - actionWidth - 4, FIELD_HEIGHT,
+		friendMailBox = new EditBox(font, rightX, 103, columnWidth - actionWidth - 4, FIELD_HEIGHT,
+				Component.literal("Сообщение на почту"));
+		friendMailBox.setMaxLength(220);
+		friendMailBox.setValue(friendMailValue);
+		friendMailBox.setHint(Component.literal("текст сообщения на почту"));
+		friendMailBox.setResponder(value -> friendMailValue = value);
+		addRenderableWidget(friendMailBox);
+		addRenderableWidget(Button.builder(Component.literal("Почта"), ignored -> mailFriend())
+				.bounds(rightX + columnWidth - actionWidth, 103, actionWidth, FIELD_HEIGHT)
+				.tooltip(help("Отправить почту командой /mail send ник сообщение")).build());
+
+		friendAmountBox = new EditBox(font, rightX, 128, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Сумма"));
 		friendAmountBox.setMaxLength(16);
 		friendAmountBox.setValue(friendAmountValue);
@@ -452,12 +473,23 @@ public final class ResponderScreen extends Screen {
 		friendAmountBox.setResponder(value -> friendAmountValue = value);
 		addRenderableWidget(friendAmountBox);
 		addRenderableWidget(Button.builder(Component.literal("Деньги"), ignored -> payFriend())
-				.bounds(rightX + columnWidth - actionWidth, 108, actionWidth, FIELD_HEIGHT)
+				.bounds(rightX + columnWidth - actionWidth, 128, actionWidth, FIELD_HEIGHT)
 				.tooltip(help("Перевести выбранному другу командой /pay ник сумма")).build());
 
+		int halfActionWidth = (columnWidth - 4) / 2;
 		addRenderableWidget(Button.builder(Component.literal("Отправить ТП"), ignored -> callFriend())
-				.bounds(rightX, 138, columnWidth, FIELD_HEIGHT)
+				.bounds(rightX, 153, halfActionWidth, FIELD_HEIGHT)
 				.tooltip(help("Отправить выбранному другу запрос командой /call ник")).build());
+
+		CycleButton<Boolean> hudToggle = CycleButton.onOffBuilder(Boolean.TRUE.equals(config.friendHudEnabled))
+				.create(rightX + halfActionWidth + 4, 153, columnWidth - halfActionWidth - 4,
+						FIELD_HEIGHT, Component.literal("HUD друзей"),
+						(button, enabled) -> {
+							config.friendHudEnabled = enabled;
+							ConfigManager.save(config);
+						});
+		addRenderableWidget(hudToggle);
+		hudToggle.setTooltip(help("Показывать онлайн-друзей справа снизу во время игры"));
 
 		refreshFriendSuggestions(friendNameValue);
 	}
@@ -480,12 +512,16 @@ public final class ResponderScreen extends Screen {
 		selectedFriend = name;
 		friendNameValue = "";
 		ConfigManager.save(config);
+		if (GasadaChatResponderClient.FRIEND_LOOKUP != null) {
+			GasadaChatResponderClient.FRIEND_LOOKUP.queueFriends(List.of(name));
+		}
 		setStatus("Добавлен друг: " + name, 0xFF75D98B);
 		rebuildContents();
 	}
 
 	private void removeFriend(String name) {
 		config.friends.removeIf(value -> value.equalsIgnoreCase(name));
+		config.friendLastSeen.keySet().removeIf(value -> value.equalsIgnoreCase(name));
 		if (name.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend)) {
 			selectedFriend = null;
 		}
@@ -530,6 +566,29 @@ public final class ResponderScreen extends Screen {
 		setStatus("Запрос телепорта отправлен: " + selectedFriend, 0xFF75D98B);
 	}
 
+	private void mailFriend() {
+		if (!checkFriendAction()) {
+			return;
+		}
+		String message = friendMailBox.getValue().trim();
+		if (message.isEmpty()) {
+			setStatus("Введите текст сообщения на почту", 0xFFFF7777);
+			return;
+		}
+		minecraft.getConnection().sendCommand("mail send " + selectedFriend + " " + message);
+		friendMailValue = "";
+		friendMailBox.setValue("");
+		setStatus("Почта отправлена: " + selectedFriend, 0xFF75D98B);
+	}
+
+	private String lastSeenFor(String friend) {
+		return config.friendLastSeen.entrySet().stream()
+				.filter(entry -> entry.getKey().equalsIgnoreCase(friend))
+				.map(java.util.Map.Entry::getValue)
+				.findFirst()
+				.orElse("нет данных");
+	}
+
 	private boolean checkFriendAction() {
 		if (selectedFriend == null) {
 			setStatus("Сначала выберите друга из списка", 0xFFFF7777);
@@ -562,8 +621,10 @@ public final class ResponderScreen extends Screen {
 		}
 		friendOnlineRefreshTicks = 0;
 		Set<String> current = currentOnlineFriends();
-		if (!current.equals(onlineFriends)) {
+		int currentLastSeenHash = config.friendLastSeen.hashCode();
+		if (!current.equals(onlineFriends) || currentLastSeenHash != friendLastSeenHash) {
 			onlineFriends = current;
+			friendLastSeenHash = currentLastSeenHash;
 			rebuildContents();
 		}
 	}
@@ -737,10 +798,14 @@ public final class ResponderScreen extends Screen {
 		} else {
 			int columnWidth = (panelWidth - 46) / 2;
 			int rightX = panelX + 28 + columnWidth;
-			graphics.text(font, "Подсказки онлайновых игроков", panelX + 18, 48, MUTED_COLOR);
-			graphics.text(font, "Список друзей", panelX + 18, 131, MUTED_COLOR);
+			graphics.text(font, "Список друзей", panelX + 18, 139, MUTED_COLOR);
 			graphics.text(font, selectedFriend == null ? "Друг не выбран" : "Выбран: " + selectedFriend,
 					rightX, 60, selectedFriend == null ? MUTED_COLOR : 0xFF75D98B);
+			if (selectedFriend != null) {
+				boolean online = onlineFriends.contains(selectedFriend.toLowerCase(Locale.ROOT));
+				graphics.text(font, online ? "Сейчас онлайн" : "Последний вход: " + lastSeenFor(selectedFriend),
+						rightX, 68, online ? 0xFF55FF55 : MUTED_COLOR);
+			}
 		}
 
 		if (!statusText.isEmpty()) {
@@ -782,6 +847,7 @@ public final class ResponderScreen extends Screen {
 		wordBox = null;
 		friendNameBox = null;
 		friendMessageBox = null;
+		friendMailBox = null;
 		friendAmountBox = null;
 		init();
 	}
@@ -805,7 +871,7 @@ public final class ResponderScreen extends Screen {
 		RULES("Правила автоответа", "Настроить фразы, ответы и типы чата"),
 		CHANNELS("Каналы", "Настроить префиксы и распознавание каналов"),
 		BLACKLIST("Чёрный список", "Настроить мут пользователей, Discord и слов"),
-		FRIENDS("Друзья", "Сохранить друзей и быстро использовать /w, /pay и /call");
+		FRIENDS("Друзья", "Сохранить друзей и быстро использовать /w, /pay, /call и /mail send");
 
 		private final String title;
 		private final String help;
