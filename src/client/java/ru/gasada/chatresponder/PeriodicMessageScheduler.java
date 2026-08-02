@@ -62,6 +62,10 @@ public final class PeriodicMessageScheduler {
 		}
 	}
 
+	public void resetRuntimeState() {
+		states.forEach(State::reset);
+	}
+
 	private void send(Minecraft minecraft, String outgoing) {
 		engine.recordOutgoing(outgoing);
 		OutgoingMessage message = classifyOutgoing(outgoing);

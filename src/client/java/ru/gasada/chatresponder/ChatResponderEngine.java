@@ -260,6 +260,14 @@ public final class ChatResponderEngine {
 		lastSentAt = System.currentTimeMillis();
 	}
 
+	public void resetRuntimeState() {
+		lastIncomingFingerprint = "";
+		lastIncomingAt = 0L;
+		lastSentText = "";
+		lastSentAt = 0L;
+		wildcardMatcher.clear();
+	}
+
 	private static boolean isLikelyOwnDisplayedMessage(String displayed) {
 		Minecraft minecraft = Minecraft.getInstance();
 		String ownName = minecraft.getUser().getName().toLowerCase(Locale.ROOT);

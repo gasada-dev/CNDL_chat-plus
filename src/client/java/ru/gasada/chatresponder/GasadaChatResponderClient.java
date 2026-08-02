@@ -24,6 +24,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	private static final WildcardMatcher MUTED_WORD_MATCHER = new WildcardMatcher();
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
+	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
 
 	@Override
 	public void onInitializeClient() {
@@ -32,6 +33,13 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(CONFIG, engine);
 		UpdateChecker updateChecker = new UpdateChecker();
 		FRIEND_LOOKUP = new FriendLookupManager(CONFIG);
+		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
+		switchCoordinator.register(engine::resetRuntimeState);
+		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
+		switchCoordinator.register(FriendsHud::resetRuntimeState);
+		switchCoordinator.register(periodicScheduler::resetRuntimeState);
+		switchCoordinator.register(MUTED_WORD_MATCHER::clear);
+		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		FriendsHud.register(CONFIG);
 
 		KeyMapping.Category category = KeyMapping.Category.register(

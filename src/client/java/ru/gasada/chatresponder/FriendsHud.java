@@ -31,6 +31,15 @@ public final class FriendsHud {
 	private FriendsHud() {
 	}
 
+	public static void resetRuntimeState() {
+		previousOnline.clear();
+		offlineSince.clear();
+		onlineNotices.clear();
+		notificationsArmed = false;
+		activeConnection = null;
+		notificationsEnabledAt = 0L;
+	}
+
 	public static void register(ResponderConfig config) {
 		HudElementRegistry.addLast(
 				Identifier.fromNamespaceAndPath(GasadaChatResponderClient.MOD_ID, "online_friends"),
@@ -40,11 +49,7 @@ public final class FriendsHud {
 	private static void render(GuiGraphicsExtractor graphics, ResponderConfig config) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.getConnection() == null) {
-			previousOnline.clear();
-			offlineSince.clear();
-			onlineNotices.clear();
-			notificationsArmed = false;
-			activeConnection = null;
+			resetRuntimeState();
 			return;
 		}
 		long now = System.currentTimeMillis();

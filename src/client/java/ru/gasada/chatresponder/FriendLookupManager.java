@@ -45,6 +45,14 @@ public final class FriendLookupManager {
 		}
 	}
 
+	public void resetRuntimeState() {
+		queue.clear();
+		pendingFriend = null;
+		pendingLastSeen = null;
+		pendingSince = 0L;
+		nextCommandAt = 0L;
+	}
+
 	public void tick(Minecraft minecraft) {
 		if (minecraft.getConnection() == null) {
 			queue.clear();

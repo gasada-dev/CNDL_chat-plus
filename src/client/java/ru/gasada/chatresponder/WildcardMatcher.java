@@ -51,6 +51,10 @@ public final class WildcardMatcher {
 		return cache.size();
 	}
 
+	public void clear() {
+		cache.clear();
+	}
+
 	private static CompiledWildcard compileUncached(String source, WildcardMatchMode mode) {
 		String normalizedSource = switch (mode) {
 			case FULL_MATCH -> ChatTextNormalizer.normalizeForMatching(source);
