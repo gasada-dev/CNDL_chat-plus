@@ -292,6 +292,6 @@ public final class ChatResponderEngine {
 	}
 
 	private static String normalize(String text) {
-		return text.toLowerCase(Locale.ROOT).trim().replaceAll("\\s+", " ");
+		return ChatTextNormalizer.normalizeForMatching(text);
 	}
 }
