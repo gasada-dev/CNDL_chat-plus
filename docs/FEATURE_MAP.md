@@ -13,10 +13,10 @@
 | Кандидаты текста | `ChatResponderEngine.buildCandidates` | — | global/clan prefix | Проверить decorated server messages после `: `, `» `, `] `, `→ ` |
 | Игнорирование своих сообщений | `handlePlayerMessage`, `isLikelyOwnDisplayedMessage`, `isRecentOwnMessage` | Minecraft profile/connection | channel prefixes | Ответ мода не должен повторно активировать rule в течение 5 секунд |
 | Защита от дублей | `ChatResponderEngine.handleIncoming` | — | — | Два одинаковых callback в пределах 400 мс дают один ответ |
-| Полное скрытие Discord | `GasadaChatResponderClient.shouldShowDiscordMessage` | `ResponderScreen` | `discordChatEnabled` | Выключить toggle; Discord-сообщение скрыто и не запускает rule |
+| Полное скрытие Discord | `ChatVisibilityFilter` | `CompiledFilterSet`, `DiscordMessageParser` | active template `discordChatEnabled` | Выключить toggle; Discord-сообщение скрыто и не запускает rule |
 | Распознавание Discord sender | `DiscordMessageParser` | `CompiledParserSettings` | active template Discord patterns | Проверить поддерживаемые круглые/квадратные/угловые варианты marker и `»` |
 | Локальный Discord-мут | `ResponderScreen.addDiscordMutedPlayer` | Discord filter | `discordMutedPlayers` | Добавить Unicode name, получить сообщение, затем снять мут |
-| Чёрный список слов | `WildcardMatcher` (`CONTAINS_MATCH`) | `GasadaChatResponderClient`, blacklist tab | `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
+| Чёрный список слов | `ChatVisibilityFilter`, `CompiledFilterSet` | `WildcardMatcher` (`CONTAINS_MATCH`), blacklist tab | active template `mutedWords` | Проверить substring без `*`, glob с `*`, регистр, Unicode и удаление item |
 | Серверный мут игрока | `ServerCommandService.ignorePlayer` | `ResponderScreen`, `OutgoingChatService` | active template command | Валидный ник отправляет `/ignoreplayer`; невалидный не отправляет |
 | Список друзей | friends tab `ResponderScreen` | `ConfigManager` | `friends`, `friendLastSeen` | Добавить/выбрать/удалить друга, закрыть и открыть экран |
 | Подсказки ников | `refreshSuggestions`, `refreshFriendSuggestions` | `PlayerInfo` | — | Ввести prefix online player и нажать Tab |

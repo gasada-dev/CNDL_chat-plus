@@ -12,55 +12,55 @@ import org.junit.jupiter.api.Test;
 final class MutedWordFilterCharacterizationTest {
 	@Test
 	void plainPatternUsesSubstringSearch() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("реклама"), "Это реклама здесь"));
-		assertFalse(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertFalse(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("реклама"), "рек лам а"));
 	}
 
 	@Test
 	void wildcardPatternUsesGlobSearchInsideText() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("казино*бонус"), "текст казино и большой бонус дальше"));
-		assertFalse(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertFalse(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("казино*бонус"), "сначала бонус, затем казино"));
 	}
 
 	@Test
 	void matchingIgnoresCase() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("ПрИвЕт"), "НУ ПРИВЕТ"));
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("*МИР*"), "Привет мир"));
 	}
 
 	@Test
 	void emptyOrBlankPatternMatchesEveryTextAtMatcherLevel() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(List.of(""), "обычное сообщение"));
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(List.of("   "), "обычное сообщение"));
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(List.of(""), "обычное сообщение"));
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(List.of("   "), "обычное сообщение"));
 	}
 
 	@Test
 	void unicodeTextIsMatched() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("*ёжик*"), "Сообщение про ЁЖИКА"));
 	}
 
 	@Test
 	void regexMetacharactersAreLiteral() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("цена.+?[x]"), "до цена.+?[x] после"));
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("начало.[x]*конец"), "начало.[x] любой конец"));
-		assertFalse(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertFalse(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("цена.+?[x]"), "ценаABCx"));
 	}
 
 	@Test
 	void anyMatchingFilterHidesTheMessage() {
-		assertTrue(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertTrue(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("нет", "совпало", "тоже нет"), "здесь совпало"));
-		assertFalse(GasadaChatResponderClient.matchesAnyMutedPattern(
+		assertFalse(CompiledFilterSet.matchesAnyMutedPattern(
 				List.of("первый", "второй"), "третий"));
 	}
 
@@ -71,6 +71,6 @@ final class MutedWordFilterCharacterizationTest {
 		filters.add(null);
 
 		assertDoesNotThrow(() -> assertTrue(
-				GasadaChatResponderClient.matchesAnyMutedPattern(filters, "совпало")));
+				CompiledFilterSet.matchesAnyMutedPattern(filters, "совпало")));
 	}
 }

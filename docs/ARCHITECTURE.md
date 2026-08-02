@@ -40,7 +40,7 @@ ClientReceiveMessageEvents.ALLOW_GAME
 → overlay повторно отбрасывается внутри engine
 ```
 
-В выражениях `ALLOW_CHAT`/`ALLOW_GAME` используется short-circuit: lookup вызывается раньше Discord- и word-фильтра. Поэтому lookup может скрыть сообщение или изменить своё состояние, после чего остальные фильтры для этого сообщения не выполняются. Скрытое событием `ALLOW_*` сообщение не должно дойти до обычного `CHAT`/`GAME` callback и запустить автоответ; это необходимо сохранить и отдельно проверить вручную при обновлении Fabric API.
+В выражениях `ALLOW_CHAT`/`ALLOW_GAME` используется short-circuit: lookup вызывается раньше `ChatVisibilityFilter`. Поэтому lookup может скрыть сообщение или изменить своё состояние, после чего остальные фильтры для этого сообщения не выполняются. Фильтр затем проверяет Discord toggle/mute и muted words только из immutable active snapshot. `CompiledFilterSet` строится при switch шаблона. Скрытое событием `ALLOW_*` сообщение не должно дойти до обычного `CHAT`/`GAME` callback и запустить автоответ; это необходимо сохранить и отдельно проверить вручную при обновлении Fabric API.
 
 ### ALLOW_CHAT и ALLOW_GAME
 

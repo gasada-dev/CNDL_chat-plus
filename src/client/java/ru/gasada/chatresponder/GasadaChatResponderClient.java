@@ -1,14 +1,11 @@
 package ru.gasada.chatresponder;
 
-import java.util.List;
-
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +13,11 @@ import org.slf4j.LoggerFactory;
 public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static final String MOD_ID = "gasada_chat_responder";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	private static final WildcardMatcher MUTED_WORD_MATCHER = new WildcardMatcher();
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
 	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
 	public static ServerCommandService SERVER_COMMANDS;
+	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
 	public void onInitializeClient() {
@@ -32,11 +29,11 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		switchCoordinator.register(engine::resetRuntimeState);
 		switchCoordinator.register(FriendsHud::resetRuntimeState);
 		switchCoordinator.register(periodicScheduler::resetRuntimeState);
-		switchCoordinator.register(MUTED_WORD_MATCHER::clear);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
 		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
+		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
 		FRIEND_LOOKUP = new FriendLookupManager(CONFIG, SERVER_COMMANDS, TEMPLATE_RUNTIME);
 		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		FriendsHud.register(CONFIG);
@@ -59,42 +56,15 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
-				FRIEND_LOOKUP.shouldShowSystemMessage(message, false) && shouldShowDiscordMessage(message));
+				FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+						&& visibilityFilter.decide(message.getString(), sender == null ? null : sender.name()).visible());
 		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) ->
 				overlay || FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
-						&& shouldShowDiscordMessage(message));
+						&& visibilityFilter.decide(message.getString()).visible());
 
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
 				engine.handlePlayerMessage(message, signedMessage, sender));
 		ClientReceiveMessageEvents.GAME.register(engine::handleSystemMessage);
-	}
-
-	private static boolean shouldShowDiscordMessage(Component message) {
-		String text = message.getString();
-		DiscordMessageParser.DiscordMessageInfo discord = TEMPLATE_RUNTIME.compiledParsers()
-				.map(DiscordMessageParser::new)
-				.map(parser -> parser.parse(text))
-				.orElse(new DiscordMessageParser.DiscordMessageInfo(false, null));
-		if (discord.discordMessage() && !Boolean.TRUE.equals(CONFIG.discordChatEnabled)) {
-			return false;
-		}
-
-		if (discord.discordMessage()) {
-			if (discord.sender() != null && CONFIG.discordMutedPlayers.stream()
-					.anyMatch(name -> name.equalsIgnoreCase(discord.sender()))) {
-				return false;
-			}
-		}
-
-		return !matchesAnyMutedPattern(CONFIG.mutedWords, text);
-	}
-
-	static boolean matchesAnyMutedPattern(List<String> mutedWords, String text) {
-		return mutedWords.stream().anyMatch(word -> matchesMutedPattern(word, text));
-	}
-
-	static boolean matchesMutedPattern(String wildcard, String text) {
-		return MUTED_WORD_MATCHER.matches(wildcard, text, WildcardMatchMode.CONTAINS_MATCH);
 	}
 
 }

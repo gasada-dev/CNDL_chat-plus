@@ -9,6 +9,7 @@ public final class ServerTemplateRuntime {
 	private final Map<String, String> temporaryOverrides = new LinkedHashMap<>();
 	private volatile ActiveTemplateSnapshot activeSnapshot;
 	private volatile CompiledParserSettings compiledParsers;
+	private volatile CompiledFilterSet compiledFilters;
 	private long generation;
 
 	public ServerTemplateRuntime(TemplateSwitchCoordinator switchCoordinator) {
@@ -29,6 +30,7 @@ public final class ServerTemplateRuntime {
 		temporaryOverrides.clear();
 		activeSnapshot = ActiveTemplateSnapshot.from(template, ++generation);
 		compiledParsers = CompiledParserSettings.compile(activeSnapshot.parsers());
+		compiledFilters = CompiledFilterSet.compile(activeSnapshot);
 		return activeSnapshot;
 	}
 
@@ -37,6 +39,7 @@ public final class ServerTemplateRuntime {
 		temporaryOverrides.clear();
 		activeSnapshot = null;
 		compiledParsers = null;
+		compiledFilters = null;
 		generation++;
 	}
 
@@ -46,6 +49,10 @@ public final class ServerTemplateRuntime {
 
 	public Optional<CompiledParserSettings> compiledParsers() {
 		return Optional.ofNullable(compiledParsers);
+	}
+
+	public Optional<CompiledFilterSet> compiledFilters() {
+		return Optional.ofNullable(compiledFilters);
 	}
 
 	public synchronized void putTemporaryOverride(String key, String value) {
