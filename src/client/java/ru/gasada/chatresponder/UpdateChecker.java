@@ -34,9 +34,11 @@ public final class UpdateChecker {
 		HttpClient client = HttpClient.newBuilder()
 				.connectTimeout(Duration.ofSeconds(4))
 				.build();
-		HttpRequest request = HttpRequest.newBuilder(URI.create(MANIFEST_URL))
-				.timeout(Duration.ofSeconds(6))
+		URI manifestUri = URI.create(MANIFEST_URL + "?check=" + System.currentTimeMillis());
+		HttpRequest request = HttpRequest.newBuilder(manifestUri)
+				.timeout(Duration.ofSeconds(10))
 				.header("User-Agent", "CNDL_chat+ Update Checker")
+				.header("Cache-Control", "no-cache")
 				.GET()
 				.build();
 
@@ -90,7 +92,9 @@ public final class UpdateChecker {
 		try {
 			URI uri = URI.create(info.downloadUrl);
 			String expectedFile = "CNDL_chat+-" + info.version + ".jar";
-			String decodedPath = java.net.URLDecoder.decode(uri.getPath(), java.nio.charset.StandardCharsets.UTF_8);
+			// URI#getPath уже декодирует %2B в '+'. URLDecoder здесь использовать нельзя:
+			// он повторно превратит корректный '+' в пробел и отклонит настоящий JAR.
+			String decodedPath = uri.getPath();
 			return "https".equalsIgnoreCase(uri.getScheme())
 					&& ALLOWED_DOWNLOAD_HOST.equalsIgnoreCase(uri.getHost())
 					&& decodedPath.endsWith("/" + expectedFile);
