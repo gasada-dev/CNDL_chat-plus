@@ -17,6 +17,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static FriendLookupManager FRIEND_LOOKUP;
 	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
 	public static ServerCommandService SERVER_COMMANDS;
+	public static FriendActionService FRIEND_ACTIONS;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -27,16 +28,18 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		UpdateChecker updateChecker = new UpdateChecker();
 		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
 		switchCoordinator.register(engine::resetRuntimeState);
-		switchCoordinator.register(FriendsHud::resetRuntimeState);
 		switchCoordinator.register(periodicScheduler::resetRuntimeState);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
 		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
+		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
 		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
-		FRIEND_LOOKUP = new FriendLookupManager(CONFIG, SERVER_COMMANDS, TEMPLATE_RUNTIME);
+		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis);
+		FriendsHud friendsHud = new FriendsHud(TEMPLATE_RUNTIME);
+		switchCoordinator.register(friendsHud::resetRuntimeState);
 		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
-		FriendsHud.register(CONFIG);
+		friendsHud.register();
 
 		KeyMapping.Category category = KeyMapping.Category.register(
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
@@ -52,6 +55,7 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 			}
 			periodicScheduler.tick(minecraft);
 			FRIEND_LOOKUP.tick(minecraft);
+			friendsHud.tick(minecraft);
 			updateChecker.tick(minecraft);
 		});
 

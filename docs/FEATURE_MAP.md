@@ -22,8 +22,8 @@
 | Подсказки ников | `refreshSuggestions`, `refreshFriendSuggestions` | `PlayerInfo` | — | Ввести prefix online player и нажать Tab |
 | Online/offline во вкладке | `ResponderScreen.tick/currentOnlineFriends` | connection player list | `friends`, `friendLastSeen` | Открыть вкладку; дождаться обновления примерно через 20 ticks |
 | Lookup последнего входа | `FriendLookupManager` | `FriendLookupParser`, `ServerCommandService`, Fabric ALLOW events | active template patterns; `friends`, `friendLastSeen` | Дождаться `/clan lookup`, проверить скрытие блока и сохранённый timestamp |
-| HUD online-друзей | `FriendsHud.render` | HUD registry | `friends`, `friendHudEnabled` | Включить HUD; online friend виден справа снизу; выключить toggle |
-| Уведомление/звук входа | `FriendsHud.render` | `SoundEvents.PLAYER_LEVELUP` | `friends`, `friendHudEnabled` | После warmup подтвердить offline ≥5 с, затем online; одно notice на 4 с и один звук |
+| HUD online-друзей | `FriendsHud.render` | `FriendPresenceTracker`, `FriendHudSnapshot`, HUD registry | active template friends/HUD | Включить HUD; online friend виден справа снизу; выключить toggle |
+| Уведомление/звук входа | `FriendPresenceTracker`, `FriendsHud.tick` | `FriendHudSnapshot`, `SoundEvents.PLAYER_LEVELUP` | active template HUD/sound | После warmup подтвердить offline ≥5 с, затем online; одно notice на 4 с и один звук |
 | Личное сообщение другу | `ServerCommandService.privateMessage` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, ввести текст, нажать «Отправить ЛС», проверить `/w` |
 | Перевод другу | `ServerCommandService.pay` | `ResponderScreen`, `AmountValidator` | active template command/friends | Проверить положительную сумму, десятичную с `,`, invalid format и отправку `/pay` |
 | Запрос телепорта | `ServerCommandService.call` | `ResponderScreen`, `OutgoingChatService` | active template command/friends | Выбрать друга, нажать «Отправить ТП», проверить `/call` |

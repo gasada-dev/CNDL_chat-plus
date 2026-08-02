@@ -94,7 +94,9 @@ ClientReceiveMessageEvents.ALLOW_GAME
 
 `PeriodicMessageScheduler.tick` проходит ровно три `State`, сбрасывает неактивные/невалидные/отключённые слоты, сравнивает текст+интервал с сохранённым fingerprint, планирует первый запуск после полного интервала и отправляет просроченные сообщения.
 
-`FriendLookupManager.tick` очищает очередь при disconnect, обрабатывает timeout 7 секунд, выдерживает 2,5 секунды между командами и запрашивает следующий `/clan lookup` через `ServerCommandService`. Ответ разбирает `FriendLookupParser` с compiled patterns активного шаблона.
+`FriendLookupManager.tick` очищает очередь при disconnect, принимает только друзей active snapshot, обрабатывает timeout 7 секунд, выдерживает 2,5 секунды между командами и запрашивает следующий lookup через `FriendActionService`/`ServerCommandService`. Ответ разбирает `FriendLookupParser` с compiled patterns активного шаблона; `last seen` публикуется обратно в тот же template scope.
+
+`FriendPresenceTracker` обновляется из client tick и сохраняет прежние интервалы: warmup 30 секунд, подтверждение offline 5 секунд и notice 4 секунды. Он публикует immutable `FriendHudSnapshot`; `FriendsHud` в render только рисует snapshot. Звук запускается в tick, а reconnect/template switch очищает tracker до обработки нового списка.
 
 `UpdateChecker.tick` запускает единственную асинхронную проверку после входа на сервер и при отсутствии GUI; затем на tick открывает `UpdateAvailableScreen`, когда проверенный результат готов и экран свободен.
 

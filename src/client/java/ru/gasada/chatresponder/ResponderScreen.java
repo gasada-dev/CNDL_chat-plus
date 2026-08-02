@@ -369,9 +369,9 @@ public final class ResponderScreen extends Screen {
 
 	private void initFriendsTab() {
 		onlineFriends = currentOnlineFriends();
-		friendLastSeenHash = config.friendLastSeen.hashCode();
+		friendLastSeenHash = activeFriendLastSeen().hashCode();
 		if (!friendLookupsQueued && GasadaChatResponderClient.FRIEND_LOOKUP != null) {
-			GasadaChatResponderClient.FRIEND_LOOKUP.queueFriends(config.friends);
+			GasadaChatResponderClient.FRIEND_LOOKUP.queueActiveFriends();
 			friendLookupsQueued = true;
 		}
 		int columnGap = 10;
@@ -409,9 +409,10 @@ public final class ResponderScreen extends Screen {
 		int maxPage = maxFriendPage(visibleRows);
 		friendPage = Math.max(0, Math.min(friendPage, maxPage));
 		int start = friendPage * visibleRows;
-		int count = Math.min(visibleRows, config.friends.size() - start);
+		List<String> activeFriends = activeFriends();
+		int count = Math.min(visibleRows, activeFriends.size() - start);
 		for (int offset = 0; offset < count; offset++) {
-			String friend = config.friends.get(start + offset);
+			String friend = activeFriends.get(start + offset);
 			boolean online = onlineFriends.contains(friend.toLowerCase(Locale.ROOT));
 			int y = 151 + offset * 22;
 			String selection = friend.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend) ? "▶ " : "";
@@ -495,7 +496,7 @@ public final class ResponderScreen extends Screen {
 	}
 
 	private int maxFriendPage(int pageSize) {
-		return Math.max(0, (config.friends.size() - 1) / pageSize);
+		return Math.max(0, (activeFriends().size() - 1) / pageSize);
 	}
 
 	private void addFriend() {
@@ -539,7 +540,7 @@ public final class ResponderScreen extends Screen {
 			setStatus("Введите текст личного сообщения", 0xFFFF7777);
 			return;
 		}
-		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS
 				.privateMessage(selectedFriend, message);
 		if (!result.success()) {
 			setStatus(result.errorMessage(), 0xFFFF7777);
@@ -559,7 +560,7 @@ public final class ResponderScreen extends Screen {
 			setStatus("Введите корректную сумму", 0xFFFF7777);
 			return;
 		}
-		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.pay(selectedFriend, amount);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS.pay(selectedFriend, amount);
 		if (!result.success()) {
 			setStatus(result.errorMessage(), 0xFFFF7777);
 			return;
@@ -571,7 +572,7 @@ public final class ResponderScreen extends Screen {
 		if (!checkFriendAction()) {
 			return;
 		}
-		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.call(selectedFriend);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS.call(selectedFriend);
 		if (!result.success()) {
 			setStatus(result.errorMessage(), 0xFFFF7777);
 			return;
@@ -588,7 +589,7 @@ public final class ResponderScreen extends Screen {
 			setStatus("Введите текст сообщения на почту", 0xFFFF7777);
 			return;
 		}
-		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.mail(selectedFriend, message);
+		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS.mail(selectedFriend, message);
 		if (!result.success()) {
 			setStatus(result.errorMessage(), 0xFFFF7777);
 			return;
@@ -599,7 +600,7 @@ public final class ResponderScreen extends Screen {
 	}
 
 	private String lastSeenFor(String friend) {
-		return config.friendLastSeen.entrySet().stream()
+		return activeFriendLastSeen().entrySet().stream()
 				.filter(entry -> entry.getKey().equalsIgnoreCase(friend))
 				.map(java.util.Map.Entry::getValue)
 				.findFirst()
@@ -623,7 +624,7 @@ public final class ResponderScreen extends Screen {
 		if (minecraft == null || minecraft.getConnection() == null) {
 			return result;
 		}
-		for (String friend : config.friends) {
+		for (String friend : activeFriends()) {
 			if (minecraft.getConnection().getPlayerInfoIgnoreCase(friend) != null) {
 				result.add(friend.toLowerCase(Locale.ROOT));
 			}
@@ -638,12 +639,26 @@ public final class ResponderScreen extends Screen {
 		}
 		friendOnlineRefreshTicks = 0;
 		Set<String> current = currentOnlineFriends();
-		int currentLastSeenHash = config.friendLastSeen.hashCode();
+		int currentLastSeenHash = activeFriendLastSeen().hashCode();
 		if (!current.equals(onlineFriends) || currentLastSeenHash != friendLastSeenHash) {
 			onlineFriends = current;
 			friendLastSeenHash = currentLastSeenHash;
 			rebuildContents();
 		}
+	}
+
+	private List<String> activeFriends() {
+		return GasadaChatResponderClient.TEMPLATE_RUNTIME == null
+				? config.friends
+				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+						.map(ActiveTemplateSnapshot::friends).orElse(List.of());
+	}
+
+	private java.util.Map<String, String> activeFriendLastSeen() {
+		return GasadaChatResponderClient.TEMPLATE_RUNTIME == null
+				? config.friendLastSeen
+				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+						.map(ActiveTemplateSnapshot::friendLastSeen).orElse(java.util.Map.of());
 	}
 
 	private void refreshSuggestions(String query) {

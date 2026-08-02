@@ -1,118 +1,60 @@
 package ru.gasada.chatresponder;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 
 public final class FriendsHud {
-	private static final long ONLINE_NOTICE_MS = 4_000;
-	private static final long CONNECTION_WARMUP_MS = 30_000;
-	private static final long OFFLINE_CONFIRM_MS = 5_000;
-	private static final Set<String> previousOnline = new HashSet<>();
-	private static final Map<String, Long> offlineSince = new LinkedHashMap<>();
-	private static final Map<String, Long> onlineNotices = new LinkedHashMap<>();
-	private static boolean notificationsArmed;
-	private static ClientPacketListener activeConnection;
-	private static long notificationsEnabledAt;
+	private final ServerTemplateRuntime runtime;
+	private final FriendPresenceTracker tracker = new FriendPresenceTracker();
+	private volatile FriendHudSnapshot snapshot = FriendHudSnapshot.empty();
 
-	private FriendsHud() {
+	public FriendsHud(ServerTemplateRuntime runtime) {
+		this.runtime = runtime;
 	}
 
-	public static void resetRuntimeState() {
-		previousOnline.clear();
-		offlineSince.clear();
-		onlineNotices.clear();
-		notificationsArmed = false;
-		activeConnection = null;
-		notificationsEnabledAt = 0L;
+	public void resetRuntimeState() {
+		tracker.reset();
+		snapshot = FriendHudSnapshot.empty();
 	}
 
-	public static void register(ResponderConfig config) {
-		HudElementRegistry.addLast(
-				Identifier.fromNamespaceAndPath(GasadaChatResponderClient.MOD_ID, "online_friends"),
-				(graphics, deltaTracker) -> render(graphics, config));
-	}
-
-	private static void render(GuiGraphicsExtractor graphics, ResponderConfig config) {
-		Minecraft minecraft = Minecraft.getInstance();
+	public void tick(Minecraft minecraft) {
 		if (minecraft.getConnection() == null) {
 			resetRuntimeState();
 			return;
 		}
-		long now = System.currentTimeMillis();
-		if (activeConnection != minecraft.getConnection()) {
-			activeConnection = minecraft.getConnection();
-			previousOnline.clear();
-			offlineSince.clear();
-			onlineNotices.clear();
-			notificationsArmed = false;
-			notificationsEnabledAt = now + CONNECTION_WARMUP_MS;
-		}
-
-		List<String> online = new ArrayList<>();
-		Set<String> currentOnline = new HashSet<>();
-		for (String friend : config.friends) {
-			if (minecraft.getConnection().getPlayerInfoIgnoreCase(friend) != null) {
-				online.add(friend);
-				currentOnline.add(friend.toLowerCase(Locale.ROOT));
-			}
-		}
-
-		boolean friendCameOnline = false;
-		if (!notificationsArmed && now >= notificationsEnabledAt) {
-			notificationsArmed = true;
-			for (String friend : config.friends) {
-				String normalized = friend.toLowerCase(Locale.ROOT);
-				if (!currentOnline.contains(normalized)) {
-					offlineSince.put(normalized, now);
-				}
-			}
-		} else if (notificationsArmed) {
-			for (String friend : config.friends) {
-				String normalized = friend.toLowerCase(Locale.ROOT);
-				if (!currentOnline.contains(normalized)) {
-					offlineSince.putIfAbsent(normalized, now);
-					continue;
-				}
-				Long confirmedOfflineAt = offlineSince.remove(normalized);
-				if (!previousOnline.contains(normalized) && confirmedOfflineAt != null
-						&& now - confirmedOfflineAt >= OFFLINE_CONFIRM_MS) {
-					onlineNotices.remove(friend);
-					onlineNotices.put(friend, now + ONLINE_NOTICE_MS);
-					friendCameOnline = true;
-				}
-			}
-		}
-		previousOnline.clear();
-		previousOnline.addAll(currentOnline);
-		onlineNotices.entrySet().removeIf(entry -> entry.getValue() <= now);
-		if (friendCameOnline && Boolean.TRUE.equals(config.friendHudEnabled)) {
+		Set<String> onlinePlayers = new HashSet<>();
+		minecraft.getConnection().getListedOnlinePlayers().forEach(info ->
+				onlinePlayers.add(info.getProfile().name()));
+		snapshot = tracker.update(runtime.activeSnapshot().orElse(null), onlinePlayers,
+				minecraft.getConnection(), System.currentTimeMillis());
+		if (snapshot.playSound()) {
 			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(
 					SoundEvents.PLAYER_LEVELUP, 1.0F, 0.75F));
 		}
+	}
 
-		if (!Boolean.TRUE.equals(config.friendHudEnabled)) {
-			onlineNotices.clear();
+	public void register() {
+		HudElementRegistry.addLast(
+				Identifier.fromNamespaceAndPath(GasadaChatResponderClient.MOD_ID, "online_friends"),
+				(graphics, deltaTracker) -> render(graphics, snapshot));
+	}
+
+	private static void render(GuiGraphicsExtractor graphics, FriendHudSnapshot snapshot) {
+		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) {
 			return;
 		}
-		if (online.isEmpty()) {
-			return;
-		}
-
+		Minecraft minecraft = Minecraft.getInstance();
 		Font font = minecraft.font;
+		List<String> online = snapshot.onlineFriends();
 		String title = "Друзья онлайн: " + online.size();
 		int contentWidth = font.width(title);
 		for (String friend : online) {
@@ -132,7 +74,7 @@ public final class FriendsHud {
 
 		int noticeY = y - 5;
 		float noticeScale = 1.15F;
-		List<String> notices = new ArrayList<>(onlineNotices.keySet());
+		List<String> notices = snapshot.notices();
 		for (int index = notices.size() - 1; index >= 0; index--) {
 			String notice = notices.get(index) + " в сети!";
 			int noticeWidth = Math.round(font.width(notice) * noticeScale) + 16;

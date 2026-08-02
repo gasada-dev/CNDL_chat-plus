@@ -3,6 +3,7 @@ package ru.gasada.chatresponder;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public final class ServerTemplateRuntime {
 	private final TemplateSwitchCoordinator switchCoordinator;
@@ -11,6 +12,7 @@ public final class ServerTemplateRuntime {
 	private volatile CompiledParserSettings compiledParsers;
 	private volatile CompiledFilterSet compiledFilters;
 	private volatile ReplyRuleMatcher compiledReplyRules;
+	private ServerTemplate activeTemplate;
 	private long generation;
 
 	public ServerTemplateRuntime(TemplateSwitchCoordinator switchCoordinator) {
@@ -29,17 +31,36 @@ public final class ServerTemplateRuntime {
 		}
 		switchCoordinator.resetAll();
 		temporaryOverrides.clear();
-		activeSnapshot = ActiveTemplateSnapshot.from(template, ++generation);
-		compiledParsers = CompiledParserSettings.compile(activeSnapshot.parsers());
-		compiledFilters = CompiledFilterSet.compile(activeSnapshot);
-		compiledReplyRules = ReplyRuleMatcher.compile(activeSnapshot.rules());
+		activeTemplate = template.deepCopy(template.id, template.name);
+		publishActiveTemplate();
 		return activeSnapshot;
+	}
+
+	public synchronized Optional<ActiveTemplateSnapshot> updateActiveTemplate(Consumer<ServerTemplate> update) {
+		if (activeTemplate == null) {
+			return Optional.empty();
+		}
+		update.accept(activeTemplate);
+		publishActiveTemplate();
+		return Optional.of(activeSnapshot);
+	}
+
+	private void publishActiveTemplate() {
+		ActiveTemplateSnapshot nextSnapshot = ActiveTemplateSnapshot.from(activeTemplate, ++generation);
+		CompiledParserSettings nextParsers = CompiledParserSettings.compile(nextSnapshot.parsers());
+		CompiledFilterSet nextFilters = CompiledFilterSet.compile(nextSnapshot);
+		ReplyRuleMatcher nextRules = ReplyRuleMatcher.compile(nextSnapshot.rules());
+		compiledParsers = nextParsers;
+		compiledFilters = nextFilters;
+		compiledReplyRules = nextRules;
+		activeSnapshot = nextSnapshot;
 	}
 
 	public synchronized void clear() {
 		switchCoordinator.resetAll();
 		temporaryOverrides.clear();
 		activeSnapshot = null;
+		activeTemplate = null;
 		compiledParsers = null;
 		compiledFilters = null;
 		compiledReplyRules = null;
