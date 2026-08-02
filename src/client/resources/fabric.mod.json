@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "gasada_chat_responder",
+	"version": "${version}",
+	"name": "CNDL_chat+",
+	"description": "Настраиваемый автоответчик с GUI, каналами чата и чёрным списком.",
+	"authors": [
+		"CNDL"
+	],
+	"license": "CC0-1.0",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"ru.gasada.chatresponder.GasadaChatResponderClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": ">=0.156.0"
+	}
+}

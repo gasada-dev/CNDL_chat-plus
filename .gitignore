@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+
+# Minecraft development runs
+run/
+logs/
+crash-reports/
+config/
+saves/
+
+# IDEs and editors
+.idea/
+.vscode/
+.settings/
+*.iml
+.classpath
+.project
+out/
+bin/
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Optional archives in the repository root
+/*.zip
