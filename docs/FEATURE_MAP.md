@@ -14,7 +14,7 @@
 | Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | active Discord/mutes/words | hidden message не активирует responder |
 | Исходящий chat/command | `OutgoingChatService` | connection | единственные Minecraft API send calls |
 | Именованные команды | `ServerCommandService` | active command templates | validators, missing command → no send |
-| Friend actions | `FriendActionService` | active friends/commands | `/w`, `/pay`, `/call`, `/mail send` |
+| Friend actions | `FriendActionService`, `CommandTemplateDisplay` | active friends/commands | send validators + подсказки фактических templates |
 | Friend lookup | `FriendLookupManager`, `FriendLookupParser` | active friends/patterns/last seen | delay/timeout/block interception/switch reset |
 | Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
 | Периодические сообщения | `PeriodicMessageScheduler` | active periodic slots | полный interval, reset, chat vs command, max 3 |

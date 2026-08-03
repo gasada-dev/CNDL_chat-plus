@@ -21,6 +21,11 @@ Vanilla strings определены только в `ServerCommandSettings.vani
 команду без начального `/` и не меняет обязательные placeholders. Там же редактируется
 private reply prefix автоответчика; Discord marker/name находятся на соседней странице.
 
+Во вкладке друзей `CommandTemplateDisplay` строит подсказки из immutable command snapshot
+активного шаблона. Поэтому UI показывает фактические `/w`/`/msg`, `/call`/`/tpa`, pay и
+mail templates, заменяя placeholders понятными словами, и не содержит скрытой команды
+Vanilla-box. Пустой template отображается как «команда не настроена».
+
 `PlayerNameValidator` принимает только `[A-Za-z0-9_]{1,16}`. `InputSanitizer`/message validators отклоняют CR, LF, NUL и control/format/line/paragraph characters. Sensitive private/mail text и суммы не логируются.
 
 ## Автоответчик

@@ -39,9 +39,9 @@ git diff --check
 После commit и ручной проверки:
 
 ```bash
-git tag v0.4.4
+git tag v0.4.5
 git push origin main
-git push origin v0.4.4
+git push origin v0.4.5
 ```
 
 Подставьте фактическую версию. Release workflow использует `contents: write`,

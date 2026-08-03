@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ final class TemplateCatalogServiceTest {
 
 		TemplateCatalogService.ImportSummary first = service.installBundledTemplates();
 		assertTrue(first.success(), first.errors().toString());
-		assertEquals(1, first.installed());
+		assertEquals(2, first.installed());
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
 		TemplateSelectionService selection = new TemplateSelectionService(
 				repository, runtime, ResponderConfig.defaults());
@@ -30,13 +31,19 @@ final class TemplateCatalogServiceTest {
 		assertEquals("vanilla-box", repository.loadRoot().value().defaultTemplateId);
 		ServerTemplate vanilla = repository.loadTemplate("vanilla-box").value();
 		assertEquals("w {player} {message}", vanilla.commands.privateMessage);
+		ServerTemplate game = repository.loadTemplate("game").value();
+		assertEquals("mc.vanilla-game.ru", game.name);
+		assertEquals("ignore {player}", game.commands.ignorePlayer);
+		assertEquals("tpa {player}", game.commands.call);
+		assertEquals(List.of("AmadoMuerte", "qtkittyy", "yamateh", "troblesome"), game.friends);
+		assertEquals("00:06 - 03/08/2026", game.friendLastSeen.get("AmadoMuerte"));
 		vanilla.commands.privateMessage = "msg {player} {message}";
 		assertTrue(repository.saveTemplate(vanilla).success());
 
 		TemplateCatalogService.ImportSummary second = service.installBundledTemplates();
 		assertTrue(second.success());
 		assertEquals(0, second.installed());
-		assertEquals(1, second.skipped());
+		assertEquals(2, second.skipped());
 		assertEquals("msg {player} {message}",
 				repository.loadTemplate("vanilla-box").value().commands.privateMessage);
 	}

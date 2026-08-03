@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -502,7 +503,8 @@ public final class ResponderScreen extends Screen {
 		addRenderableWidget(friendMessageBox);
 		addRenderableWidget(Button.builder(Component.literal("Отправить ЛС"), ignored -> sendPrivateToFriend())
 				.bounds(rightX + columnWidth - actionWidth, 78, actionWidth, FIELD_HEIGHT)
-				.tooltip(help("Отправить выбранному другу командой /w ник сообщение")).build());
+				.tooltip(help(commandHelp("Личное сообщение", ActiveTemplateSnapshot.CommandSnapshot::privateMessage)))
+				.build());
 
 		friendMailBox = new EditBox(font, rightX, 103, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Сообщение на почту"));
@@ -513,7 +515,7 @@ public final class ResponderScreen extends Screen {
 		addRenderableWidget(friendMailBox);
 		addRenderableWidget(Button.builder(Component.literal("Почта"), ignored -> mailFriend())
 				.bounds(rightX + columnWidth - actionWidth, 103, actionWidth, FIELD_HEIGHT)
-				.tooltip(help("Отправить почту командой /mail send ник сообщение")).build());
+				.tooltip(help(commandHelp("Почта", ActiveTemplateSnapshot.CommandSnapshot::mail))).build());
 
 		friendAmountBox = new EditBox(font, rightX, 128, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Сумма"));
@@ -524,12 +526,12 @@ public final class ResponderScreen extends Screen {
 		addRenderableWidget(friendAmountBox);
 		addRenderableWidget(Button.builder(Component.literal("Деньги"), ignored -> payFriend())
 				.bounds(rightX + columnWidth - actionWidth, 128, actionWidth, FIELD_HEIGHT)
-				.tooltip(help("Перевести выбранному другу командой /pay ник сумма")).build());
+				.tooltip(help(commandHelp("Перевод", ActiveTemplateSnapshot.CommandSnapshot::pay))).build());
 
 		int halfActionWidth = (columnWidth - 4) / 2;
 		addRenderableWidget(Button.builder(Component.literal("Отправить ТП"), ignored -> callFriend())
 				.bounds(rightX, 153, halfActionWidth, FIELD_HEIGHT)
-				.tooltip(help("Отправить выбранному другу запрос командой /call ник")).build());
+				.tooltip(help(commandHelp("Телепорт", ActiveTemplateSnapshot.CommandSnapshot::call))).build());
 
 		CycleButton<Boolean> hudToggle = CycleButton.onOffBuilder(Boolean.TRUE.equals(config.friendHudEnabled))
 				.create(rightX + halfActionWidth + 4, 153, columnWidth - halfActionWidth - 4,
@@ -886,6 +888,14 @@ public final class ResponderScreen extends Screen {
 		return Tooltip.create(Component.literal(text));
 	}
 
+	private String commandHelp(String action,
+			Function<ActiveTemplateSnapshot.CommandSnapshot, String> command) {
+		String template = GasadaChatResponderClient.TEMPLATE_RUNTIME == null ? null
+				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
+						.map(ActiveTemplateSnapshot::commands).map(command).orElse(null);
+		return action + " — " + CommandTemplateDisplay.format(template);
+	}
+
 	private int maxPage() {
 		return Pagination.maxPage(config.rules.size(), pageSize);
 	}
@@ -941,7 +951,7 @@ public final class ResponderScreen extends Screen {
 		RULES("Правила автоответа", "Настроить фразы, ответы и типы чата"),
 		CHANNELS("Каналы", "Настроить префиксы и распознавание каналов"),
 		BLACKLIST("Чёрный список", "Настроить мут пользователей, Discord и слов"),
-		FRIENDS("Друзья", "Сохранить друзей и быстро использовать /w, /pay, /call и /mail send");
+		FRIENDS("Друзья", "Сохранить друзей и использовать команды активного шаблона");
 
 		private final String title;
 		private final String help;

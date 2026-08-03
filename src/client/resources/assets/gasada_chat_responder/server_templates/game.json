@@ -1,0 +1,66 @@
+{
+  "id": "game",
+  "name": "mc.vanilla-game.ru",
+  "responderEnabled": true,
+  "rules": [],
+  "globalPrefix": "!",
+  "clanReplyPrefix": "/.",
+  "privateReplyCommand": "/r",
+  "globalMarkers": "(!),[g],[global],[глобальный],глобальный чат",
+  "clanMarkers": "(клан),\u003cклан\u003e,〈клан〉,‹клан›",
+  "privateMarkers": "[pm],[лс],личное сообщение,шепчет,-\u003e,→",
+  "mutedWords": [],
+  "discordChatEnabled": true,
+  "discordMutedPlayers": [],
+  "mutedMinecraftPlayers": [],
+  "friends": [
+    "AmadoMuerte",
+    "qtkittyy",
+    "yamateh",
+    "troblesome"
+  ],
+  "friendLastSeen": {
+    "qtkittyy": "22:42 - 02/08/2026",
+    "yamateh": "20:38 - 31/07/2026",
+    "troblesome": "16:29 - 02/08/2026",
+    "kzz": "0/35 дней назад",
+    "M1nato": "0/35 дней назад",
+    "1r2r3r4rr5r": "0/35 дней назад",
+    "TacosRainingRain": "0/35 дней назад",
+    "FNEFAN": "Онлайн",
+    "CaTeRiNa002": "Онлайн",
+    "AmadoMuerte": "00:06 - 03/08/2026"
+  },
+  "friendHudEnabled": true,
+  "friendSoundEnabled": true,
+  "periodicMessages": [
+    {
+      "enabled": false,
+      "message": "",
+      "intervalMinutes": 5
+    }
+  ],
+  "commands": {
+    "ignorePlayer": "ignore {player}",
+    "lookupFriend": "clan lookup {player}",
+    "privateMessage": "w {player} {message}",
+    "pay": "pay {player} {amount}",
+    "call": "tpa {player}",
+    "mail": "mail send {player} {message}"
+  },
+  "parsers": {
+    "discordMarkerPattern": "(?iu)(?:\\(|\\[|\u003c|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|\u003e|\\}|»|›|〉)",
+    "discordNamePattern": "[\\p{L}\\p{N}_]{1,32}",
+    "lastSeenPattern": "(?iu)Был\\s+(?:в\\s+сети|онлайн)\\s*:\\s*([^\\r\\n]+)",
+    "inactivePattern": "(?iu)Неактивен\\s*:\\s*([^\\r\\n]+)",
+    "lookupEndPattern": "(?iu)Тип\\s+убийства\\s*:",
+    "lookupOutputPattern": "(?iu)(?:информация\\s+об\\s+игроке|профиль\\s+игрока|был\\s+(?:в\\s+сети|онлайн)|последн(?:ий|яя)\\s+(?:вход|активность)|ранг\\s*:|(?:кпд|kdr)\\s*:|убийств\\s*:|нейтральных\\s*:|смертей\\s*:|дата\\s+вступления\\s*:|прошлые\\s+кланы\\s*:|неактивен\\s*:|тип\\s+убийства\\s*:|статус\\s*:|клан\\s*:)",
+    "timestampOnlyPattern": "\\s*\\[\\d{1,2}:\\d{2}(?::\\d{2})?]\\s*",
+    "replyCandidateSeparators": [
+      ": ",
+      "» ",
+      "] ",
+      "→ "
+    ]
+  }
+}

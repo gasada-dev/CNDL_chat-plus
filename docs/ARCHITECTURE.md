@@ -75,6 +75,9 @@ FriendLookupManager interception
 
 `ResponderScreen` сохраняет четыре вкладки. Layout остаётся в screen, а mutations/save/suggestions/pagination/status/constants вынесены в tab controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`. Верхняя строка содержит cycle selector active template и кнопку настроек. Рассылки открывает намеренно невидимый `15×15` widget в `(0,0)` только на первой вкладке.
 
+Подсказки friend actions получают templates из active `CommandSnapshot` и форматируют их
+через `CommandTemplateDisplay`; названия `/w`, `/tpa`, pay/mail не зашиты в UI.
+
 `TemplatesScreen`, `TemplateEditorScreen` и `TemplateImportScreen` используют draft/preview. Editor имеет страницы identity/address, всех именованных команд и Discord marker/name patterns. Runtime меняется только после успешного save или явного временного выбора. Активный/default/единственный template защищён от небезопасного удаления.
 
 ## Update checker
