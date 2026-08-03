@@ -1,0 +1,46 @@
+name: Сообщить об ошибке
+description: Воспроизводимая проблема в CNDL_chat+
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Не публикуйте приватные сообщения, пользовательские config или уязвимости. Для уязвимостей используйте SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Версия мода
+      placeholder: "0.5"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Окружение
+      description: Minecraft, Fabric Loader, Fabric API, Java и launcher.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемый результат
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактический результат
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Очищенные логи
+      description: Удалите ники, сообщения, адреса серверов и другие персональные данные.
+      render: shell

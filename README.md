@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер и настраиваемый автоответчик для Minecraft 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.4.5-B76EF5)
+![Version](https://img.shields.io/badge/version-0.5-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
@@ -87,7 +87,9 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 - при переключении очищаются guards, lookup/presence и timers;
 - команды `/w`/`/msg`, teleport, blacklist, lookup, pay/mail и Discord patterns
   редактируются отдельно для каждого шаблона;
-- встроенные `Vanilla-box` и `mc.vanilla-game.ru` поставляются в JAR, дополнительные JSON загружаются из
+- встроенные `Vanilla-box` и `mc.vanilla-game.ru` поставляются в JAR; у нового
+  шаблона `game` список друзей и история last seen изначально пусты;
+- дополнительные JSON загружаются из
   `.minecraft/config/gasada-chat-responder-template-imports/`;
 - hot path использует immutable snapshot и не читает JSON.
 
@@ -95,7 +97,7 @@ CNDL_chat+ объединяет правила автоответа, маршр�
 
 1. Установите Minecraft 26.2 и Fabric Loader 0.19.3 или новее.
 2. Установите Fabric API версии `0.156.0+26.2` или новее для Minecraft 26.2.
-3. Поместите `CNDL_chat+-0.4.5.jar` в папку `.minecraft/mods`.
+3. Поместите `CNDL_chat+-0.5.jar` в папку `.minecraft/mods`.
 4. Запустите игру и нажмите `F8`.
 
 Мод работает только на клиенте. Устанавливать его на сервер не требуется.
@@ -140,6 +142,12 @@ GitHub Actions выполняет проверки на Java 25. Push тега `
 
 ## Лицензия
 
-Проект распространяется по лицензии [CC0-1.0](LICENSE).
+Copyright © 2026 CNDL. Версия 0.5 и последующие изменения распространяются по
+лицензии [GNU General Public License v3.0 only](LICENSE). Уже опубликованные версии
+сохраняют условия лицензии, указанные в соответствующем исходном коде и release.
+
+Правила участия описаны в [`CONTRIBUTING.md`](CONTRIBUTING.md). Перед отправкой
+issue или pull request ознакомьтесь также с [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+и [`SECURITY.md`](SECURITY.md).
 
 **Автор: CNDL**

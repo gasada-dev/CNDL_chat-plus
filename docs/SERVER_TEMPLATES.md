@@ -63,8 +63,9 @@ exact permanent binding
   `src/client/resources/assets/gasada_chat_responder/server_templates/` и добавляет имена
   файлов в `index.txt`. При первом запуске они копируются в repository; существующий ID
   всегда выигрывает и не перезаписывается обновлением JAR.
-- В версии 0.4.5 каталог содержит `vanilla-box.json` и точную копию предоставленного
-  `game.json` с ID `game`, display name `mc.vanilla-game.ru` и его текущими server data.
+- В версии 0.5 каталог содержит `vanilla-box.json` и `game.json` с ID `game`, display
+  name `mc.vanilla-game.ru`, его командами и parser settings. Персональные категории
+  `friends` и `friendLastSeen` во встроенном `game` намеренно пусты для новых установок.
 - Пользователь кладёт полученные JSON в
   `.minecraft/config/gasada-chat-responder-template-imports/` и нажимает
   «Загрузить шаблоны из папки». Source-файлы остаются на месте, duplicate ID пропускаются.

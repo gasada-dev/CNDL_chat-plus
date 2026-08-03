@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
@@ -35,8 +34,8 @@ final class TemplateCatalogServiceTest {
 		assertEquals("mc.vanilla-game.ru", game.name);
 		assertEquals("ignore {player}", game.commands.ignorePlayer);
 		assertEquals("tpa {player}", game.commands.call);
-		assertEquals(List.of("AmadoMuerte", "qtkittyy", "yamateh", "troblesome"), game.friends);
-		assertEquals("00:06 - 03/08/2026", game.friendLastSeen.get("AmadoMuerte"));
+		assertTrue(game.friends.isEmpty());
+		assertTrue(game.friendLastSeen.isEmpty());
 		vanilla.commands.privateMessage = "msg {player} {message}";
 		assertTrue(repository.saveTemplate(vanilla).success());
 

@@ -43,6 +43,9 @@ Bundled templates находятся внутри JAR в
 а существующие пользовательские файлы не перезаписываются. Внешний import ограничен
 одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
 Текущий bundled index содержит `vanilla-box.json` и `game.json`.
+Bundled `game.json` содержит серверные команды и parser settings, но не содержит
+персональных друзей или last seen. Уже существующий пользовательский template с тем
+же ID не перезаписывается при обновлении JAR.
 
 ## Legacy ResponderConfig
 

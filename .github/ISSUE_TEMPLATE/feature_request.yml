@@ -1,0 +1,29 @@
+name: Предложить улучшение
+description: Предложение новой функции или изменения поведения
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какая проблема решается
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Влияние на config, шаблоны и серверы
+      description: Укажите возможные изменения совместимости и серверных команд.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Проверка
+      options:
+        - label: Я проверил существующие issues и документацию.
+          required: true
