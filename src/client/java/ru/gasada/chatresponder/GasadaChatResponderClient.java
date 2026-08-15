@@ -3,7 +3,6 @@ package ru.gasada.chatresponder;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
@@ -20,6 +19,8 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static FriendActionService FRIEND_ACTIONS;
 	public static TemplateSelectionService TEMPLATE_SELECTION;
 	public static TemplateCatalogService TEMPLATE_CATALOG;
+	public static PlayerInfoService PLAYER_INFO;
+	public static MarriageLookupManager MARRIAGE_LOOKUP;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -32,6 +33,14 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
 		ServerTemplateRepository templateRepository = ConfigManager.templateRepository();
+		TemplateOperationResult<RootConfigSchemaMigration.MigrationReport> schemaMigration =
+				new RootConfigSchemaMigration(templateRepository).migrate();
+		if (!schemaMigration.success()) {
+			LOGGER.warn("Не удалось обновить схему шаблонов: {}", schemaMigration.errorMessage());
+		} else if (!schemaMigration.value().warnings().isEmpty()) {
+			LOGGER.warn("Миграция шаблонов завершена с предупреждениями: {}",
+					String.join("; ", schemaMigration.value().warnings()));
+		}
 		TEMPLATE_CATALOG = new TemplateCatalogService(templateRepository, ConfigManager.templateImportDirectory());
 		TemplateCatalogService.ImportSummary bundled = TEMPLATE_CATALOG.installBundledTemplates();
 		if (!bundled.success()) {
@@ -49,15 +58,23 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		switchCoordinator.register(periodicScheduler::resetRuntimeState);
 		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
 		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
-		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis);
+		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
+		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis,
+				lookupCoordinator);
+		MARRIAGE_LOOKUP = new MarriageLookupManager(TEMPLATE_RUNTIME, SERVER_COMMANDS, lookupCoordinator);
+		PLAYER_INFO = new PlayerInfoService(TEMPLATE_RUNTIME, new VanillaGameProfileClient(), FRIEND_LOOKUP,
+				MARRIAGE_LOOKUP,
+				runnable -> net.minecraft.client.Minecraft.getInstance().execute(runnable));
+		switchCoordinator.register(PLAYER_INFO::resetRuntimeState);
 		FriendsHud friendsHud = new FriendsHud(TEMPLATE_RUNTIME);
 		switchCoordinator.register(friendsHud::resetRuntimeState);
 		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
+		switchCoordinator.register(MARRIAGE_LOOKUP::resetRuntimeState);
 		friendsHud.register();
 
 		KeyMapping.Category category = KeyMapping.Category.register(
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
-		KeyMapping openScreen = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+		KeyMapping openScreen = PlatformKeyMapping.register(new KeyMapping(
 				"key.gasada_chat_responder.open",
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_F8,
@@ -65,20 +82,24 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			TEMPLATE_SELECTION.tick(minecraft);
+			PLAYER_INFO.tick(minecraft);
 			while (openScreen.consumeClick()) {
-				minecraft.gui.setScreen(new ResponderScreen(CONFIG));
+				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
 			}
 			periodicScheduler.tick(minecraft);
+			MARRIAGE_LOOKUP.tick(minecraft);
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
 			updateChecker.tick(minecraft);
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
-				FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+				MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
+						&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 						&& visibilityFilter.decide(message.getString(), sender == null ? null : sender.name()).visible());
 		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) ->
-				overlay || FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+				overlay || MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
+						&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 						&& visibilityFilter.decide(message.getString()).visible());
 
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) ->

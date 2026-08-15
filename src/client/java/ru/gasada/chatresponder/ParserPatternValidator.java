@@ -10,6 +10,10 @@ public final class ParserPatternValidator {
 	}
 
 	public static ValidationResult validate(String source, boolean captureRequired) {
+		return validate(source, captureRequired ? 1 : 0);
+	}
+
+	public static ValidationResult validate(String source, int minimumCaptureGroups) {
 		if (source == null || source.isBlank()) {
 			return ValidationResult.failure("Parser pattern не задан");
 		}
@@ -21,8 +25,9 @@ public final class ParserPatternValidator {
 		}
 		try {
 			Pattern compiled = Pattern.compile(source);
-			if (captureRequired && compiled.matcher("").groupCount() < 1) {
-				return ValidationResult.failure("Parser pattern должен содержать capture group");
+			if (compiled.matcher("").groupCount() < minimumCaptureGroups) {
+				return ValidationResult.failure("Parser pattern должен содержать capture groups: "
+						+ minimumCaptureGroups);
 			}
 			return ValidationResult.success(compiled);
 		} catch (PatternSyntaxException error) {

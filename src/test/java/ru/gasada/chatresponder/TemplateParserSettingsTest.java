@@ -46,6 +46,18 @@ final class TemplateParserSettingsTest {
 	}
 
 	@Test
+	void customNamedPlayerInfoPatternIsCompiledOnceAndCaptured() {
+		ParserSettings source = new ParserSettings();
+		source.playerInfoPatterns.put("Гильдия", "(?iu)guild\\s*=\\s*([^;]+)");
+		FriendLookupParser.ParseResult result = new FriendLookupParser(
+				CompiledParserSettings.compile(source)).parse("guild = Explorers");
+
+		assertEquals(FriendLookupParser.MessageType.PLAYER_INFO_FIELD, result.type());
+		assertEquals("Гильдия", result.fieldName());
+		assertEquals("Explorers", result.value());
+	}
+
+	@Test
 	void channelDetectorUsesActiveTemplatePrefixesMarkersAndDiscordPattern() {
 		ServerTemplate template = ServerTemplate.empty("custom", "Custom");
 		template.globalPrefix = "$";

@@ -15,7 +15,7 @@ import java.util.List;
 import com.google.gson.Gson;
 
 public final class TemplateCatalogService {
-	static final String BUNDLED_INDEX = "assets/gasada_chat_responder/server_templates/index.txt";
+	static final String BUNDLED_CATALOG = "assets/gasada_chat_responder/server_templates/catalog.json";
 	static final int MAX_TEMPLATE_BYTES = 1_048_576;
 	private static final String BUNDLED_DIRECTORY = "assets/gasada_chat_responder/server_templates/";
 	private static final Gson GSON = new Gson();
@@ -37,16 +37,20 @@ public final class TemplateCatalogService {
 	}
 
 	public ImportSummary installBundledTemplates() {
-		try (InputStream index = resources.getResourceAsStream(BUNDLED_INDEX)) {
-			if (index == null) return new ImportSummary(0, 0, List.of("Не найден индекс встроенных шаблонов"));
+		try (InputStream index = resources.getResourceAsStream(BUNDLED_CATALOG)) {
+			if (index == null) return new ImportSummary(0, 0, List.of("Не найден каталог встроенных шаблонов"));
 			String content = decode(index.readNBytes(MAX_TEMPLATE_BYTES + 1));
-			if (content == null) return new ImportSummary(0, 0, List.of("Некорректный индекс шаблонов"));
-			List<TemplateSource> sources = content.lines().map(String::trim)
-					.filter(line -> !line.isEmpty() && !line.startsWith("#"))
-					.map(file -> new TemplateSource(file, () -> resources.getResourceAsStream(BUNDLED_DIRECTORY + file)))
+			BundledDescriptor[] descriptors = content == null ? null
+					: GSON.fromJson(content, BundledDescriptor[].class);
+			if (descriptors == null) return new ImportSummary(0, 0, List.of("Некорректный каталог шаблонов"));
+			List<TemplateSource> sources = java.util.Arrays.stream(descriptors)
+					.filter(value -> value != null && value.resource != null && !value.resource.isBlank())
+					.map(value -> new TemplateSource(value.resource,
+							() -> resources.getResourceAsStream(BUNDLED_DIRECTORY + value.resource),
+							value.addressPatterns == null ? List.of() : List.copyOf(value.addressPatterns)))
 					.toList();
 			return importSources(sources);
-		} catch (IOException error) {
+		} catch (Exception error) {
 			return new ImportSummary(0, 0, List.of("Не удалось прочитать встроенные шаблоны: " + error.getMessage()));
 		}
 	}
@@ -59,7 +63,7 @@ public final class TemplateCatalogService {
 				files.filter(path -> Files.isRegularFile(path) && path.getFileName().toString().endsWith(".json"))
 						.sorted(Comparator.comparing(path -> path.getFileName().toString()))
 						.forEach(path -> sources.add(new TemplateSource(path.getFileName().toString(),
-								() -> Files.newInputStream(path))));
+								() -> Files.newInputStream(path), List.of())));
 			}
 			return importSources(sources);
 		} catch (IOException error) {
@@ -93,8 +97,13 @@ public final class TemplateCatalogService {
 					errors.add(source.name + ": " + loadedRoot.errorMessage());
 					continue;
 				}
-				if (loadedRoot.value().templates.stream()
-						.anyMatch(info -> template.id != null && template.id.equals(info.id))) {
+				ServerTemplateInfo existing = loadedRoot.value().templates.stream()
+						.filter(info -> template.id != null && template.id.equals(info.id)).findFirst().orElse(null);
+				if (existing != null) {
+					String mergeError = mergeAddressPatterns(loadedRoot.value(), existing, source.addressPatterns);
+					if (mergeError != null) errors.add(source.name + ": " + mergeError);
+					String defaultsError = upgradeBundledDefaults(template.id);
+					if (defaultsError != null) errors.add(source.name + ": " + defaultsError);
 					skipped++;
 					continue;
 				}
@@ -104,13 +113,104 @@ public final class TemplateCatalogService {
 					continue;
 				}
 				TemplateOperationResult<ServerTemplate> imported = manager.importNew(template);
-				if (imported.success()) installed++;
+				if (imported.success()) {
+					installed++;
+					TemplateOperationResult<RootConfig> refreshed = repository.loadRoot();
+					ServerTemplateInfo info = refreshed.success() ? refreshed.value().templates.stream()
+							.filter(value -> template.id.equals(value.id)).findFirst().orElse(null) : null;
+					if (info == null) {
+						errors.add(source.name + ": не удалось зарегистрировать address patterns");
+					} else {
+						String mergeError = mergeAddressPatterns(refreshed.value(), info, source.addressPatterns);
+						if (mergeError != null) errors.add(source.name + ": " + mergeError);
+					}
+				}
 				else errors.add(source.name + ": " + imported.errorMessage());
 			} catch (Exception error) {
 				errors.add(source.name + ": " + error.getMessage());
 			}
 		}
 		return new ImportSummary(installed, skipped, List.copyOf(errors));
+	}
+
+	private String upgradeBundledDefaults(String templateId) {
+		if (!"vanilla-game".equals(templateId) && !"vanilla-box".equals(templateId)) return null;
+		TemplateOperationResult<ServerTemplate> loaded = repository.loadTemplate(templateId);
+		if (!loaded.success()) return loaded.errorMessage();
+		ServerTemplate template = loaded.value();
+		boolean changed = false;
+		if ("vanilla-box".equals(templateId)) {
+			if (template.commands.marriageList != null && !template.commands.marriageList.isBlank()
+					|| template.parsers.marriageEntryPattern != null && !template.parsers.marriageEntryPattern.isBlank()
+					|| template.parsers.marriagePagePattern != null && !template.parsers.marriagePagePattern.isBlank()
+					|| template.parsers.marriageEmptyPattern != null && !template.parsers.marriageEmptyPattern.isBlank()
+					|| template.playerInfo.marriageLookupConfigured) {
+				template.commands.marriageList = "";
+				template.parsers.marriageEntryPattern = "";
+				template.parsers.marriagePagePattern = "";
+				template.parsers.marriageEmptyPattern = "";
+				template.playerInfo.marriageLookupConfigured = false;
+				changed = true;
+			}
+		}
+		if ("vanilla-game".equals(templateId) && !template.playerInfo.providerConfigured) {
+			template.playerInfo.provider = PlayerInfoProvider.VANILLA_GAME_PUBLIC_API;
+			template.playerInfo.providerConfigured = true;
+			changed = true;
+		}
+		if (!template.parsers.playerInfoPatternsConfigured) {
+			ParserSettings defaults = ParserSettings.vanillaBoxDefaults();
+			for (var entry : defaults.playerInfoPatterns.entrySet()) {
+				template.parsers.playerInfoPatterns.putIfAbsent(entry.getKey(), entry.getValue());
+			}
+			template.parsers.playerInfoPatternsConfigured = true;
+			changed = true;
+		}
+		if ("vanilla-game".equals(templateId) && !template.playerInfo.marriageLookupConfigured) {
+			if (template.commands.marriageList == null || template.commands.marriageList.isBlank()) {
+				template.commands.marriageList = "marry list {page}";
+			}
+			ParserSettings defaults = new ParserSettings();
+			ParserSettings.applyVanillaGameMarriageDefaults(defaults);
+			if (template.parsers.marriageEntryPattern == null || template.parsers.marriageEntryPattern.isBlank()) {
+				template.parsers.marriageEntryPattern = defaults.marriageEntryPattern;
+			}
+			if (template.parsers.marriagePagePattern == null || template.parsers.marriagePagePattern.isBlank()) {
+				template.parsers.marriagePagePattern = defaults.marriagePagePattern;
+			}
+			if (template.parsers.marriageEmptyPattern == null || template.parsers.marriageEmptyPattern.isBlank()) {
+				template.parsers.marriageEmptyPattern = defaults.marriageEmptyPattern;
+			}
+			template.playerInfo.marriageLookupConfigured = true;
+			changed = true;
+		}
+		if (!changed) return null;
+		TemplateOperationResult<Void> saved = repository.saveTemplate(template);
+		return saved.success() ? null : saved.errorMessage();
+	}
+
+	private String mergeAddressPatterns(RootConfig root, ServerTemplateInfo target, List<String> patterns) {
+		if (target.addressPatterns == null) target.addressPatterns = new ArrayList<>();
+		boolean changed = false;
+		for (String source : patterns) {
+			AddressPatternValidator.ValidationResult validated = AddressPatternValidator.validate(source);
+			if (!validated.valid()) return validated.errorMessage();
+			String pattern = validated.normalizedPattern();
+			ServerTemplateInfo owner = root.templates.stream()
+					.filter(info -> info.addressPatterns != null && info.addressPatterns.stream()
+							.anyMatch(value -> value.equalsIgnoreCase(pattern)))
+					.findFirst().orElse(null);
+			if (owner != null && !owner.id.equals(target.id)) {
+				return "домен " + pattern + " уже принадлежит шаблону " + owner.id;
+			}
+			if (target.addressPatterns.stream().noneMatch(value -> value.equalsIgnoreCase(pattern))) {
+				target.addressPatterns.add(pattern);
+				changed = true;
+			}
+		}
+		if (!changed) return null;
+		TemplateOperationResult<Void> saved = repository.saveRoot(root);
+		return saved.success() ? null : saved.errorMessage();
 	}
 
 	private static String decode(byte[] bytes) {
@@ -131,5 +231,9 @@ public final class TemplateCatalogService {
 
 	@FunctionalInterface
 	private interface InputOpener { InputStream open() throws IOException; }
-	private record TemplateSource(String name, InputOpener opener) { }
+	private record TemplateSource(String name, InputOpener opener, List<String> addressPatterns) { }
+	private static final class BundledDescriptor {
+		String resource;
+		List<String> addressPatterns;
+	}
 }

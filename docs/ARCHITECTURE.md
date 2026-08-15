@@ -1,6 +1,6 @@
 # Архитектура CNDL_chat+
 
-Документ описывает фактическое состояние после PR 19. Мод является client-only Fabric entrypoint для Minecraft 26.2; все игровые API вызываются на client thread.
+Документ описывает текущее состояние проекта. Мод является client-only Fabric entrypoint для Minecraft 26.2; все игровые API вызываются на client thread.
 
 ## Bootstrap и active template
 
@@ -12,32 +12,36 @@
 - friend lookup queue/pending response;
 - friend presence, notices и HUD snapshot;
 - periodic timers;
-- compiled rules, filters и parsers;
-- session overrides.
+- compiled rules, filters и parsers.
 
-Если адрес не разрешён или template невозможно загрузить, runtime очищается: настройки другого сервера не применяются.
+Если resolver не находит template или выбранный template невозможно загрузить, runtime очищается:
+настройки другого сервера не применяются. При отсутствии connection/address tick не меняет runtime.
 
 ## Входящие сообщения
 
 Порядок Fabric pipeline сохранён:
 
 ```text
-FriendLookupManager interception
+MarriageLookupManager / FriendLookupManager interception
 → ChatVisibilityFilter
 → ChatResponderEngine
 → отображение сообщения
 ```
 
-`ALLOW_CHAT`/`ALLOW_GAME` сначала дают `FriendLookupManager` скрыть служебный lookup block. Затем `ChatVisibilityFilter` применяет Discord toggle, Discord mute, explicit Minecraft sender mute и compiled muted words активного шаблона. Скрытое сообщение не доходит до responder callback.
+`ALLOW_CHAT`/`ALLOW_GAME` сначала дают marriage/friend managers извлечь данные и скрыть
+служебные lookup blocks. Затем `ChatVisibilityFilter` применяет Discord toggle, Discord
+mute, explicit Minecraft sender mute и compiled muted words активного шаблона. Скрытое
+сообщение не доходит до responder callback.
 
 `ChatResponderEngine` является координатором:
 
-1. `OwnMessageGuard` отбрасывает собственный форматированный текст и echo в окне 5 секунд.
+1. Статическая проверка `OwnMessageGuard` отбрасывает собственный форматированный текст.
 2. `DuplicateMessageGuard` отбрасывает одинаковый fingerprint в окне 400 мс.
-3. `ChatChannelDetector` проверяет Discord, private markers, clan markers, global prefix, `(!)`, global markers и fallback `LOCAL` именно в этом порядке.
-4. `ReplyCandidateBuilder` создаёт normalized candidates из content/displayed, prefixes и separators активного parser set.
-5. `ReplyRuleMatcher` проходит compiled rules по порядку; первое enabled matching rule побеждает.
-6. Ответ формируется для LOCAL/GLOBAL/CLAN/PRIVATE и передаётся `OutgoingChatService`.
+3. `OwnMessageGuard` отбрасывает недавний echo в окне 5 секунд.
+4. `ChatChannelDetector` проверяет Discord, private markers, clan markers, global prefix, `(!)`, global markers и fallback `LOCAL` именно в этом порядке.
+5. `ReplyCandidateBuilder` создаёт normalized candidates из content/displayed, prefixes и separators активного parser set.
+6. `ReplyRuleMatcher` проходит compiled rules по порядку; первое enabled matching rule побеждает.
+7. Ответ формируется для LOCAL/GLOBAL/CLAN/PRIVATE и передаётся `OutgoingChatService`.
 
 `WildcardMatcher` считает специальным только `*`. Режим `FULL_MATCH` используется rules, `CONTAINS_MATCH` — muted words. Regex-метасимволы экранируются; case handling и пустые patterns сохраняют characterization semantics.
 
@@ -49,7 +53,11 @@ FriendLookupManager interception
 
 ## Friends, lookup и HUD
 
-`FriendLookupManager` принимает только друзей active snapshot, выдерживает delay 2,5 секунды и timeout 7 секунд, использует `FriendLookupParser`/compiled template patterns и отправляет lookup через command service. Очередь очищается при disconnect/switch. `last seen` обновляется в target template scope.
+`FriendLookupManager` ставит в периодическую очередь только друзей active snapshot; ручной
+player-info fallback принимает любой валидный Minecraft-ник. Manager выдерживает delay 2,5
+секунды и timeout 7 секунд, использует `FriendLookupParser`/compiled template patterns и
+отправляет lookup через command service. Очередь очищается при disconnect/switch. `last seen`
+обновляется в target template scope.
 
 `FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд и notice 4 секунды. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
 
@@ -61,9 +69,11 @@ FriendLookupManager interception
 
 `ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` использует приоритет exact binding → exact pattern → wildcard → default → none.
 
+`RootConfigSchemaMigration` обновляет schema 1: безопасно переносит ID `game` в
+`vanilla-game`, сохраняя template data/default/bindings и не объединяя конфликтующие ID.
 `TemplateCatalogService` до начального выбора устанавливает отсутствующие bundled JSON из
-`assets/gasada_chat_responder/server_templates/index.txt`. Совпадающие ID пропускаются, поэтому
-обновление мода не перезаписывает пользовательский template. Внешние JSON размером до 1 MiB
+`assets/gasada_chat_responder/server_templates/catalog.json`. Descriptor также добавляет
+официальный домен существующему встроенному ID, не перезаписывая template. Внешние JSON размером до 1 MiB
 загружаются только по команде UI из `config/gasada-chat-responder-template-imports`; перед
 регистрацией проверяются ID/name, command placeholders и parser patterns.
 
@@ -73,7 +83,27 @@ FriendLookupManager interception
 
 ## UI
 
-`ResponderScreen` сохраняет четыре вкладки. Layout остаётся в screen, а mutations/save/suggestions/pagination/status/constants вынесены в tab controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`. Верхняя строка содержит cycle selector active template и кнопку настроек. Рассылки открывает намеренно невидимый `15×15` widget в `(0,0)` только на первой вкладке.
+`ResponderScreen` сохраняет четыре вкладки. Часть mutations/save и UI helpers вынесена в tab
+controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`; layout
+и orchestration остаются в screen. Верхняя строка содержит cycle selector active template и
+кнопку настроек. Намеренно невидимый `15×15` widget в `(0,0)` существует только на первой
+вкладке и открывает `PeriodicMessageAccessScreen`; экран рассылок доступен после точного
+ввода hardcoded-пароля `1239`.
+
+Над вкладкой друзей находится кнопка `Информация об игроке`. `PlayerInfoScreen` получает
+online suggestions из текущего connection и загружает данные только по `Обновить`.
+`PlayerInfoService` хранит session cache и отбрасывает ответы старой runtime generation.
+`VanillaGameProfileClient` обращается только к фиксированному HTTPS host/path без redirects,
+проверяет status, Content-Type, UTF-8 и размер body. При отказе API запрос ставится в общую
+очередь `FriendLookupManager`; parser сначала извлекает named `playerInfoPatterns`, затем
+скрывает lookup block и передаёт собранные поля экрану. disconnect и switch завершают/очищают очередь. UI намеренно
+не показывает building score, placeholder скрытых контактов и pwarp без достоверного источника.
+
+Если успешный профиль VanillaGame содержит `marry: null`, `PlayerInfoService` передаёт
+запрос в `MarriageLookupManager`. Он использует command `marriageList {page}` и compiled
+patterns active template, последовательно просматривает до 100 страниц и обогащает уже
+загруженный профиль. `ServerLookupCoordinator` исключает одновременную отправку friend
+lookup и marriage lookup. Оба состояния сбрасываются при disconnect/template switch.
 
 Подсказки friend actions получают templates из active `CommandSnapshot` и форматируют их
 через `CommandTemplateDisplay`; названия `/w`, `/tpa`, pay/mail не зашиты в UI.
@@ -82,7 +112,7 @@ FriendLookupManager interception
 
 ## Update checker
 
-`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; выбирается только asset `CNDL_chat+-<version>.jar` с HTTPS URL точного release path репозитория. `UpdateVersion` отдельно сохраняет comparison characterization. Экран открывается только из client tick; автоматической установки нет.
+`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; release обязан содержать точные assets `CNDL_chat+-<version>-mc1.21.11.jar` и `CNDL_chat+-<version>-mc26.2.jar` с HTTPS URL точного release path репозитория. `UpdateVersion` отдельно сохраняет comparison characterization. Экран с отдельной кнопкой для каждой версии открывается только из client tick; автоматической установки нет.
 
 ## Threading и I/O invariants
 

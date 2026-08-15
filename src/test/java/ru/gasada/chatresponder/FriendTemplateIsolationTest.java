@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,5 +46,23 @@ final class FriendTemplateIsolationTest {
 		assertEquals(0, lookup.queuedCount());
 		lookup.queueActiveFriends();
 		assertEquals(1, lookup.queuedCount());
+	}
+
+	@Test
+	void manualLookupSharesQueueAndCompletesWhenTemplateSwitchResetsIt() {
+		TemplateSwitchCoordinator coordinator = new TemplateSwitchCoordinator();
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(coordinator);
+		runtime.switchTo(ServerTemplate.empty("first", "First"));
+		FriendLookupManager lookup = new FriendLookupManager(runtime,
+				new FriendActionService(runtime, null, null), System::currentTimeMillis);
+		coordinator.register(lookup::resetRuntimeState);
+		AtomicBoolean completed = new AtomicBoolean();
+
+		assertTrue(lookup.queueManualLookup("Player_1", ignored -> completed.set(true)));
+		assertEquals(1, lookup.queuedCount());
+		assertFalse(lookup.queueManualLookup("player_1", ignored -> { }));
+		runtime.switchTo(ServerTemplate.empty("second", "Second"));
+		assertTrue(completed.get());
+		assertEquals(0, lookup.queuedCount());
 	}
 }

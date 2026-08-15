@@ -90,6 +90,16 @@ final class ServerCommandServiceTest {
 		assertEquals(List.of("hello", "/say hello"), recorded);
 	}
 
+	@Test
+	void marriageListUsesActiveTemplateAndValidatedPage() {
+		ServerTemplate template = templateWithCommands();
+		template.commands.marriageList = "marry list {page}";
+		runtime.switchTo(template);
+		assertTrue(commands.marriageList(2).success());
+		assertFalse(commands.marriageList(0).success());
+		assertEquals(List.of("marry list 2"), transport.commands);
+	}
+
 	private static ServerTemplate templateWithCommands() {
 		ServerTemplate template = ServerTemplate.empty("commands", "Commands");
 		template.commands = ServerCommandSettings.vanillaBoxDefaults();

@@ -118,6 +118,26 @@ final class TemplateImportServiceTest {
 		assertEquals("pay {player} {amount}", repository.loadTemplate("target").value().commands.pay);
 	}
 
+	@Test
+	void importRemovesMarriageSettingsOutsideVanillaGame() {
+		ServerTemplate source = template("vanilla-game");
+		source.commands.marriageList = "marry list {page}";
+		ParserSettings.applyVanillaGameMarriageDefaults(source.parsers);
+		source.playerInfo.marriageLookupConfigured = true;
+		ServerTemplate target = template("vanilla-box");
+		save(source, target);
+		TemplateImportOptions options = new TemplateImportOptions()
+				.select(TemplateImportOptions.Category.COMMANDS, true)
+				.select(TemplateImportOptions.Category.PARSER_PATTERNS, true)
+				.select(TemplateImportOptions.Category.PLAYER_INFO, true);
+
+		ServerTemplate imported = service.apply(
+				service.preview("vanilla-game", "vanilla-box", options).value(), true).value();
+		assertTrue(imported.commands.marriageList.isBlank());
+		assertTrue(imported.parsers.marriageEntryPattern.isBlank());
+		assertFalse(imported.playerInfo.marriageLookupConfigured);
+	}
+
 	private void save(ServerTemplate... templates) {
 		for (ServerTemplate template : templates) assertTrue(repository.saveTemplate(template).success());
 	}

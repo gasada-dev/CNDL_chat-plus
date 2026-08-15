@@ -3,7 +3,6 @@ package ru.gasada.chatresponder;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
@@ -11,7 +10,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class PeriodicMessageScreen extends Screen {
+public final class PeriodicMessageScreen extends CompatScreen {
 	private static final int TEXT_COLOR = 0xFFE8ECF2;
 	private static final int MUTED_COLOR = 0xFF9DA8B8;
 
@@ -155,22 +154,25 @@ public final class PeriodicMessageScreen extends Screen {
 
 	@Override
 	public void onClose() {
-		minecraft.gui.setScreen(parent);
+		ClientUi.setScreen(minecraft, parent);
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.fill(0, 0, width, height, 0xE010141D);
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		int panelWidth = Math.min(700, width - 30);
 		int x = (width - panelWidth) / 2;
 		graphics.fill(x - 2, 35, x + panelWidth + 2, height - 20, 0xFF536178);
 		graphics.fill(x, 37, x + panelWidth, height - 22, 0xD9242B38);
 		graphics.centeredText(font, title, width / 2, 48, TEXT_COLOR);
 		graphics.text(font, "Сообщение", x + 18, 67, MUTED_COLOR);
+		int available = panelWidth - 36;
+		int messageWidth = available - 108 - 62 - 22 - 12;
+		graphics.text(font, "Интервал, мин", x + 22 + messageWidth, 67, MUTED_COLOR);
 		if (statusText.isEmpty()) {
 			graphics.text(font, "До трёх независимых рассылок; отсчёт начинается после сохранения.",
 					x + 18, height - 66, MUTED_COLOR);
@@ -178,7 +180,6 @@ public final class PeriodicMessageScreen extends Screen {
 			graphics.centeredText(font, statusText, width / 2, height - 68, statusColor);
 		}
 		CreditRenderer.draw(graphics, font, x + 4, height - 14, MUTED_COLOR);
-		super.extractRenderState(graphics, mouseX, mouseY, delta);
 	}
 
 	@Override

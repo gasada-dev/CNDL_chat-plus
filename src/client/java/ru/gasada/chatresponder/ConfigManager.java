@@ -115,9 +115,4 @@ public final class ConfigManager {
 		GasadaChatResponderClient.TEMPLATE_RUNTIME.switchTo(template);
 		return true;
 	}
-
-	public static void populateView(ResponderConfig config, ServerTemplate template) {
-		LegacyConfigToVanillaBoxMigration.populateLegacyView(config, template);
-		config.sanitize();
-	}
 }

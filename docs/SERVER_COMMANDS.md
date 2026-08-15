@@ -12,6 +12,7 @@
 | `/pay <player> <amount>` | `ServerCommandService.pay` | `{player}`, `{amount}` | player, positive `BigDecimal`, comma→dot, max 2 decimals, no exponent/NaN/Infinity |
 | `/call <player>` | `ServerCommandService.call` | `{player}` | player/template/connection |
 | `/mail send <player> <message>` | `ServerCommandService.mail` | `{player}`, `{message}` | player, `MessageValidator.MAIL` (220), template, outgoing |
+| `/marry list <page>` (Vanilla-game) | `ServerCommandService.marriageList` | `{page}` | page 1–1000, template, connection |
 
 Vanilla strings определены только в `ServerCommandSettings.vanillaBoxDefaults()`. Другие classes не конкатенируют эти команды. `CommandTemplateValidator` требует точный набор placeholders и хранение без leading `/`. Если active template не содержит команду или template invalid, сервис возвращает понятную ошибку и ничего не отправляет; скрытого fallback Vanilla-box нет.
 
@@ -45,7 +46,12 @@ Vanilla-box. Пустой template отображается как «коман�
 
 ## Parser/lookup boundaries
 
-Friend lookup command берётся из active template и отправляется `ServerCommandService`; ответ разбирается active compiled patterns. Lookup UI/manager не собирает строку `/clan lookup` вручную.
+Friend lookup и marriage list commands берутся из active template и отправляются
+`ServerCommandService`; ответы разбираются active compiled patterns. Lookup брака
+используется только при отсутствии `marry` в успешном API-профиле, точном active ID
+`vanilla-game`, command `{page}`, regex пары с двумя никами и regex current/max page. Общий
+`ServerLookupCoordinator` сериализует friend/manual/marriage запросы и очищается при
+disconnect/switch. Parser извлекает данные до скрытия служебной строки.
 
 ## При добавлении или изменении команды
 

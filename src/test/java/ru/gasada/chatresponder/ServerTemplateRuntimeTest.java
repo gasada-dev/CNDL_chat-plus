@@ -29,13 +29,12 @@ final class ServerTemplateRuntimeTest {
 	}
 
 	@Test
-	void switchingTemplatesDoesNotLeakListsMapsTimersOrOverrides() {
+	void switchingTemplatesDoesNotLeakTemplateState() {
 		AtomicInteger resets = new AtomicInteger();
 		TemplateSwitchCoordinator coordinator = new TemplateSwitchCoordinator();
 		coordinator.register(resets::incrementAndGet);
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(coordinator);
 		ActiveTemplateSnapshot first = runtime.switchTo(template("first", "Alice", "one"));
-		runtime.putTemporaryOverride("prefix", "temporary");
 
 		ActiveTemplateSnapshot second = runtime.switchTo(template("second", "Bob", "two"));
 		assertEquals(2, resets.get());
@@ -43,7 +42,6 @@ final class ServerTemplateRuntimeTest {
 		assertEquals("second", second.id());
 		assertEquals("Bob", second.friends().getFirst());
 		assertFalse(second.friends().contains("Alice"));
-		assertEquals(0, runtime.temporaryOverrideCount());
 	}
 
 	@Test

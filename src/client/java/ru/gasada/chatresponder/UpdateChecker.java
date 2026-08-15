@@ -27,6 +27,8 @@ public final class UpdateChecker {
 	private static final int MAX_MESSAGE_LENGTH = 512;
 	private static final String ALLOWED_DOWNLOAD_HOST = "github.com";
 	private static final String ALLOWED_RELEASE_PATH = "/gasada-dev/MineModChat-/releases/download/";
+	private static final String MINECRAFT_12111 = "1.21.11";
+	private static final String MINECRAFT_262 = "26.2";
 	private static final Gson GSON = new Gson();
 	private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(4))
@@ -106,7 +108,7 @@ public final class UpdateChecker {
 	}
 
 	public void tick(Minecraft minecraft) {
-		Screen currentScreen = minecraft.gui.screen();
+		Screen currentScreen = ClientUi.currentScreen(minecraft);
 		if (state.get() == CheckState.NOT_STARTED) {
 			if (minecraft.getConnection() == null || currentScreen != null) return;
 			start();
@@ -115,7 +117,7 @@ public final class UpdateChecker {
 		if (state.get() != CheckState.AVAILABLE || info == null
 				|| minecraft.getConnection() == null || currentScreen != null) return;
 		state.set(CheckState.SHOWN);
-		minecraft.gui.setScreen(new UpdateAvailableScreen(currentScreen, currentVersion, info));
+		ClientUi.setScreen(minecraft, new UpdateAvailableScreen(currentScreen, currentVersion, info));
 	}
 
 	static UpdateInfo parseRelease(byte[] bytes) {
@@ -129,13 +131,22 @@ public final class UpdateChecker {
 			if (dto == null || dto.tagName == null || !dto.tagName.startsWith("v")) return null;
 			String version = dto.tagName.substring(1);
 			if (!UpdateVersion.isStrictManifestVersion(version) || dto.assets == null) return null;
-			String expectedName = "CNDL_chat+-" + version + ".jar";
+			String expected12111 = assetName(version, MINECRAFT_12111);
+			String expected262 = assetName(version, MINECRAFT_262);
+			String download12111 = null;
+			String download262 = null;
 			for (ReleaseAssetDto asset : dto.assets) {
-				if (asset != null && expectedName.equals(asset.name) && asset.browserDownloadUrl != null) {
-					return new UpdateInfo(version, asset.browserDownloadUrl, dto.body);
+				if (asset == null) continue;
+				if (expected12111.equals(asset.name)) {
+					if (download12111 != null || asset.browserDownloadUrl == null) return null;
+					download12111 = asset.browserDownloadUrl;
+				} else if (expected262.equals(asset.name)) {
+					if (download262 != null || asset.browserDownloadUrl == null) return null;
+					download262 = asset.browserDownloadUrl;
 				}
 			}
-			return null;
+			return download12111 == null || download262 == null ? null
+					: new UpdateInfo(version, download12111, download262, dto.body);
 		} catch (CharacterCodingException | RuntimeException exception) {
 			return null;
 		}
@@ -145,28 +156,39 @@ public final class UpdateChecker {
 		if (info == null || !UpdateVersion.isStrictManifestVersion(info.version())) {
 			return ValidationResult.failure("Некорректная версия обновления");
 		}
-		if (info.downloadUrl() == null || info.downloadUrl().length() > MAX_URL_LENGTH) {
-			return ValidationResult.failure("Некорректная длина download URL");
-		}
 		if (info.message() != null && info.message().length() > MAX_MESSAGE_LENGTH) {
 			return ValidationResult.failure("Сообщение обновления слишком длинное");
 		}
+		ValidationResult first = validateDownloadUrl(info.version(), MINECRAFT_12111,
+				info.minecraft12111DownloadUrl());
+		if (!first.valid()) return first;
+		return validateDownloadUrl(info.version(), MINECRAFT_262, info.minecraft262DownloadUrl());
+	}
+
+	private static ValidationResult validateDownloadUrl(String version, String minecraftVersion, String url) {
+		if (url == null || url.length() > MAX_URL_LENGTH) {
+			return ValidationResult.failure("Некорректная длина download URL");
+		}
 		try {
-			URI uri = URI.create(info.downloadUrl());
-			String expectedFile = "CNDL_chat+-" + info.version() + ".jar";
-			String expectedPath = ALLOWED_RELEASE_PATH + "v" + info.version() + "/" + expectedFile;
+			URI uri = URI.create(url);
+			String expectedFile = assetName(version, minecraftVersion);
+			String expectedPath = ALLOWED_RELEASE_PATH + "v" + version + "/" + expectedFile;
 			boolean valid = "https".equalsIgnoreCase(uri.getScheme())
 					&& ALLOWED_DOWNLOAD_HOST.equalsIgnoreCase(uri.getHost())
 					&& (uri.getPort() == -1 || uri.getPort() == 443)
 					&& uri.getRawUserInfo() == null
 					&& uri.getRawFragment() == null
 					&& uri.getRawQuery() == null
-					&& expectedPath.equals(uri.getPath())
-					&& uri.getPath().endsWith(".jar");
+					&& expectedPath.equals(uri.getRawPath())
+					&& uri.getRawPath().endsWith(".jar");
 			return valid ? ValidationResult.success() : ValidationResult.failure("Download URL не разрешён");
 		} catch (RuntimeException exception) {
 			return ValidationResult.failure("Некорректный download URL");
 		}
+	}
+
+	private static String assetName(String version, String minecraftVersion) {
+		return "CNDL_chat+-" + version + "-mc" + minecraftVersion + ".jar";
 	}
 
 	static boolean isAllowedContentType(String contentType) {
@@ -189,7 +211,8 @@ public final class UpdateChecker {
 	}
 
 	public enum CheckState { NOT_STARTED, CHECKING, NO_UPDATE, AVAILABLE, FAILED, SHOWN }
-	public record UpdateInfo(String version, String downloadUrl, String message) { }
+	public record UpdateInfo(String version, String minecraft12111DownloadUrl,
+			String minecraft262DownloadUrl, String message) { }
 	public record ValidationResult(boolean valid, String errorMessage) {
 		private static ValidationResult success() { return new ValidationResult(true, ""); }
 		private static ValidationResult failure(String error) { return new ValidationResult(false, error); }

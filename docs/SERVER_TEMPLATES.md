@@ -22,6 +22,7 @@ Server templates предотвращают смешивание rules, commands
 - periodic messages;
 - server command templates;
 - Discord/channel/friend lookup parser patterns и separators.
+- provider информации об игроке.
 
 Глобальными остаются MOD ID, F8 key mapping (Minecraft controls), update-check runtime, UI theme, root schema/default/bindings и transient application services. Guards/queues/presence/timers/compiled objects не являются config и сбрасываются на switch.
 
@@ -53,19 +54,27 @@ exact permanent binding
 - deep copy `Vanilla-box`;
 - deep copy выбранного template.
 
-`TemplateEditorScreen` редактирует display name/address patterns, все шесть именованных команд, private reply prefix и Discord marker/name regex через deep-copy draft. Placeholders и regex проверяются до save. До успешного repository save runtime не меняется. Можно выбрать default, временно активировать или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
+`TemplateEditorScreen` редактирует display name/address patterns, provider информации об
+игроке, lookup command, все шесть именованных команд, private reply prefix, Discord regex и
+именованные player-info regex через deep-copy draft. Каждая player-info regex имеет capture
+group 1 и становится отдельной строкой экрана. Placeholders и regex проверяются до save. До
+успешного repository save runtime не меняется. Можно выбрать default, временно активировать
+или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
 
 Основные server settings выбранного active template продолжают редактироваться четырьмя вкладками `ResponderScreen`; compatible `ResponderConfig` служит view и при save маршрутизируется в active template. Non-Vanilla save не перезаписывает legacy Vanilla data.
 
 ## Каталог и обмен готовыми шаблонами
 
 - Для предустановки разработчик кладёт полные `ServerTemplate` JSON в
-  `src/client/resources/assets/gasada_chat_responder/server_templates/` и добавляет имена
-  файлов в `index.txt`. При первом запуске они копируются в repository; существующий ID
-  всегда выигрывает и не перезаписывается обновлением JAR.
-- В версии 0.5 каталог содержит `vanilla-box.json` и `game.json` с ID `game`, display
-  name `mc.vanilla-game.ru`, его командами и parser settings. Персональные категории
-  `friends` и `friendLastSeen` во встроенном `game` намеренно пусты для новых установок.
+  `src/client/resources/assets/gasada_chat_responder/server_templates/` и описывает ресурс
+  с официальными доменами в `catalog.json`. При первом запуске template копируется в
+  repository; существующее содержимое никогда не перезаписывается.
+- Текущий каталог содержит `vanilla-box.json` и `vanilla-game.json`. Их домены:
+  `mc.vanilla-box.ru` и `mc.vanilla-game.ru`. Персональные категории `friends` и
+  `friendLastSeen` во встроенном `vanilla-game` намеренно пусты.
+
+Старый `vanilla-game` без явно сохранённого выбора provider один раз получает
+`VANILLA_GAME_PUBLIC_API`; ручной выбор в editor помечается как явный и не заменяется.
 - Пользователь кладёт полученные JSON в
   `.minecraft/config/gasada-chat-responder-template-imports/` и нажимает
   «Загрузить шаблоны из папки». Source-файлы остаются на месте, duplicate ID пропускаются.
@@ -85,6 +94,7 @@ exact permanent binding
 - periodic messages;
 - commands;
 - parser patterns.
+- provider информации об игроке и named lookup fields.
 
 Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Merge строковых lists выполняет case-insensitive dedup, где это допустимо; rules учитывают trigger/response/channel/enabled. Periodic result обрезается до трёх. Existing target last seen не заменяется source value без explicit overwrite. Commands и regex parsers валидируются до записи.
 
@@ -105,7 +115,11 @@ Vanilla-only strings локализованы в двух factories:
 
 ## Ограничения
 
-- Root schema version сейчас 1.
+- Root schema version сейчас 3. Schema 1 безопасно мигрирует `game` в `vanilla-game`;
+  конфликт двух ID сохраняет оба template без объединения.
+- Встроенный `vanilla-game` задаёт `marry list {page}` и regex MarriageMaster. При
+  обновлении они заполняют только отсутствующие поля. Runtime и editor разрешают marriage
+  lookup только для точного ID `vanilla-game`; старые marriage-поля `vanilla-box` очищаются.
 - UI metadata editor использует comma-separated address patterns; command templates хранятся без начального `/`, кроме отдельного private reply prefix.
 - Удаление после успешного root update удаляет отдельный template file; active/default protections предотвращают loss текущего selection.
 - Minecraft client и реальные серверные formats требуют ручной проверки после изменения patterns/commands.

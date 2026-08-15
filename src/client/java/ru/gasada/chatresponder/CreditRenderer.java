@@ -1,7 +1,6 @@
 package ru.gasada.chatresponder;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class CreditRenderer {
 	private static final String PREFIX = "create by ";
@@ -12,7 +11,7 @@ public final class CreditRenderer {
 	private CreditRenderer() {
 	}
 
-	public static void draw(GuiGraphicsExtractor graphics, Font font, int x, int y, int prefixColor) {
+	public static void draw(CompatGraphics graphics, Font font, int x, int y, int prefixColor) {
 		graphics.text(font, PREFIX, x, y, prefixColor);
 		int currentX = x + font.width(PREFIX);
 

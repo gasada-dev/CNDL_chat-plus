@@ -1,0 +1,61 @@
+{
+  "id": "vanilla-game",
+  "name": "Vanilla-game",
+  "responderEnabled": true,
+  "rules": [],
+  "globalPrefix": "!",
+  "clanReplyPrefix": "/.",
+  "privateReplyCommand": "/r",
+  "globalMarkers": "(!),[g],[global],[глобальный],глобальный чат",
+  "clanMarkers": "(клан),<клан>,〈клан〉,‹клан›",
+  "privateMarkers": "[pm],[лс],личное сообщение,шепчет,->,→",
+  "mutedWords": [],
+  "discordChatEnabled": true,
+  "discordMutedPlayers": [],
+  "mutedMinecraftPlayers": [],
+  "friends": [],
+  "friendLastSeen": {},
+  "friendHudEnabled": true,
+  "friendSoundEnabled": true,
+  "periodicMessages": [{"enabled": false, "message": "", "intervalMinutes": 5}],
+  "commands": {
+    "ignorePlayer": "ignore {player}",
+    "lookupFriend": "clan lookup {player}",
+    "privateMessage": "w {player} {message}",
+    "pay": "pay {player} {amount}",
+    "call": "tpa {player}",
+    "mail": "mail send {player} {message}",
+    "marriageList": "marry list {page}"
+  },
+  "parsers": {
+    "discordMarkerPattern": "(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)",
+    "discordNamePattern": "[\\p{L}\\p{N}_]{1,32}",
+    "lastSeenPattern": "(?iu)Был\\s+(?:в\\s+сети|онлайн)\\s*:\\s*([^\\r\\n]+)",
+    "inactivePattern": "(?iu)Неактивен\\s*:\\s*([^\\r\\n]+)",
+    "lookupEndPattern": "(?iu)Тип\\s+убийства\\s*:",
+    "lookupOutputPattern": "(?iu)(?:информация\\s+об\\s+игроке|профиль\\s+игрока|был\\s+(?:в\\s+сети|онлайн)|последн(?:ий|яя)\\s+(?:вход|активность)|ранг\\s*:|(?:кпд|kdr)\\s*:|убийств\\s*:|нейтральных\\s*:|смертей\\s*:|дата\\s+вступления\\s*:|прошлые\\s+кланы\\s*:|неактивен\\s*:|тип\\s+убийства\\s*:|статус\\s*:|клан\\s*:)",
+    "timestampOnlyPattern": "\\s*\\[\\d{1,2}:\\d{2}(?::\\d{2})?]\\s*",
+    "replyCandidateSeparators": [": ", "» ", "] ", "→ "],
+    "playerInfoPatterns": {
+      "Клан": "(?iu)Клан\\s*:\\s*([^\\r\\n]+)",
+      "Ранг": "(?iu)Ранг\\s*:\\s*([^\\r\\n]+)",
+      "Статус": "(?iu)Статус\\s*:\\s*([^\\r\\n]+)",
+      "КПД / KDR": "(?iu)(?:КПД|KDR)\\s*:\\s*([^\\r\\n]+)",
+      "Убийств": "(?iu)Убийств\\s*:\\s*([^\\r\\n]+)",
+      "Нейтральных": "(?iu)Нейтральных\\s*:\\s*([^\\r\\n]+)",
+      "Смертей": "(?iu)Смертей\\s*:\\s*([^\\r\\n]+)",
+      "Дата вступления": "(?iu)Дата\\s+вступления\\s*:\\s*([^\\r\\n]+)",
+      "Прошлые кланы": "(?iu)Прошлые\\s+кланы\\s*:\\s*([^\\r\\n]+)",
+      "Тип убийства": "(?iu)Тип\\s+убийства\\s*:\\s*([^\\r\\n]+)"
+    },
+    "playerInfoPatternsConfigured": true,
+    "marriageEntryPattern": "(?iu)(?:^|\\s)([A-Za-z0-9_]{1,16})\\s*[❤♥♡]\\s*([A-Za-z0-9_]{1,16})(?:\\s|$)",
+    "marriagePagePattern": "(?iu)страниц(?:а|е|у|ы)?\\s+(\\d+)\\s*/\\s*(\\d+)",
+    "marriageEmptyPattern": "(?iu)нет\\s+(?:женатых|замужних)\\s+игроков"
+  },
+  "playerInfo": {
+    "provider": "VANILLA_GAME_PUBLIC_API",
+    "providerConfigured": true,
+    "marriageLookupConfigured": true
+  }
+}

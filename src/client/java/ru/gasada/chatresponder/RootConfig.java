@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class RootConfig {
-	public static final int CURRENT_SCHEMA_VERSION = 1;
+	public static final int CURRENT_SCHEMA_VERSION = 3;
 
 	public int schemaVersion = CURRENT_SCHEMA_VERSION;
 	public String defaultTemplateId;

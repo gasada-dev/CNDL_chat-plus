@@ -14,7 +14,7 @@
 
 ## RootConfig
 
-- `schemaVersion`: текущая версия 1;
+- `schemaVersion`: текущая версия 3;
 - `defaultTemplateId`: template для адресов без binding/pattern;
 - `templates[]`: `id`, display `name`, `addressPatterns[]`;
 - `serverBindings`: нормализованный exact address → template ID.
@@ -32,18 +32,25 @@
 - `discordChatEnabled`, `discordMutedPlayers`;
 - `friends`, `friendLastSeen`, `friendHudEnabled`, `friendSoundEnabled`;
 - до трёх `periodicMessages`;
-- `commands` (`ServerCommandSettings`);
-- `parsers` (`ParserSettings`).
+- `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}` только для `vanilla-game`;
+- `parsers` (`ParserSettings`), включая `playerInfoPatterns`: имя видимого поля →
+  regex с capture group 1 для server lookup.
+- `playerInfo.provider`: `NONE` или `VANILLA_GAME_PUBLIC_API`;
+- только для `vanilla-game`: `playerInfo.marriageLookupConfigured` и parser-поля `marriageEntryPattern`,
+  `marriagePagePattern`, `marriageEmptyPattern`. Первые два regex содержат по две
+  capture groups: ники пары и current/max page соответственно.
 
 `ActiveTemplateSnapshot` является deep immutable copy. Runtime state (guards, lookup queue, presence/notices, timers и compiled data) в JSON не сохраняется.
 
 Bundled templates находятся внутри JAR в
-`assets/gasada_chat_responder/server_templates/`; `index.txt` перечисляет JSON-файлы,
-которые разработчик хочет предустановить. При запуске отсутствующие ID регистрируются,
-а существующие пользовательские файлы не перезаписываются. Внешний import ограничен
+`assets/gasada_chat_responder/server_templates/`; `catalog.json` связывает JSON-файлы
+с официальными address patterns. При запуске отсутствующие ID регистрируются, а для
+существующих встроенных ID добавляются только отсутствующие официальные домены и
+пустые новые marriage-поля без перезаписи пользовательских значений. Внешний import ограничен
 одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
-Текущий bundled index содержит `vanilla-box.json` и `game.json`.
-Bundled `game.json` содержит серверные команды и parser settings, но не содержит
+Текущий bundled catalog содержит `vanilla-box.json` и `vanilla-game.json`.
+Bundled `vanilla-game.json` содержит серверные команды, parser settings и публичный
+провайдер информации об игроке, но не содержит
 персональных друзей или last seen. Уже существующий пользовательский template с тем
 же ID не перезаписывается при обновлении JAR.
 
@@ -83,9 +90,21 @@ Bundled `game.json` содержит серверные команды и parser
 
 Сохранены прежние `!`, `/.`, `/r`, markers, `ChatChannel` values, first-rule-wins, wildcard semantics, три periodic slots и команды из `ServerCommandSettings.vanillaBoxDefaults()`. Parser hardcode Vanilla-box хранится в `ParserSettings.vanillaBoxDefaults()`, а общий runtime fallback не используется.
 
+`playerInfoPatterns` Vanilla-box извлекают клан, ранг, статус, КПД/KDR, убийства,
+нейтральных, смерти, дату вступления, прошлые кланы и тип убийства. У существующего
+встроенного template эти patterns добавляются один раз, только если пользователь ещё не
+сохранял собственный набор.
+
+## Миграция schema 1 → 3
+
+Старый ID `game` копируется в `vanilla-game`, перечитывается для проверки, затем root
+атомарно обновляет metadata/default/bindings. Файл `game.json` удаляется только после
+успешной записи root. Если оба ID уже существуют, ни один template не перезаписывается;
+миграция сохраняет оба и пишет предупреждение.
+
 ## Известные ограничения
 
 - Повреждённый legacy JSON приводит к logged migration/load error и defaults, но byte-for-byte backup создаётся до parse и сохраняет исходный файл. Последующий UI save может заменить основной legacy JSON defaults, поэтому восстановление выполняется из backup вручную.
-- Repository schema version пока равна 1 и не имеет downgrade path.
+- Repository schema version равна 3 и не имеет downgrade path.
 - Template editor редактирует identity/address metadata, все именованные серверные команды и Discord marker/name regex. Остальные категории редактируются существующими вкладками active view или импортируются.
 - Ручное редактирование JSON может создать значения, которые UI не предлагает; commands/parsers повторно валидируются перед send/save/import, но не все display-only строки имеют общий length limit.

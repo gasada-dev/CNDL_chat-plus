@@ -1,13 +1,10 @@
 package ru.gasada.chatresponder;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 public final class ServerTemplateRuntime {
 	private final TemplateSwitchCoordinator switchCoordinator;
-	private final Map<String, String> temporaryOverrides = new LinkedHashMap<>();
 	private volatile ActiveTemplateSnapshot activeSnapshot;
 	private volatile CompiledParserSettings compiledParsers;
 	private volatile CompiledFilterSet compiledFilters;
@@ -30,7 +27,6 @@ public final class ServerTemplateRuntime {
 			throw new IllegalArgumentException("template must not be null");
 		}
 		switchCoordinator.resetAll();
-		temporaryOverrides.clear();
 		activeTemplate = template.deepCopy(template.id, template.name);
 		publishActiveTemplate();
 		return activeSnapshot;
@@ -58,7 +54,6 @@ public final class ServerTemplateRuntime {
 
 	public synchronized void clear() {
 		switchCoordinator.resetAll();
-		temporaryOverrides.clear();
 		activeSnapshot = null;
 		activeTemplate = null;
 		compiledParsers = null;
@@ -81,13 +76,5 @@ public final class ServerTemplateRuntime {
 
 	public Optional<ReplyRuleMatcher> compiledReplyRules() {
 		return Optional.ofNullable(compiledReplyRules);
-	}
-
-	public synchronized void putTemporaryOverride(String key, String value) {
-		temporaryOverrides.put(key, value);
-	}
-
-	synchronized int temporaryOverrideCount() {
-		return temporaryOverrides.size();
 	}
 }

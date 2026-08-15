@@ -42,7 +42,8 @@ public final class CommandTemplateValidator {
 		PRIVATE_MESSAGE(Set.of("player", "message")),
 		PAY(Set.of("player", "amount")),
 		CALL(Set.of("player")),
-		MAIL(Set.of("player", "message"));
+		MAIL(Set.of("player", "message")),
+		MARRIAGE_LIST(Set.of("page"));
 
 		private final Set<String> requiredPlaceholders;
 

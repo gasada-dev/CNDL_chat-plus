@@ -1,7 +1,9 @@
 package ru.gasada.chatresponder;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class ParserSettings {
 	public String discordMarkerPattern = "";
@@ -12,6 +14,15 @@ public final class ParserSettings {
 	public String lookupOutputPattern = "";
 	public String timestampOnlyPattern = "";
 	public List<String> replyCandidateSeparators = new ArrayList<>();
+	public Map<String, String> playerInfoPatterns = new LinkedHashMap<>();
+	public boolean playerInfoPatternsConfigured;
+	public String marriageEntryPattern = "";
+	public String marriagePagePattern = "";
+	public String marriageEmptyPattern = "";
+
+	public static final List<String> PLAYER_INFO_FIELDS = List.of(
+			"Клан", "Ранг", "Статус", "КПД / KDR", "Убийств", "Нейтральных",
+			"Смертей", "Дата вступления", "Прошлые кланы", "Тип убийства");
 
 	public static ParserSettings vanillaBoxDefaults() {
 		ParserSettings settings = new ParserSettings();
@@ -28,7 +39,27 @@ public final class ParserSettings {
 						+ "неактивен\\s*:|тип\\s+убийства\\s*:|статус\\s*:|клан\\s*:)";
 		settings.timestampOnlyPattern = "\\s*\\[\\d{1,2}:\\d{2}(?::\\d{2})?]\\s*";
 		settings.replyCandidateSeparators = new ArrayList<>(List.of(": ", "» ", "] ", "→ "));
+		settings.playerInfoPatterns.put("Клан", "(?iu)Клан\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Ранг", "(?iu)Ранг\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Статус", "(?iu)Статус\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("КПД / KDR", "(?iu)(?:КПД|KDR)\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Убийств", "(?iu)Убийств\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Нейтральных", "(?iu)Нейтральных\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Смертей", "(?iu)Смертей\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Дата вступления", "(?iu)Дата\\s+вступления\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Прошлые кланы", "(?iu)Прошлые\\s+кланы\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatterns.put("Тип убийства", "(?iu)Тип\\s+убийства\\s*:\\s*([^\\r\\n]+)");
+		settings.playerInfoPatternsConfigured = true;
 		return settings;
+	}
+
+	public static void applyVanillaGameMarriageDefaults(ParserSettings settings) {
+		settings.marriageEntryPattern =
+				"(?iu)(?:^|\\s)([A-Za-z0-9_]{1,16})\\s*[❤♥♡]\\s*([A-Za-z0-9_]{1,16})(?:\\s|$)";
+		settings.marriagePagePattern =
+				"(?iu)страниц(?:а|е|у|ы)?\\s+(\\d+)\\s*/\\s*(\\d+)";
+		settings.marriageEmptyPattern =
+				"(?iu)нет\\s+(?:женатых|замужних)\\s+игроков";
 	}
 
 	public ParserSettings copy() {
@@ -42,6 +73,12 @@ public final class ParserSettings {
 		copy.timestampOnlyPattern = timestampOnlyPattern;
 		copy.replyCandidateSeparators = new ArrayList<>(
 				replyCandidateSeparators == null ? List.of() : replyCandidateSeparators);
+		copy.playerInfoPatterns = new LinkedHashMap<>(
+				playerInfoPatterns == null ? Map.of() : playerInfoPatterns);
+		copy.playerInfoPatternsConfigured = playerInfoPatternsConfigured;
+		copy.marriageEntryPattern = marriageEntryPattern;
+		copy.marriagePagePattern = marriagePagePattern;
+		copy.marriageEmptyPattern = marriageEmptyPattern;
 		return copy;
 	}
 }

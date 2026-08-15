@@ -18,7 +18,8 @@ public final class TemplateImportOptions {
 		HUD_AND_SOUND,
 		PERIODIC_MESSAGES,
 		COMMANDS,
-		PARSER_PATTERNS
+		PARSER_PATTERNS,
+		PLAYER_INFO
 	}
 
 	public enum ListMode {

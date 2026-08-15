@@ -35,9 +35,11 @@ jobs:
       - name: Test and build release
         run: ./gradlew clean test build
 
-      - name: Verify release JAR
+      - name: Verify release JARs
         shell: bash
-        run: test -f "build/libs/CNDL_chat+-${{ steps.version.outputs.mod_version }}.jar"
+        run: |
+          test -f "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc1.21.11.jar"
+          test -f "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc26.2.jar"
 
       - name: Publish GitHub Release
         env:
@@ -45,7 +47,8 @@ jobs:
         shell: bash
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "build/libs/CNDL_chat+-${{ steps.version.outputs.mod_version }}.jar" \
+            "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc1.21.11.jar" \
+            "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc26.2.jar" \
             --verify-tag \
             --generate-notes \
             --latest \

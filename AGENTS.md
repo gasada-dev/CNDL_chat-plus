@@ -1,120 +1,67 @@
 # AGENTS.md — CNDL_chat+
 
-## Назначение проекта
+## Scope
 
-CNDL_chat+ — клиентский Fabric-мод для Minecraft 26.2. Он сохраняет изолированные серверные шаблоны, правила автоответа, распознаёт каналы, фильтрует сообщения, ведёт друзей, выполняет связанные серверные команды, отправляет до трёх периодических сообщений и проверяет обновления.
+CNDL_chat+ — client-only Fabric-мод. Реализуйте только явно запрошенное поведение.
+Без отдельной задачи сохраняйте UI, config compatibility, server-template isolation и
+существующие серверные команды.
 
-Мод не должен получать новые пользовательские функции без отдельной явной задачи. При рефакторинге сохраняйте текущее поведение, интерфейс и совместимость конфигурации.
+## Быстрая навигация
 
-## Окружение и сборка
+- Production: `src/client/java/ru/gasada/chatresponder/` (один flat package).
+- Tests: `src/test/java/ru/gasada/chatresponder/`; fixtures: `src/test/resources/fixtures/`.
+- Resources/templates: `src/client/resources/`; metadata: `src/client/resources/fabric.mod.json`.
+- Composition root, Fabric events и tick order: `GasadaChatResponderClient`.
+- Карта feature → owner → tests: `docs/FEATURE_MAP.md`.
+- Build truth: `gradle.properties`, `build.gradle`.
 
-- Java: 25 (`options.release = 25`, UTF-8).
-- Minecraft: 26.2.
-- Fabric Loader: 0.19.3 или новее.
-- Fabric API: 0.156.0+26.2 или новее.
-- Сборка: `./gradlew build`.
-- Тесты: `./gradlew test`.
-- Основные исходники: `src/client/java/ru/gasada/chatresponder/`.
-- Ресурсы: `src/client/resources/`.
-- Клиентская точка входа: `ru.gasada.chatresponder.GasadaChatResponderClient`.
+Читайте только относящиеся к задаче документы:
 
-## Перед изменением кода
+| Задача | Документ |
+|---|---|
+| Event flow, runtime, reset, threading, hot path | `docs/ARCHITECTURE.md` |
+| JSON, load/save, migration, compatibility | `docs/CONFIG.md` |
+| Template resolution, CRUD, catalog, import | `docs/SERVER_TEMPLATES.md` |
+| Commands, placeholders, validation, privacy | `docs/SERVER_COMMANDS.md` |
+| UI и ручное поведение | `docs/MANUAL_TESTS.md` |
+| Version, CI, release, JAR | `docs/RELEASE.md` |
 
-1. Прочитай `AGENTS.md`.
-2. Прочитай `docs/ARCHITECTURE.md`.
-3. Найди все usages изменяемого класса.
-4. Не изменяй пользовательское поведение без явного требования.
-5. Не меняй формат config без миграции.
-6. Для каждого набора изменений обязательно увеличь `mod_version` в `gradle.properties`.
-7. Одновременно обнови версию в `README.md`, `CHANGELOG.md` и release-документации.
-8. Выполни `./gradlew test` и `./gradlew build`.
+## Перед изменением
 
-Версию нельзя оставлять прежней даже для документационных, UI, CI или внутренних
-изменений. До начала следующего изменения текущая версия должна быть уникальной и
-готовой к тегу `v<mod_version>`.
+1. Проверьте worktree; не изменяйте и не откатывайте чужие правки.
+2. Найдите всех production/test callers, readers и writers изменяемого кода или поля.
+3. Прочитайте ближайшие tests. Перед рефакторингом алгоритма добавьте characterization test.
+4. Один набор изменений ограничивайте одной подсистемой или одной пользовательской задачей.
+5. Для подготовки версии, CI и публикации следуйте `docs/RELEASE.md`.
 
-До рефакторинга алгоритма сначала зафиксируйте текущее поведение characterization-тестами. Один этап должен затрагивать одну подсистему; не совмещайте перенос классов, изменение UI, изменение фильтрации и изменение формата config.
+## Жёсткие контракты
 
-## Подсистемы
+- Без явной задачи и migration не меняйте MOD ID, config path/JSON fields, F8, template
+  IDs/paths, `ChatChannel`, first-match-wins, максимум три periodic messages и UI behavior.
+- Server-specific данные применяются только через active `ActiveTemplateSnapshot`.
+- Configured default template допустим. Missing/corrupt referenced template очищает runtime;
+  никогда не подставляйте скрытый fallback `Vanilla-box`.
+- Сохраняйте atomic temp → move и явные ошибки I/O; не сохраняйте config из render.
+- UI, connection/player list, send, HUD state и sound работают на client thread. Async HTTP
+  не открывает screen напрямую.
+- В message/render hot paths запрещены file I/O, HTTP и повторная компиляция regex.
+- Named commands и substitutions идут через `ServerCommandService`; все sends — через
+  `OutgoingChatService`. Валидируйте данные повторно непосредственно перед отправкой.
+- Сохраняйте существующее поведение explicit slash commands из rules/periodic messages.
+- Не логируйте private messages, email, reply payloads и amounts.
+- Не подавляйте ошибки пустым `catch`; не добавляйте сторонние материалы без ясного
+  происхождения и GPL-3.0-compatible лицензии.
 
-- Инициализация и Fabric events: `GasadaChatResponderClient`.
-- Конфигурация/templates: `ConfigManager`, `ServerTemplateRepository`, `ServerTemplateManager`, `TemplateCatalogService`, `TemplateSelectionService`, `ServerTemplateRuntime`.
-- Автоответ и каналы: `ChatResponderEngine`, `ChatChannelDetector`, `ReplyRuleMatcher`, guards.
-- Discord- и word-фильтры: `ChatVisibilityFilter`, `CompiledFilterSet`, `DiscordMessageParser`.
-- Исходящие команды: `OutgoingChatService`, `ServerCommandService`, `FriendActionService`.
-- Друзья и lookup: `FriendLookupManager`, `FriendPresenceTracker`, `FriendsHud`.
-- Периодические сообщения: `PeriodicMessageScheduler`, `PeriodicMessageScreen`.
-- Основной GUI: `ResponderScreen` и tab controllers; templates/import screens; `CreditRenderer`.
-- Проверка обновлений: `UpdateChecker`, `UpdateVersion`, `UpdateAvailableScreen`.
+## Проверка
 
-Подробные потоки и известные пересечения ответственности описаны в `docs/ARCHITECTURE.md`; соответствие функций классам — в `docs/FEATURE_MAP.md`.
+Обычные изменения:
 
-## Обязательная совместимость
+```bash
+./gradlew test
+./gradlew build
+git diff --check
+```
 
-Не менять без отдельной задачи и миграционного плана:
-
-- MOD ID `gasada_chat_responder`;
-- файл `.minecraft/config/gasada-chat-responder.json`;
-- клавишу F8 по умолчанию;
-- существующие JSON-поля;
-- template ID `vanilla-box`, root/template paths и безопасную migration старого config;
-- значения `ChatChannel`: `AUTO`, `LOCAL`, `GLOBAL`, `CLAN`, `PRIVATE`;
-- текущие префиксы и маркеры по умолчанию;
-- максимум три периодических сообщения;
-- правило «первое совпавшее правило побеждает»;
-- существующие серверные команды и механику обновления;
-- внешний вид UI, если задача не посвящена UI.
-
-У скрытой кнопки рассылок намеренный контракт: только на первой вкладке `ResponderScreen`,
-координаты `(0,0)`, размер `15×15`, без render/narration. Не делайте её видимой и не
-переносите без отдельной явной задачи. Селектор active template и кнопка настроек находятся
-в верхней строке вместо текстовой подписи `Шаблон: ...`.
-
-## Изменения конфигурации
-
-- Прочитайте `docs/CONFIG.md` и найдите всех читателей и писателей изменяемого поля.
-- Server-specific данные не добавляйте в root/global config и не применяйте без active snapshot.
-- Старые поля не удаляйте до появления явной версионированной миграции.
-- Новый формат обязан загружать старый JSON без потери настроек.
-- Валидируйте данные после загрузки и перед использованием, а не только в UI.
-- Сохраняйте схему `temporary file -> move -> основной файл` и имя файла.
-- Не добавляйте скрытый fallback `Vanilla-box`: unknown/missing template должен завершаться безопасной ошибкой/no active template.
-- Ошибки чтения/записи нельзя игнорировать: логируйте их и передавайте понятный результат вызывающему коду.
-- Не сохраняйте config из render callback.
-
-## Minecraft client thread
-
-На client thread должны выполняться UI, доступ к connection и списку игроков, отправка чата/команд и обновление состояния HUD. Асинхронный HTTP не должен напрямую открывать экран: результат передаётся в потокобезопасное состояние, а экран открывается из client tick.
-
-Не выполняйте в обработчике каждого сообщения файловые операции, HTTP, компиляцию постоянных regex или повторную тяжёлую нормализацию. HUD render должен только рисовать готовое состояние: не сохранять config, не запускать lookup/команды/звук и не вычислять переходы online/offline.
-
-## Безопасность серверных команд
-
-Все существующие команды перечислены в `docs/SERVER_COMMANDS.md`. Пользовательский или загруженный из config текст нельзя конкатенировать в команду без повторной проверки непосредственно перед отправкой.
-
-- Minecraft-ник: `[A-Za-z0-9_]{1,16}`.
-- Удаляйте или отклоняйте `\r`, `\n`, `\0` и ненужные управляющие символы.
-- Отклоняйте пустые аргументы и соблюдайте предел длины протокола/сервера.
-- Для суммы запрещайте отрицательные значения, exponent notation, `NaN` и `Infinity`; допускайте не более двух знаков после разделителя.
-- Не добавляйте новые команды без отдельной задачи.
-- Не логируйте полные личные сообщения, почту, автоответы и суммы.
-
-## Проверка готовности
-
-Перед завершением изменения:
-
-1. Запустите `./gradlew test`.
-2. Запустите `./gradlew build`.
-3. Проверьте отсутствие несвязанных правок и массового форматирования.
-4. Для release/CI изменений выполните `./gradlew clean test build` и проверьте отсутствие JUnit в runtime JAR.
-5. Перечислите изменённые файлы, ручные проверки, риски и известные ограничения.
-6. Убедитесь, что ошибки не подавляются пустым `catch` и одна подсистема не ломает остальные.
-
-## Лицензия и вклад
-
-- Текущая версия проекта распространяется как `GPL-3.0-only`; новый код и ресурсы
-  должны иметь совместимые условия распространения.
-- Вклад через pull request принимается по правилам `CONTRIBUTING.md` и также
-  лицензируется как `GPL-3.0-only`.
-- Не добавляйте сторонний код, изображения, шаблоны или другие материалы без ясного
-  происхождения и совместимой лицензии.
+Для release/CI следуйте `docs/RELEASE.md`. В результате перечислите изменённые файлы,
+автоматические и ручные проверки, риски и ограничения. Не включайте unrelated formatting,
+`build/`, local config/log/JAR или персональные данные.

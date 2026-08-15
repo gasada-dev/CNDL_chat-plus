@@ -1,58 +1,131 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'base'
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" apply false
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
 }
 
-version = project.mod_version
-group = project.maven_group
+def targets = [
+	mc1_21_11: [
+		minecraft: '1.21.11', java: 21, fabricApi: '0.141.6+1.21.11',
+		minecraftConstraint: '~1.21.11', javaConstraint: '>=21', fabricApiConstraint: '>=0.141.6',
+		plugin: 'net.fabricmc.fabric-loom-remap', remap: true
+	],
+	mc26_2: [
+		minecraft: '26.2', java: 25, fabricApi: '0.156.0+26.2',
+		minecraftConstraint: '~26.2', javaConstraint: '>=25', fabricApiConstraint: '>=0.156.0',
+		plugin: 'net.fabricmc.fabric-loom', remap: false
+	]
+]
 
-base {
-	archivesName = project.archive_base_name
-}
+targets.each { projectName, target ->
+	configure(project(":${projectName}")) {
+		apply plugin: target.plugin
 
-loom {
-	splitEnvironmentSourceSets()
+		version = rootProject.mod_version
+		group = rootProject.maven_group
 
-	mods {
-		"gasada_chat_responder" {
-			sourceSet sourceSets.client
+		base {
+			archivesName = rootProject.archive_base_name
+		}
+
+		loom {
+			splitEnvironmentSourceSets()
+			mods {
+				"gasada_chat_responder" {
+					sourceSet sourceSets.client
+				}
+			}
+		}
+		if (target.remap) configurations.maybeCreate('modClientImplementation')
+
+		dependencies {
+			minecraft "com.mojang:minecraft:${target.minecraft}"
+			if (target.remap) {
+				mappings loom.officialMojangMappings()
+			}
+			add('testImplementation', "org.junit.jupiter:junit-jupiter:5.12.0")
+			add('testRuntimeOnly', "org.junit.platform:junit-platform-launcher:1.12.0")
+			def modConfiguration = target.remap ? 'modClientImplementation' : 'implementation'
+			add(modConfiguration, "net.fabricmc:fabric-loader:${rootProject.loader_version}")
+			add(modConfiguration, "net.fabricmc.fabric-api:fabric-api:${target.fabricApi}")
+		}
+
+		sourceSets {
+			client {
+				java.srcDirs rootProject.file('src/client/java'),
+						rootProject.file("src/targets/${projectName}/java")
+				resources.srcDir rootProject.file('src/client/resources')
+			}
+			test {
+				java.srcDir rootProject.file('src/test/java')
+				resources.srcDir rootProject.file('src/test/resources')
+				compileClasspath += sourceSets.client.output
+				runtimeClasspath += sourceSets.client.output
+			}
+		}
+
+		tasks.named('processClientResources') {
+			def values = [
+				version: project.version,
+				loader_constraint: ">=${rootProject.loader_version}",
+				minecraft_constraint: target.minecraftConstraint,
+				java_constraint: target.javaConstraint,
+				fabric_api_constraint: target.fabricApiConstraint
+			]
+			inputs.properties values
+			filesMatching('fabric.mod.json') {
+				expand values
+			}
+		}
+
+		tasks.withType(JavaCompile).configureEach {
+			options.release = target.java
+			options.encoding = 'UTF-8'
+		}
+
+		tasks.withType(AbstractArchiveTask).configureEach {
+			preserveFileTimestamps = false
+			reproducibleFileOrder = true
+		}
+
+		tasks.named('test') {
+			useJUnitPlatform()
+		}
+
+		def releaseFile = "${rootProject.archive_base_name}-${rootProject.mod_version}-mc${target.minecraft}.jar"
+		if (target.remap) {
+			tasks.named('remapJar') {
+				archiveFileName = releaseFile
+			}
+		} else {
+			tasks.named('jar') {
+				archiveFileName = releaseFile
+			}
+		}
+
+		java {
+			withSourcesJar()
+			sourceCompatibility = JavaVersion.toVersion(target.java)
+			targetCompatibility = JavaVersion.toVersion(target.java)
 		}
 	}
 }
 
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	testImplementation "org.junit.jupiter:junit-jupiter:5.12.0"
-	testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.12.0"
+tasks.register('test') {
+	dependsOn ':mc1_21_11:test', ':mc26_2:test'
 }
 
-sourceSets {
-	test {
-		compileClasspath += sourceSets.client.output
-		runtimeClasspath += sourceSets.client.output
-	}
+tasks.register('assembleRelease', Sync) {
+	dependsOn ':mc1_21_11:remapJar', ':mc26_2:jar'
+	into layout.buildDirectory.dir('release')
+	from project(':mc1_21_11').tasks.named('remapJar').flatMap { it.archiveFile }
+	from project(':mc26_2').tasks.named('jar').flatMap { it.archiveFile }
 }
 
-tasks.named("processClientResources") {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": inputs.properties.version
-	}
+tasks.named('check') {
+	dependsOn ':mc1_21_11:check', ':mc26_2:check'
 }
 
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
-	it.options.encoding = 'UTF-8'
-}
-
-tasks.named("test") {
-	useJUnitPlatform()
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+tasks.named('build') {
+	dependsOn tasks.named('assembleRelease')
 }

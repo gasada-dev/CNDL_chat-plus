@@ -1,7 +1,6 @@
 package ru.gasada.chatresponder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,26 +29,48 @@ final class FriendLookupParserTest {
 	}
 
 	@Test
-	void recognizesLookupEnd() {
+	void capturesLookupEndLineAsAvailablePlayerInfo() {
 		FriendLookupManager.LookupParseResult result =
 				FriendLookupManager.parseMessage("Тип убийства: обычный");
 
-		assertEquals(FriendLookupManager.LookupMessageType.LOOKUP_END, result.type());
-		assertNull(result.value());
+		assertEquals(FriendLookupManager.LookupMessageType.PLAYER_INFO_FIELD, result.type());
+		assertEquals("Тип убийства", result.fieldName());
+		assertEquals("обычный", result.value());
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {
 			"Информация об игроке Steve",
-			"Профиль игрока Steve",
+			"Профиль игрока Steve"
+	})
+	void recognizesExistingServiceLines(String line) {
+		assertEquals(FriendLookupManager.LookupMessageType.LOOKUP_OUTPUT,
+				FriendLookupManager.parseMessage(line).type());
+	}
+
+	@Test
+	void capturesNamedManualPlayerInfoFieldsBeforeLookupEnd() {
+		FriendLookupManager.LookupParseResult clan = FriendLookupManager.parseMessage("Клан: Builders");
+		FriendLookupManager.LookupParseResult end = FriendLookupManager.parseMessage("Тип убийства: обычный");
+
+		assertEquals(FriendLookupManager.LookupMessageType.PLAYER_INFO_FIELD, clan.type());
+		assertEquals("Клан", clan.fieldName());
+		assertEquals("Builders", clan.value());
+		assertEquals(FriendLookupManager.LookupMessageType.PLAYER_INFO_FIELD, end.type());
+		assertEquals("Тип убийства", end.fieldName());
+		assertEquals("обычный", end.value());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
 			"Ранг: участник",
 			"KDR: 1.25",
 			"Убийств: 10",
 			"Статус: онлайн",
 			"Клан: Test"
 	})
-	void recognizesExistingServiceLines(String line) {
-		assertEquals(FriendLookupManager.LookupMessageType.LOOKUP_OUTPUT,
+	void capturesVanillaBoxManualPlayerInfoFields(String line) {
+		assertEquals(FriendLookupManager.LookupMessageType.PLAYER_INFO_FIELD,
 				FriendLookupManager.parseMessage(line).type());
 	}
 

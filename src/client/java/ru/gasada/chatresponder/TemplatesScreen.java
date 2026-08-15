@@ -2,14 +2,13 @@ package ru.gasada.chatresponder;
 
 import java.util.List;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class TemplatesScreen extends Screen {
+public final class TemplatesScreen extends CompatScreen {
 	private final Screen parent;
 	private final ServerTemplateRepository repository;
 	private final ServerTemplateManager manager;
@@ -71,7 +70,7 @@ public final class TemplatesScreen extends Screen {
 		addAction(actionX, 150, actionWidth, "Удалить", this::deleteSelected);
 		int importButtonWidth = (actionWidth - 4) / 2;
 		addRenderableWidget(Button.builder(Component.literal("Импорт между"), ignored ->
-				minecraft.gui.setScreen(new TemplateImportScreen(this)))
+				ClientUi.setScreen(minecraft, new TemplateImportScreen(this)))
 				.bounds(actionX, 174, importButtonWidth, 20).build());
 		addRenderableWidget(Button.builder(Component.literal("Загрузить шаблоны из папки"), ignored ->
 				loadFromFolder()).bounds(actionX + importButtonWidth + 4, 174,
@@ -126,7 +125,7 @@ public final class TemplatesScreen extends Screen {
 		}
 		ServerTemplateInfo info = root.templates.stream().filter(value -> selectedId.equals(value.id))
 				.findFirst().orElse(new ServerTemplateInfo(selectedId, loaded.value().name));
-		minecraft.gui.setScreen(new TemplateEditorScreen(this, loaded.value(), info, manager,
+		ClientUi.setScreen(minecraft, new TemplateEditorScreen(this, loaded.value(), info, manager,
 				runtime, selection));
 	}
 
@@ -196,16 +195,16 @@ public final class TemplatesScreen extends Screen {
 
 	@Override
 	public void onClose() {
-		minecraft.gui.setScreen(parent);
+		ClientUi.setScreen(minecraft, parent);
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.fill(0, 0, width, height, 0xE010141D);
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.centeredText(font, title, width / 2, 20, 0xFFE8ECF2);
 		String active = runtime == null ? "нет" : runtime.activeSnapshot()
 				.map(ActiveTemplateSnapshot::name).orElse("нет");
@@ -215,7 +214,6 @@ public final class TemplatesScreen extends Screen {
 		if (!status.isEmpty()) {
 			graphics.centeredText(font, status, width / 2, height - 57, statusColor);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, delta);
 	}
 
 	private static Tooltip help(String text) {

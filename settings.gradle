@@ -10,3 +10,7 @@ pluginManagement {
 }
 
 rootProject.name = 'CNDL_chat+'
+
+include 'mc1_21_11', 'mc26_2'
+project(':mc1_21_11').projectDir = file('versions/mc1_21_11')
+project(':mc26_2').projectDir = file('versions/mc26_2')

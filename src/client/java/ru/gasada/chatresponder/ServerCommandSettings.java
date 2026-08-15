@@ -7,6 +7,7 @@ public final class ServerCommandSettings {
 	public String pay = "";
 	public String call = "";
 	public String mail = "";
+	public String marriageList = "";
 
 	public static ServerCommandSettings vanillaBoxDefaults() {
 		ServerCommandSettings settings = new ServerCommandSettings();
@@ -27,6 +28,7 @@ public final class ServerCommandSettings {
 		copy.pay = pay;
 		copy.call = call;
 		copy.mail = mail;
+		copy.marriageList = marriageList;
 		return copy;
 	}
 }

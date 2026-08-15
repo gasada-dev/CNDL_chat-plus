@@ -7,7 +7,6 @@ import java.util.Set;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
@@ -45,10 +44,10 @@ public final class FriendsHud {
 	public void register() {
 		HudElementRegistry.addLast(
 				Identifier.fromNamespaceAndPath(GasadaChatResponderClient.MOD_ID, "online_friends"),
-				(graphics, deltaTracker) -> render(graphics, snapshot));
+				(graphics, deltaTracker) -> render(new CompatGraphics(graphics), snapshot));
 	}
 
-	private static void render(GuiGraphicsExtractor graphics, FriendHudSnapshot snapshot) {
+	private static void render(CompatGraphics graphics, FriendHudSnapshot snapshot) {
 		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) {
 			return;
 		}
@@ -82,11 +81,11 @@ public final class FriendsHud {
 			int noticeX = graphics.guiWidth() - noticeWidth - 5;
 			graphics.fill(noticeX, noticeY, noticeX + noticeWidth, noticeY + 18, 0xD0222937);
 			graphics.outline(noticeX, noticeY, noticeWidth, 18, 0xD0A242F3);
-			graphics.pose().pushMatrix();
-			graphics.pose().translate(noticeX + 8, noticeY + 4);
-			graphics.pose().scale(noticeScale);
+			graphics.pushPose();
+			graphics.translatePose(noticeX + 8, noticeY + 4);
+			graphics.scalePose(noticeScale);
 			graphics.text(font, notice, 0, 0, 0xFF55FF55);
-			graphics.pose().popMatrix();
+			graphics.popPose();
 		}
 	}
 }

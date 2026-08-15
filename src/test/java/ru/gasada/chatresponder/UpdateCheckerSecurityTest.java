@@ -10,51 +10,64 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 final class UpdateCheckerSecurityTest {
-	private static final String VALID_URL = "https://github.com/gasada-dev/"
-			+ "MineModChat-/releases/download/v0.4.4/CNDL_chat+-0.4.4.jar";
+	private static final String VERSION = "0.4.4";
+	private static final String URL_12111 = url("1.21.11");
+	private static final String URL_262 = url("26.2");
 
 	@Test
-	void exactRepositoryJarAndVersionAreAccepted() {
-		UpdateChecker.UpdateInfo info = new UpdateChecker.UpdateInfo("0.4.4", VALID_URL, "Обновление");
-		assertTrue(UpdateChecker.validate(info).valid());
+	void exactRepositoryJarsAndVersionAreAccepted() {
+		assertTrue(UpdateChecker.validate(info(URL_12111, URL_262)).valid());
 	}
 
 	@Test
-	void schemeHostRepositoryFilenameAndVersionAreAllRestricted() {
-		assertRejected(VALID_URL.replace("https:", "http:"));
-		assertRejected(VALID_URL.replace("github.com", "example.org"));
-		assertRejected(VALID_URL.replace("gasada-dev/MineModChat-", "other/repository"));
-		assertRejected(VALID_URL.replace("0.4.4.jar", "0.4.5.jar"));
-		assertRejected(VALID_URL.replace(".jar", ".zip"));
-		assertRejected(VALID_URL + "?download=1");
-		assertRejected(VALID_URL + "#fragment");
-		assertRejected(VALID_URL.replace("https://", "https://user@"));
-		assertRejected(VALID_URL.replace(".com/", ".com:444/"));
+	void eachTargetUrlHasStrictSchemeHostPathAndFilename() {
+		assertRejected(URL_12111.replace("https:", "http:"), URL_262);
+		assertRejected(URL_12111.replace("github.com", "example.org"), URL_262);
+		assertRejected(URL_12111.replace("gasada-dev/MineModChat-", "other/repository"), URL_262);
+		assertRejected(URL_12111.replace("CNDL_chat+-0.4.4", "CNDL_chat+-0.4.5"), URL_262);
+		assertRejected(URL_12111.replace("mc1.21.11", "mc26.2"), URL_262);
+		assertRejected(URL_12111.replace(".jar", ".zip"), URL_262);
+		assertRejected(URL_12111 + "?download=1", URL_262);
+		assertRejected(URL_12111 + "#fragment", URL_262);
+		assertRejected(URL_12111.replace("https://", "https://user@"), URL_262);
+		assertRejected(URL_12111.replace(".com/", ".com:444/"), URL_262);
+		assertRejected(URL_12111.replace("mc1.21.11", "mc1.21.%31%31"), URL_262);
+		assertRejected(URL_12111, URL_262.replace("mc26.2", "mc1.21.11"));
 	}
 
 	@Test
 	void manifestFieldsHaveStrictLimits() {
-		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo("release", VALID_URL, "x")).valid());
-		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo("1." + "1".repeat(40), VALID_URL, "x")).valid());
-		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo("0.4.4", VALID_URL,
-				"x".repeat(513))).valid());
+		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo("release", URL_12111, URL_262, "x")).valid());
+		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(
+				"1." + "1".repeat(40), URL_12111, URL_262, "x")).valid());
+		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(VERSION, null, URL_262, "x")).valid());
+		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(VERSION, URL_12111, null, "x")).valid());
+		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(
+				VERSION, URL_12111, URL_262, "x".repeat(513))).valid());
 	}
 
 	@Test
-	void latestReleaseParsingUsesTagAndMatchingJarAsset() {
-		String json = "{\"tag_name\":\"v0.4.4\",\"body\":\"ok\",\"assets\":["
-				+ "{\"name\":\"CNDL_chat+-0.4.4-sources.jar\",\"browser_download_url\":\"ignored\"},"
-				+ "{\"name\":\"CNDL_chat+-0.4.4.jar\",\"browser_download_url\":\"" + VALID_URL + "\"}]}";
+	void latestReleaseRequiresBothExactTargetAssets() {
+		String json = releaseJson(
+				asset("CNDL_chat+-0.4.4-sources.jar", "ignored"),
+				asset("CNDL_chat+-0.4.4-mc26.2.jar", URL_262),
+				asset("CNDL_chat+-0.4.4-mc1.21.11.jar", URL_12111));
 		UpdateChecker.UpdateInfo parsed = UpdateChecker.parseRelease(json.getBytes(StandardCharsets.UTF_8));
-		assertEquals("0.4.4", parsed.version());
-		assertEquals(VALID_URL, parsed.downloadUrl());
+		assertEquals(VERSION, parsed.version());
+		assertEquals(URL_12111, parsed.minecraft12111DownloadUrl());
+		assertEquals(URL_262, parsed.minecraft262DownloadUrl());
 		assertEquals("ok", parsed.message());
-		assertNull(UpdateChecker.parseRelease(
-				"{\"tag_name\":\"v0.4.4\",\"assets\":[]}".getBytes(StandardCharsets.UTF_8)));
+
+		assertNull(UpdateChecker.parseRelease(releaseJson(
+				asset("CNDL_chat+-0.4.4-mc1.21.11.jar", URL_12111)).getBytes(StandardCharsets.UTF_8)));
+		assertNull(UpdateChecker.parseRelease(releaseJson(
+				asset("CNDL_chat+-0.4.4-mc26.2.jar", URL_262)).getBytes(StandardCharsets.UTF_8)));
+		assertNull(UpdateChecker.parseRelease(releaseJson(
+				asset("CNDL_chat+-0.4.4-mc1.21.11.jar", URL_12111),
+				asset("CNDL_chat+-0.4.4-mc1.21.11.jar", URL_12111),
+				asset("CNDL_chat+-0.4.4-mc26.2.jar", URL_262)).getBytes(StandardCharsets.UTF_8)));
 		assertNull(UpdateChecker.parseRelease(
 				"{\"tag_name\":\"latest\",\"assets\":[]}".getBytes(StandardCharsets.UTF_8)));
-		assertNull(UpdateChecker.parseRelease(
-				"{\"tag_name\":\"0.4.4\",\"assets\":[]}".getBytes(StandardCharsets.UTF_8)));
 		assertNull(UpdateChecker.parseRelease(new byte[] {(byte) 0xC3, (byte) 0x28}));
 		assertNull(UpdateChecker.parseRelease(new byte[UpdateChecker.MAX_BODY_BYTES + 1]));
 		assertNull(UpdateChecker.parseRelease("not json".getBytes(StandardCharsets.UTF_8)));
@@ -68,7 +81,25 @@ final class UpdateCheckerSecurityTest {
 		assertFalse(UpdateChecker.isAllowedContentType(""));
 	}
 
-	private static void assertRejected(String url) {
-		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo("0.4.4", url, "x")).valid(), url);
+	private static UpdateChecker.UpdateInfo info(String url12111, String url262) {
+		return new UpdateChecker.UpdateInfo(VERSION, url12111, url262, "Обновление");
+	}
+
+	private static void assertRejected(String url12111, String url262) {
+		assertFalse(UpdateChecker.validate(info(url12111, url262)).valid());
+	}
+
+	private static String url(String minecraftVersion) {
+		return "https://github.com/gasada-dev/MineModChat-/releases/download/v" + VERSION
+				+ "/CNDL_chat+-" + VERSION + "-mc" + minecraftVersion + ".jar";
+	}
+
+	private static String releaseJson(String... assets) {
+		return "{\"tag_name\":\"v" + VERSION + "\",\"body\":\"ok\",\"assets\":["
+				+ String.join(",", assets) + "]}";
+	}
+
+	private static String asset(String name, String url) {
+		return "{\"name\":\"" + name + "\",\"browser_download_url\":\"" + url + "\"}";
 	}
 }

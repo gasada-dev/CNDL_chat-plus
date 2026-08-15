@@ -3,13 +3,12 @@ package ru.gasada.chatresponder;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class TemplateImportScreen extends Screen {
+public final class TemplateImportScreen extends CompatScreen {
 	private final Screen parent;
 	private final ServerTemplateRepository repository;
 	private final TemplateImportService service;
@@ -156,19 +155,19 @@ public final class TemplateImportScreen extends Screen {
 			case PERIODIC_MESSAGES -> "Рассылки";
 			case COMMANDS -> "Команды";
 			case PARSER_PATTERNS -> "Parser patterns";
+			case PLAYER_INFO -> "Информация об игроке";
 		};
 	}
 
 	private void rebuild() { clearWidgets(); init(); }
 
-	@Override public void onClose() { minecraft.gui.setScreen(parent); }
-	@Override public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	@Override public void onClose() { ClientUi.setScreen(minecraft, parent); }
+	@Override protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.fill(0, 0, width, height, 0xE010141D);
 	}
-	@Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	@Override protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.centeredText(font, title, width / 2, 20, 0xFFE8ECF2);
 		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2, height - 62, statusColor);
-		super.extractRenderState(graphics, mouseX, mouseY, delta);
 	}
 	@Override public boolean isPauseScreen() { return false; }
 }

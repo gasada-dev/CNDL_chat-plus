@@ -10,19 +10,14 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 
-public final class ResponderScreen extends Screen {
+public final class ResponderScreen extends CompatScreen {
 	private final ResponderConfig config;
 	private final RulesTabController rulesController;
 	private final ChannelsTabController channelsController;
@@ -74,6 +69,10 @@ public final class ResponderScreen extends Screen {
 		initTemplateSelector();
 
 		int quarter = panelWidth / 4;
+		addRenderableWidget(Button.builder(Component.literal("Информация об игроке"), ignored ->
+				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
+				.bounds(panelX + quarter * 3, 2, panelWidth - quarter * 3, 18)
+				.tooltip(help("Открыть профиль игрока активного сервера")).build());
 		addTabButton(Tab.RULES, panelX, 27, quarter);
 		addTabButton(Tab.CHANNELS, panelX + quarter, 27, quarter);
 		addTabButton(Tab.BLACKLIST, panelX + quarter * 2, 27, quarter);
@@ -98,6 +97,8 @@ public final class ResponderScreen extends Screen {
 	}
 
 	private void initTemplateSelector() {
+		int infoX = panelX + (panelWidth / 4) * 3;
+		int settingsX = Math.min(panelX + 198, infoX - 30);
 		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
 		String activeId = GasadaChatResponderClient.TEMPLATE_RUNTIME == null ? null
 				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
@@ -108,14 +109,14 @@ public final class ResponderScreen extends Screen {
 			CycleButton<String> selector = CycleButton.builder(
 					id -> Component.literal(templateName(loaded.value(), id)), initial)
 					.withValues(ids).displayOnlyValue()
-					.create(panelX + 6, 2, Math.min(190, panelWidth - 42), 18,
+					.create(panelX + 6, 2, Math.max(60, settingsX - panelX - 10), 18,
 							Component.empty(), (button, id) -> selectTemplate(id));
 			addRenderableWidget(selector);
 			selector.setTooltip(help("Активный серверный шаблон"));
 		}
 		addRenderableWidget(Button.builder(Component.literal("⚙"), ignored ->
-				minecraft.gui.setScreen(new TemplatesScreen(this)))
-				.bounds(panelX + Math.min(198, panelWidth - 34), 2, 28, 18)
+				ClientUi.setScreen(minecraft, new TemplatesScreen(this)))
+				.bounds(settingsX, 2, 28, 18)
 				.tooltip(help("Настройки серверных шаблонов")).build());
 	}
 
@@ -191,7 +192,7 @@ public final class ResponderScreen extends Screen {
 
 		int saveX = panelX + panelWidth - 90;
 		addRenderableWidget(new InvisibleButton(0, 0, 15, 15,
-				() -> minecraft.gui.setScreen(new PeriodicMessageScreen(this, config))));
+				() -> ClientUi.setScreen(minecraft, new PeriodicMessageAccessScreen(this, config))));
 		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> saveConfig())
 				.bounds(saveX, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Сохранить все настройки мода")).build());
@@ -825,12 +826,12 @@ public final class ResponderScreen extends Screen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.fill(0, 0, width, height, 0xE010141D);
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.fill(panelX - 2, 20, panelX + panelWidth + 2, height - 2, PANEL_BORDER);
 		graphics.fill(panelX, 22, panelX + panelWidth, height - 4, PANEL_COLOR);
 		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
@@ -877,10 +878,9 @@ public final class ResponderScreen extends Screen {
 			graphics.centeredText(font, status.text(), width / 2, statusY, status.color());
 		}
 		CreditRenderer.draw(graphics, font, panelX + 4, height - 13, MUTED_COLOR);
-		super.extractRenderState(graphics, mouseX, mouseY, delta);
 	}
 
-	private void drawFieldLabel(GuiGraphicsExtractor graphics, String text, int x, int y) {
+	private void drawFieldLabel(CompatGraphics graphics, String text, int x, int y) {
 		graphics.text(font, text, x, y, MUTED_COLOR);
 	}
 
@@ -965,28 +965,6 @@ public final class ResponderScreen extends Screen {
 	private enum BlacklistMode {
 		NICKS,
 		WORDS
-	}
-
-	private static final class InvisibleButton extends AbstractWidget {
-		private final Runnable action;
-
-		private InvisibleButton(int x, int y, int width, int height, Runnable action) {
-			super(x, y, width, height, Component.empty());
-			this.action = action;
-		}
-
-		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
-			action.run();
-		}
-
-		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {
-		}
 	}
 
 }

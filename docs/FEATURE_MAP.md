@@ -15,11 +15,12 @@
 | Исходящий chat/command | `OutgoingChatService` | connection | единственные Minecraft API send calls |
 | Именованные команды | `ServerCommandService` | active command templates | validators, missing command → no send |
 | Friend actions | `FriendActionService`, `CommandTemplateDisplay` | active friends/commands | send validators + подсказки фактических templates |
-| Friend lookup | `FriendLookupManager`, `FriendLookupParser` | active friends/patterns/last seen | delay/timeout/block interception/switch reset |
+| Friend lookup | `FriendLookupManager`, `FriendLookupParser`, `ServerLookupCoordinator` | active friends/patterns/last seen | delay/timeout/block interception/named fields/switch reset |
+| Информация об игроке | `PlayerInfoScreen`, `PlayerInfoService`, `VanillaGameProfileClient`, `MarriageLookupManager` | active provider + commands/parsers + session cache | suggestions/manual refresh/API validation/lookup fields/marriage pages/stale reset |
 | Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
-| Периодические сообщения | `PeriodicMessageScheduler` | active periodic slots | полный interval, reset, chat vs command, max 3 |
-| Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, template selector/settings, hidden 15×15 periodic hotspot |
-| Legacy config/migration | `ConfigManager`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration` | legacy + Vanilla-box | backup, sanitize, no repeat/no loss |
+| Периодические сообщения | `PeriodicMessageScheduler`, `PeriodicMessageAccessScreen`, `PeriodicMessageScreen` | active periodic slots | password, полный interval, reset, chat vs command, max 3 |
+| Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, template selector/settings, player info над друзьями, hidden 15×15 periodic hotspot |
+| Legacy config/migration | `ConfigManager`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | backup, sanitize, schema/ID migration, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
 | Update check | `UpdateChecker`, `UpdateVersion` | GitHub latest release | async/status/type/size/UTF-8/tag/asset URL/client tick |
 

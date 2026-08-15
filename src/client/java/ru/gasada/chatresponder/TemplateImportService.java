@@ -28,8 +28,7 @@ public final class TemplateImportService {
 		Map<TemplateImportOptions.Category, String> summary = new LinkedHashMap<>();
 		applySelected(source.value(), draft, options, summary);
 		List<String> errors = validateImportedSettings(draft, options);
-		return TemplateOperationResult.success(new TemplateImportPreview(
-				sourceId, targetId, draft, summary, errors));
+		return TemplateOperationResult.success(new TemplateImportPreview(draft, summary, errors));
 	}
 
 	public TemplateOperationResult<ServerTemplate> apply(TemplateImportPreview preview, boolean confirmed) {
@@ -79,8 +78,16 @@ public final class TemplateImportService {
 						source.periodicMessages, options.listMode(category));
 				case COMMANDS -> target.commands = source.commands.copy();
 				case PARSER_PATTERNS -> target.parsers = source.parsers.copy();
+				case PLAYER_INFO -> target.playerInfo = source.playerInfo.copy();
 			}
 			summary.put(category, describe(category, target));
+		}
+		if (!"vanilla-game".equals(target.id)) {
+			target.commands.marriageList = "";
+			target.parsers.marriageEntryPattern = "";
+			target.parsers.marriagePagePattern = "";
+			target.parsers.marriageEmptyPattern = "";
+			target.playerInfo.marriageLookupConfigured = false;
 		}
 	}
 
@@ -144,6 +151,10 @@ public final class TemplateImportService {
 			validateCommand(errors, draft.commands.pay, CommandTemplateValidator.CommandType.PAY);
 			validateCommand(errors, draft.commands.call, CommandTemplateValidator.CommandType.CALL);
 			validateCommand(errors, draft.commands.mail, CommandTemplateValidator.CommandType.MAIL);
+			if (draft.commands.marriageList != null && !draft.commands.marriageList.isBlank()) {
+				validateCommand(errors, draft.commands.marriageList,
+						CommandTemplateValidator.CommandType.MARRIAGE_LIST);
+			}
 		}
 		if (options.selected(TemplateImportOptions.Category.PARSER_PATTERNS)) {
 			ParserSettings p = draft.parsers;
@@ -154,6 +165,9 @@ public final class TemplateImportService {
 			validatePattern(errors, p.lookupEndPattern, false);
 			validatePattern(errors, p.lookupOutputPattern, false);
 			validatePattern(errors, p.timestampOnlyPattern, false);
+			validatePatternIfPresent(errors, p.marriageEntryPattern, 2);
+			validatePatternIfPresent(errors, p.marriagePagePattern, 2);
+			validatePatternIfPresent(errors, p.marriageEmptyPattern, 0);
 		}
 		return errors;
 	}
@@ -166,6 +180,12 @@ public final class TemplateImportService {
 
 	private static void validatePattern(List<String> errors, String value, boolean capture) {
 		ParserPatternValidator.ValidationResult result = ParserPatternValidator.validate(value, capture);
+		if (!result.valid()) errors.add(result.errorMessage());
+	}
+
+	private static void validatePatternIfPresent(List<String> errors, String value, int captureGroups) {
+		if (value == null || value.isBlank()) return;
+		ParserPatternValidator.ValidationResult result = ParserPatternValidator.validate(value, captureGroups);
 		if (!result.valid()) errors.add(result.errorMessage());
 	}
 
