@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
 final class FriendTemplateIsolationTest {
@@ -71,5 +72,17 @@ final class FriendTemplateIsolationTest {
 		runtime.switchTo(ServerTemplate.empty("second", "Second"));
 		assertTrue(completed.get());
 		assertEquals(0, lookup.queuedCount());
+	}
+
+	@Test
+	void manualLookupOutputRemainsVisibleWithoutPendingModRequest() {
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		template.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.switchTo(template);
+		FriendLookupManager lookup = new FriendLookupManager(runtime,
+				new FriendActionService(runtime, null, null), System::currentTimeMillis);
+
+		assertTrue(lookup.shouldShowSystemMessage(Component.literal("Клан: Builders"), false));
 	}
 }

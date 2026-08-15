@@ -31,7 +31,9 @@ MarriageLookupManager / FriendLookupManager interception
 `ALLOW_CHAT`/`ALLOW_GAME` сначала дают marriage/friend managers извлечь данные и скрыть
 служебные lookup blocks. Затем `ChatVisibilityFilter` применяет Discord toggle, Discord
 mute, explicit Minecraft sender mute и compiled muted words активного шаблона. Скрытое
-сообщение не доходит до responder callback.
+сообщение не доходит до responder callback. При отсутствии active template или compiled
+settings фильтр работает fail-open и показывает сообщение; responder без template ничего
+не отправляет.
 
 `ChatResponderEngine` является координатором:
 

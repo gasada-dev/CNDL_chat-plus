@@ -16,7 +16,7 @@ public final class ChatVisibilityFilter {
 		CompiledParserSettings parsers = templateRuntime.compiledParsers().orElse(null);
 		CompiledFilterSet filters = templateRuntime.compiledFilters().orElse(null);
 		if (template == null || parsers == null || filters == null) {
-			return VisibilityDecision.hidden(FilterReason.NO_ACTIVE_TEMPLATE, null);
+			return VisibilityDecision.allow();
 		}
 
 		if (minecraftSender != null && containsIgnoringCase(template.mutedMinecraftPlayers(), minecraftSender)) {

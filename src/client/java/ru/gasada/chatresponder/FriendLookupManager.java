@@ -127,7 +127,7 @@ public final class FriendLookupManager {
 	}
 
 	public boolean shouldShowSystemMessage(Component message, boolean overlay) {
-		if (overlay) {
+		if (overlay || pendingRequest == null) {
 			return true;
 		}
 
@@ -169,10 +169,6 @@ public final class FriendLookupManager {
 				// The pending-player visibility check below is part of the existing manager state logic.
 			}
 		}
-		if (pendingRequest == null) {
-			return true;
-		}
-
 		String normalized = text.toLowerCase(Locale.ROOT);
 		return !normalized.contains(pendingRequest.player().toLowerCase(Locale.ROOT));
 	}

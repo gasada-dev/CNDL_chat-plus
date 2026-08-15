@@ -65,11 +65,11 @@ final class ChatVisibilityFilterTest {
 	}
 
 	@Test
-	void absenceOfActiveTemplateFailsClosed() {
+	void absenceOfActiveTemplateFailsOpen() {
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
 		VisibilityDecision decision = new ChatVisibilityFilter(runtime).decide("hello");
-		assertFalse(decision.visible());
-		assertEquals(FilterReason.NO_ACTIVE_TEMPLATE, decision.reason());
+		assertTrue(decision.visible());
+		assertEquals(FilterReason.VISIBLE, decision.reason());
 	}
 
 	private static ChatVisibilityFilter filterFor(ServerTemplate template) {
