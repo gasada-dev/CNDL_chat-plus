@@ -53,6 +53,14 @@ public final class ConfigManager {
 	}
 
 	public static boolean save(ResponderConfig config) {
+		return save(config, true);
+	}
+
+	static boolean saveVanillaBoxLastSeen(ResponderConfig config) {
+		return save(config, false);
+	}
+
+	private static boolean save(ResponderConfig config, boolean reloadRuntime) {
 		config.sanitize();
 		String activeId = GasadaChatResponderClient.TEMPLATE_RUNTIME == null ? null
 				: GasadaChatResponderClient.TEMPLATE_RUNTIME.activeSnapshot()
@@ -82,7 +90,7 @@ public final class ConfigManager {
 			if (!templateRepository().saveTemplate(vanilla).success()) {
 				return false;
 			}
-			if (GasadaChatResponderClient.TEMPLATE_RUNTIME != null) {
+			if (reloadRuntime && GasadaChatResponderClient.TEMPLATE_RUNTIME != null) {
 				GasadaChatResponderClient.TEMPLATE_RUNTIME.switchTo(vanilla);
 			}
 			return true;

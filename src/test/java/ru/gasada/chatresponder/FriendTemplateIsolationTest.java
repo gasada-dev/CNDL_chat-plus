@@ -28,6 +28,13 @@ final class FriendTemplateIsolationTest {
 	}
 
 	@Test
+	void onlyVanillaBoxLastSeenSavePreservesLookupQueue() {
+		assertTrue(FriendActionService.usesQueuePreservingSave("vanilla-box"));
+		assertFalse(FriendActionService.usesQueuePreservingSave("vanilla-game"));
+		assertFalse(FriendActionService.usesQueuePreservingSave(null));
+	}
+
+	@Test
 	void lookupQueueAcceptsOnlyFriendsFromActiveTemplateAndClearsOnSwitchHook() {
 		TemplateSwitchCoordinator coordinator = new TemplateSwitchCoordinator();
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(coordinator);

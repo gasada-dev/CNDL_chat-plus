@@ -30,9 +30,17 @@ public final class FriendActionService {
 		if (legacyConfig != null) {
 			legacyConfig.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(storedName));
 			legacyConfig.friendLastSeen.put(storedName, value);
-			ConfigManager.save(legacyConfig);
+			if (usesQueuePreservingSave(snapshot.id())) {
+				ConfigManager.saveVanillaBoxLastSeen(legacyConfig);
+			} else {
+				ConfigManager.save(legacyConfig);
+			}
 		}
 		return true;
+	}
+
+	static boolean usesQueuePreservingSave(String templateId) {
+		return LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID.equals(templateId);
 	}
 
 	public ServerCommandService.CommandResult lookup(String player) {

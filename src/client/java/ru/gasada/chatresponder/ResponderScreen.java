@@ -413,7 +413,7 @@ public final class ResponderScreen extends CompatScreen {
 			addRenderableWidget(Button.builder(Component.literal("\"" + word + "\"  ×"), ignored -> {
 				blacklistController.removeWord(word);
 				rebuildContents();
-			}).bounds(panelX + 18, 118 + index * 22, Math.min(400, panelWidth - 36), FIELD_HEIGHT)
+			}).bounds(panelX + 18, 130 + index * 22, Math.min(400, panelWidth - 36), FIELD_HEIGHT)
 					.tooltip(help("Нажмите, чтобы удалить слово из чёрного списка")).build());
 		}
 	}
@@ -857,8 +857,10 @@ public final class ResponderScreen extends CompatScreen {
 				graphics.text(font, "Подсказки игроков сервера", panelX + 18, 106, MUTED_COLOR);
 				graphics.text(font, "Локальный мут Discord", panelX + 28 + columnWidth, 106, MUTED_COLOR);
 			} else {
-				graphics.text(font, "Сообщения с любым словом или фразой из списка будут скрыты",
+				graphics.text(font, "*-любое количество символов, например *нордпорт* работает что любое сообщение,",
 						panelX + 18, 106, MUTED_COLOR);
+				graphics.text(font, "где есть слово нордпорт не отобразится у вас в чате",
+						panelX + 18, 116, MUTED_COLOR);
 			}
 		} else {
 			int columnWidth = (panelWidth - 46) / 2;
