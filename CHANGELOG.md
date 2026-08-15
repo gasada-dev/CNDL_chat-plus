@@ -1,5 +1,9 @@
 # История изменений
 
+## 0.5.8 — 2026-08-15
+
+- update checker принимает фактическое GitHub-кодирование `%2B` в URL release assets.
+
 ## 0.5.7 — 2026-08-15
 
 - target directories добавлены в repository для сборки из чистого checkout;

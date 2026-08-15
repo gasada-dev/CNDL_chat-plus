@@ -24,8 +24,9 @@ final class UpdateCheckerSecurityTest {
 		assertRejected(URL_12111.replace("https:", "http:"), URL_262);
 		assertRejected(URL_12111.replace("github.com", "example.org"), URL_262);
 		assertRejected(URL_12111.replace("gasada-dev/MineModChat-", "other/repository"), URL_262);
-		assertRejected(URL_12111.replace("CNDL_chat+-0.4.4", "CNDL_chat+-0.4.5"), URL_262);
+		assertRejected(URL_12111.replace("CNDL_chat%2B-0.4.4", "CNDL_chat%2B-0.4.5"), URL_262);
 		assertRejected(URL_12111.replace("mc1.21.11", "mc26.2"), URL_262);
+		assertRejected(URL_12111.replace("%2B", "+"), URL_262);
 		assertRejected(URL_12111.replace(".jar", ".zip"), URL_262);
 		assertRejected(URL_12111 + "?download=1", URL_262);
 		assertRejected(URL_12111 + "#fragment", URL_262);
@@ -91,7 +92,7 @@ final class UpdateCheckerSecurityTest {
 
 	private static String url(String minecraftVersion) {
 		return "https://github.com/gasada-dev/MineModChat-/releases/download/v" + VERSION
-				+ "/CNDL_chat+-" + VERSION + "-mc" + minecraftVersion + ".jar";
+				+ "/CNDL_chat%2B-" + VERSION + "-mc" + minecraftVersion + ".jar";
 	}
 
 	private static String releaseJson(String... assets) {

@@ -172,7 +172,8 @@ public final class UpdateChecker {
 		try {
 			URI uri = URI.create(url);
 			String expectedFile = assetName(version, minecraftVersion);
-			String expectedPath = ALLOWED_RELEASE_PATH + "v" + version + "/" + expectedFile;
+			String expectedPath = ALLOWED_RELEASE_PATH + "v" + version + "/"
+					+ expectedFile.replace("+", "%2B");
 			boolean valid = "https".equalsIgnoreCase(uri.getScheme())
 					&& ALLOWED_DOWNLOAD_HOST.equalsIgnoreCase(uri.getHost())
 					&& (uri.getPort() == -1 || uri.getPort() == 443)
