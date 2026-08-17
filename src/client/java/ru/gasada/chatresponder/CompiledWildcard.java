@@ -19,10 +19,6 @@ public final class CompiledWildcard {
 		return source;
 	}
 
-	public WildcardMatchMode mode() {
-		return mode;
-	}
-
 	public boolean matches(String text) {
 		Objects.requireNonNull(text, "text");
 		String normalizedText = switch (mode) {

@@ -197,10 +197,6 @@ public final class UpdateChecker {
 		return normalized.startsWith("application/json") || normalized.startsWith("text/plain");
 	}
 
-	static int compareVersions(String left, String right) {
-		return UpdateVersion.compare(left, right);
-	}
-
 	CheckState state() { return state.get(); }
 
 	private static void closeQuietly(InputStream stream) {

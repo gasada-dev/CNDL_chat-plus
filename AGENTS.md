@@ -52,6 +52,16 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 - Не подавляйте ошибки пустым `catch`; не добавляйте сторонние материалы без ясного
   происхождения и GPL-3.0-compatible лицензии.
 
+## Стиль кода
+
+- Отступы — табы. Один класс = один файл, flat package `ru.gasada.chatresponder`.
+- Package-private по умолчанию; `public` только там, где нужен внешний доступ (Fabric entrypoint,
+  UI, cross-feature API). Не добавляйте getters/accessors без вызовов.
+- Records для DTO (`VisibilityDecision`, `PlayerLookupData` и т.п.).
+- UI-строки на русском; логи без приватных данных (см. жёсткие контракты).
+- Тесты JUnit 5: `ClassNameTest` зеркалит production класс; fixtures — `src/test/resources/fixtures/`.
+- `docs/FEATURE_MAP.md` — источник истины feature → owner → tests; обновляйте при смене владельца.
+
 ## Проверка
 
 Обычные изменения:
