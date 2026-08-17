@@ -19,6 +19,8 @@ public final class ParserSettings {
 	public String marriageEntryPattern = "";
 	public String marriagePagePattern = "";
 	public String marriageEmptyPattern = "";
+	public String teleportRequestPattern = "";
+	public boolean teleportRequestConfigured;
 
 	public static final List<String> PLAYER_INFO_FIELDS = List.of(
 			"Клан", "Ранг", "Статус", "КПД / KDR", "Убийств", "Нейтральных",
@@ -50,6 +52,7 @@ public final class ParserSettings {
 		settings.playerInfoPatterns.put("Прошлые кланы", "(?iu)Прошлые\\s+кланы\\s*:\\s*([^\\r\\n]+)");
 		settings.playerInfoPatterns.put("Тип убийства", "(?iu)Тип\\s+убийства\\s*:\\s*([^\\r\\n]+)");
 		settings.playerInfoPatternsConfigured = true;
+		applyTeleportDefaults(settings);
 		return settings;
 	}
 
@@ -60,6 +63,12 @@ public final class ParserSettings {
 				"(?iu)страниц(?:а|е|у|ы)?\\s+(\\d+)\\s*/\\s*(\\d+)";
 		settings.marriageEmptyPattern =
 				"(?iu)нет\\s+(?:женатых|замужних)\\s+игроков";
+	}
+
+	public static void applyTeleportDefaults(ParserSettings settings) {
+		settings.teleportRequestPattern =
+				"(?iu)^([A-Za-z0-9_]{1,16})\\s+просит\\s+телепортироваться\\s+к\\s+вам\\.?$";
+		settings.teleportRequestConfigured = true;
 	}
 
 	public ParserSettings copy() {
@@ -79,6 +88,8 @@ public final class ParserSettings {
 		copy.marriageEntryPattern = marriageEntryPattern;
 		copy.marriagePagePattern = marriagePagePattern;
 		copy.marriageEmptyPattern = marriageEmptyPattern;
+		copy.teleportRequestPattern = teleportRequestPattern;
+		copy.teleportRequestConfigured = teleportRequestConfigured;
 		return copy;
 	}
 }

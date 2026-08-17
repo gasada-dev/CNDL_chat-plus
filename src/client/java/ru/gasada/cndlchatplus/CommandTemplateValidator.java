@@ -43,7 +43,8 @@ public final class CommandTemplateValidator {
 		PAY(Set.of("player", "amount")),
 		CALL(Set.of("player")),
 		MAIL(Set.of("player", "message")),
-		MARRIAGE_LIST(Set.of("page"));
+		MARRIAGE_LIST(Set.of("page")),
+		ACCEPT_TELEPORT(Set.of());
 
 		private final Set<String> requiredPlaceholders;
 

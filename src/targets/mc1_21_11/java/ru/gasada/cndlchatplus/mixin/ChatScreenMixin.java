@@ -49,6 +49,12 @@ public abstract class ChatScreenMixin {
 	private void gasada$tabClick(MouseButtonEvent event, boolean doubleClick,
 			CallbackInfoReturnable<Boolean> cir) {
 		Screen screen = (Screen) (Object) this;
+		if (event.button() == 0 && CndlChatPlusClient.TELEPORT_REQUEST != null
+				&& CndlChatPlusClient.TELEPORT_REQUEST.click(event.x(), event.y(), screen.width,
+						Minecraft.getInstance().font)) {
+			cir.setReturnValue(true);
+			return;
+		}
 		if (event.button() == 1 && gasada$contextMenu.rightClick(event.x(), event.y(),
 				screen.width, screen.height, Minecraft.getInstance())) {
 			cir.setReturnValue(true);

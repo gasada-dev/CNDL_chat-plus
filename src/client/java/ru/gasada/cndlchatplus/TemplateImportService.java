@@ -151,6 +151,10 @@ public final class TemplateImportService {
 			validateCommand(errors, draft.commands.pay, CommandTemplateValidator.CommandType.PAY);
 			validateCommand(errors, draft.commands.call, CommandTemplateValidator.CommandType.CALL);
 			validateCommand(errors, draft.commands.mail, CommandTemplateValidator.CommandType.MAIL);
+			if (draft.commands.acceptTeleport != null && !draft.commands.acceptTeleport.isBlank()) {
+				validateCommand(errors, draft.commands.acceptTeleport,
+						CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);
+			}
 			if (draft.commands.marriageList != null && !draft.commands.marriageList.isBlank()) {
 				validateCommand(errors, draft.commands.marriageList,
 						CommandTemplateValidator.CommandType.MARRIAGE_LIST);
@@ -165,6 +169,7 @@ public final class TemplateImportService {
 			validatePattern(errors, p.lookupEndPattern, false);
 			validatePattern(errors, p.lookupOutputPattern, false);
 			validatePattern(errors, p.timestampOnlyPattern, false);
+			validatePatternIfPresent(errors, p.teleportRequestPattern, 1);
 			validatePatternIfPresent(errors, p.marriageEntryPattern, 2);
 			validatePatternIfPresent(errors, p.marriagePagePattern, 2);
 			validatePatternIfPresent(errors, p.marriageEmptyPattern, 0);

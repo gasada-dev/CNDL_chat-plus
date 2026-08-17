@@ -36,13 +36,15 @@
 - `discordChatEnabled`, `discordMutedPlayers`;
 - `friends`, `friendLastSeen`, `friendHudEnabled`, `friendSoundEnabled`;
 - до трёх `periodicMessages`;
-- `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}` только для `vanilla-game`;
+- `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}` и `acceptTeleport` без placeholders;
 - `parsers` (`ParserSettings`), включая `playerInfoPatterns`: имя видимого поля →
   regex с capture group 1 для server lookup.
 - `playerInfo.provider`: `NONE` или `VANILLA_GAME_PUBLIC_API`;
 - только для `vanilla-game`: `playerInfo.marriageLookupConfigured` и parser-поля `marriageEntryPattern`,
   `marriagePagePattern`, `marriageEmptyPattern`. Первые два regex содержат по две
   capture groups: ники пары и current/max page соответственно.
+- `teleportRequestPattern`: regex запроса телепорта с ником в capture group 1;
+  `teleportRequestConfigured` защищает пользовательское отключение от повторной установки bundled default.
 
 `ActiveTemplateSnapshot` является deep immutable copy. Runtime state (guards, lookup queue, presence/notices, timers и compiled data) в JSON не сохраняется.
 
@@ -50,7 +52,7 @@ Bundled templates находятся внутри JAR в
 `assets/cndl_chat_plus/server_templates/`; `catalog.json` связывает JSON-файлы
 с официальными address patterns. При запуске отсутствующие ID регистрируются, а для
 существующих встроенных ID добавляются только отсутствующие официальные домены и
-пустые новые marriage-поля без перезаписи пользовательских значений. Внешний import ограничен
+ещё не настроенные новые marriage/teleport-поля без перезаписи пользовательских значений. Внешний import ограничен
 одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
 Текущий bundled catalog содержит `vanilla-box.json` и `vanilla-game.json`.
 Bundled `vanilla-game.json` содержит серверные команды, parser settings и публичный

@@ -13,6 +13,7 @@
 | `/call <player>` | `ServerCommandService.call` | `{player}` | player/template/connection |
 | `/mail send <player> <message>` | `ServerCommandService.mail` | `{player}`, `{message}` | player, `MessageValidator.MAIL` (220), template, outgoing |
 | `/marry list <page>` (Vanilla-game) | `ServerCommandService.marriageList` | `{page}` | page 1–1000, template, connection |
+| `/tpaccept` (Vanilla-box/Vanilla-game) | `ServerCommandService.acceptTeleport` | нет | template, connection |
 
 Vanilla strings определены только в `ServerCommandSettings.vanillaBoxDefaults()`. Другие classes не конкатенируют эти команды. `CommandTemplateValidator` требует точный набор placeholders и хранение без leading `/`. Если active template не содержит команду или template invalid, сервис возвращает понятную ошибку и ничего не отправляет; скрытого fallback Vanilla-box нет.
 
@@ -52,6 +53,9 @@ Friend lookup и marriage list commands берутся из active template и �
 `vanilla-game`, command `{page}`, regex пары с двумя никами и regex current/max page. Общий
 `ServerLookupCoordinator` сериализует friend/manual/marriage запросы и очищается при
 disconnect/switch. Parser извлекает данные до скрытия служебной строки.
+
+`teleportRequestPattern` active template требует capture group 1 с валидным Minecraft-ником.
+Совпадение создаёт временную HUD-кнопку; команда принятия берётся только из `acceptTeleport`.
 
 ## При добавлении или изменении команды
 

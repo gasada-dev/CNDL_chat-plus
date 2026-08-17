@@ -37,7 +37,8 @@
     "privateMessage": "w {player} {message}",
     "pay": "pay {player} {amount}",
     "call": "call {player}",
-    "mail": "mail send {player} {message}"
+    "mail": "mail send {player} {message}",
+    "acceptTeleport": "tpaccept"
   },
   "parsers": {
     "discordMarkerPattern": "(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)",
@@ -60,7 +61,9 @@
       "Прошлые кланы": "(?iu)Прошлые\\s+кланы\\s*:\\s*([^\\r\\n]+)",
       "Тип убийства": "(?iu)Тип\\s+убийства\\s*:\\s*([^\\r\\n]+)"
     },
-    "playerInfoPatternsConfigured": true
+    "playerInfoPatternsConfigured": true,
+    "teleportRequestPattern": "(?iu)^([A-Za-z0-9_]{1,16})\\s+просит\\s+телепортироваться\\s+к\\s+вам\\.?$",
+    "teleportRequestConfigured": true
   },
   "playerInfo": {
     "provider": "NONE",

@@ -158,6 +158,11 @@ public final class TemplateCatalogService {
 			template.playerInfo.providerConfigured = true;
 			changed = true;
 		}
+		if (!template.parsers.teleportRequestConfigured) {
+			template.commands.acceptTeleport = "tpaccept";
+			ParserSettings.applyTeleportDefaults(template.parsers);
+			changed = true;
+		}
 		if (!template.parsers.playerInfoPatternsConfigured) {
 			ParserSettings defaults = ParserSettings.vanillaBoxDefaults();
 			for (var entry : defaults.playerInfoPatterns.entrySet()) {

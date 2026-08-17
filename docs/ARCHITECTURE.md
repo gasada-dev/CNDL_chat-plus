@@ -67,6 +67,15 @@ player-info fallback принимает любой валидный Minecraft-н
 
 `PeriodicMessageScheduler` читает до `PeriodicMessageConfig.MAX_PERIODIC_MESSAGES` (3) записей active snapshot. Первый send происходит после полного interval; disable, blank, invalid interval, disconnect, изменение text/interval и switch сбрасывают slot. Leading `/` означает command, остальное — chat; отправка идёт через `OutgoingChatService`.
 
+## Запрос телепорта
+
+`TeleportRequestButton` сопоставляет system message с заранее скомпилированным
+`teleportRequestPattern` active template. При совпадении HUD показывает кнопку на 60 секунд;
+клик доступен в открытом чате и вызывает `ServerCommandService.acceptTeleport`. Timeout,
+disconnect, template switch и успешный клик очищают запрос. Новый запрос один раз проигрывает
+custom sound event, ссылающийся на встроенный `minecraft:entity/shulker/ambient4`, из client tick.
+Без parser/command кнопка не появляется.
+
 ## Templates, migration и import
 
 `ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` использует приоритет exact binding → exact pattern → wildcard → default → none.

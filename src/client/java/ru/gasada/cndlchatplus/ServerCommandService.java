@@ -55,6 +55,11 @@ public final class ServerCommandService {
 				Map.of("page", Integer.toString(page)));
 	}
 
+	public CommandResult acceptTeleport() {
+		return expandAndSend(CommandTemplateValidator.CommandType.ACCEPT_TELEPORT,
+				command("acceptTeleport"), Map.of());
+	}
+
 	public Optional<String> privateMessageDraft(String player) {
 		return playerDraft(CommandTemplateValidator.CommandType.PRIVATE_MESSAGE,
 				command("privateMessage"), player, "message");
@@ -77,6 +82,7 @@ public final class ServerCommandService {
 			case CALL -> command("call");
 			case MAIL -> command("mail");
 			case MARRIAGE_LIST -> command("marriageList");
+			case ACCEPT_TELEPORT -> command("acceptTeleport");
 		};
 		return template.filter(value -> CommandTemplateValidator.validate(value, type).valid()).isPresent();
 	}
@@ -166,6 +172,7 @@ public final class ServerCommandService {
 			case "call" -> commands.call();
 			case "mail" -> commands.mail();
 			case "marriageList" -> commands.marriageList();
+			case "acceptTeleport" -> commands.acceptTeleport();
 			default -> "";
 		});
 	}

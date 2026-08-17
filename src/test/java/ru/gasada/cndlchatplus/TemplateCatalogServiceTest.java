@@ -30,11 +30,15 @@ final class TemplateCatalogServiceTest {
 		assertEquals("vanilla-box", repository.loadRoot().value().defaultTemplateId);
 		ServerTemplate vanilla = repository.loadTemplate("vanilla-box").value();
 		assertEquals("w {player} {message}", vanilla.commands.privateMessage);
+		assertEquals("tpaccept", vanilla.commands.acceptTeleport);
+		assertFalse(vanilla.parsers.teleportRequestPattern.isBlank());
 		ServerTemplate game = repository.loadTemplate("vanilla-game").value();
 		assertEquals("Vanilla-game", game.name);
 		assertEquals("ignore {player}", game.commands.ignorePlayer);
 		assertEquals("tpa {player}", game.commands.call);
 		assertEquals("marry list {page}", game.commands.marriageList);
+		assertEquals("tpaccept", game.commands.acceptTeleport);
+		assertFalse(game.parsers.teleportRequestPattern.isBlank());
 		assertFalse(game.parsers.marriageEntryPattern.isBlank());
 		assertTrue(game.playerInfo.marriageLookupConfigured);
 		assertEquals(PlayerInfoProvider.VANILLA_GAME_PUBLIC_API, game.playerInfo.provider);
@@ -83,12 +87,16 @@ final class TemplateCatalogServiceTest {
 		assertTrue(result.success(), result.errors().toString());
 		assertEquals(2, result.skipped());
 		assertEquals("msg {player} {message}", repository.loadTemplate("vanilla-box").value().commands.privateMessage);
+		assertEquals("tpaccept", repository.loadTemplate("vanilla-box").value().commands.acceptTeleport);
+		assertFalse(repository.loadTemplate("vanilla-box").value().parsers.teleportRequestPattern.isBlank());
 		assertTrue(repository.loadTemplate("vanilla-box").value().commands.marriageList.isBlank());
 		assertTrue(repository.loadTemplate("vanilla-box").value().parsers.marriageEntryPattern.isBlank());
 		assertFalse(repository.loadTemplate("vanilla-box").value().playerInfo.marriageLookupConfigured);
 		assertEquals("tpask {player}", repository.loadTemplate("vanilla-game").value().commands.call);
 		assertEquals("weddings {page}",
 				repository.loadTemplate("vanilla-game").value().commands.marriageList);
+		assertEquals("tpaccept", repository.loadTemplate("vanilla-game").value().commands.acceptTeleport);
+		assertFalse(repository.loadTemplate("vanilla-game").value().parsers.teleportRequestPattern.isBlank());
 		assertEquals("([A-Za-z0-9_]+) & ([A-Za-z0-9_]+)",
 				repository.loadTemplate("vanilla-game").value().parsers.marriageEntryPattern);
 		assertFalse(repository.loadTemplate("vanilla-game").value().parsers.marriagePagePattern.isBlank());

@@ -36,6 +36,7 @@ final class ServerCommandServiceTest {
 		assertTrue(commands.pay("Player_1", "10,25").success());
 		assertTrue(commands.call("Player_1").success());
 		assertTrue(commands.mail("Player_1", "offline hello").success());
+		assertTrue(commands.acceptTeleport().success());
 
 		assertEquals(List.of(
 				"ignoreplayer Player_1",
@@ -43,7 +44,8 @@ final class ServerCommandServiceTest {
 				"w Player_1 hello",
 				"pay Player_1 10.25",
 				"call Player_1",
-				"mail send Player_1 offline hello"), transport.commands);
+				"mail send Player_1 offline hello",
+				"tpaccept"), transport.commands);
 	}
 
 	@Test
@@ -99,6 +101,16 @@ final class ServerCommandServiceTest {
 		assertTrue(commands.marriageList(2).success());
 		assertFalse(commands.marriageList(0).success());
 		assertEquals(List.of("marry list 2"), transport.commands);
+	}
+
+	@Test
+	void acceptsTeleportThroughConfiguredCommand() {
+		ServerTemplate template = templateWithCommands();
+		template.commands.acceptTeleport = "tpaccept";
+		runtime.switchTo(template);
+
+		assertTrue(commands.acceptTeleport().success());
+		assertEquals(List.of("tpaccept"), transport.commands);
 	}
 
 	@Test

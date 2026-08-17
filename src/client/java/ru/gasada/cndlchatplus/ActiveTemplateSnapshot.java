@@ -69,10 +69,10 @@ public record ActiveTemplateSnapshot(
 	}
 
 	public record CommandSnapshot(String ignorePlayer, String lookupFriend, String privateMessage,
-			String pay, String call, String mail, String marriageList) {
+			String pay, String call, String mail, String marriageList, String acceptTeleport) {
 		private static CommandSnapshot from(ServerCommandSettings settings) {
 			return new CommandSnapshot(settings.ignorePlayer, settings.lookupFriend, settings.privateMessage,
-					settings.pay, settings.call, settings.mail, settings.marriageList);
+					settings.pay, settings.call, settings.mail, settings.marriageList, settings.acceptTeleport);
 		}
 	}
 
@@ -80,13 +80,14 @@ public record ActiveTemplateSnapshot(
 			String lastSeenPattern, String inactivePattern, String lookupEndPattern,
 			String lookupOutputPattern, String timestampOnlyPattern, List<String> replyCandidateSeparators,
 			Map<String, String> playerInfoPatterns, String marriageEntryPattern,
-			String marriagePagePattern, String marriageEmptyPattern) {
+			String marriagePagePattern, String marriageEmptyPattern, String teleportRequestPattern) {
 		private static ParserSnapshot from(ParserSettings settings) {
 			return new ParserSnapshot(settings.discordMarkerPattern, settings.discordNamePattern,
 					settings.lastSeenPattern, settings.inactivePattern, settings.lookupEndPattern,
 					settings.lookupOutputPattern, settings.timestampOnlyPattern,
 					List.copyOf(settings.replyCandidateSeparators), Map.copyOf(settings.playerInfoPatterns),
-					settings.marriageEntryPattern, settings.marriagePagePattern, settings.marriageEmptyPattern);
+					settings.marriageEntryPattern, settings.marriagePagePattern, settings.marriageEmptyPattern,
+					settings.teleportRequestPattern);
 		}
 	}
 

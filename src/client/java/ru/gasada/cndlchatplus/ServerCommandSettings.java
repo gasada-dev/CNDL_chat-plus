@@ -8,6 +8,7 @@ public final class ServerCommandSettings {
 	public String call = "";
 	public String mail = "";
 	public String marriageList = "";
+	public String acceptTeleport = "";
 
 	public static ServerCommandSettings vanillaBoxDefaults() {
 		ServerCommandSettings settings = new ServerCommandSettings();
@@ -17,6 +18,7 @@ public final class ServerCommandSettings {
 		settings.pay = "pay {player} {amount}";
 		settings.call = "call {player}";
 		settings.mail = "mail send {player} {message}";
+		settings.acceptTeleport = "tpaccept";
 		return settings;
 	}
 
@@ -29,6 +31,7 @@ public final class ServerCommandSettings {
 		copy.call = call;
 		copy.mail = mail;
 		copy.marriageList = marriageList;
+		copy.acceptTeleport = acceptTeleport;
 		return copy;
 	}
 }

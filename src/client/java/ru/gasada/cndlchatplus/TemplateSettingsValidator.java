@@ -21,6 +21,8 @@ public final class TemplateSettingsValidator {
 		validateCommand(errors, template.commands.pay, CommandTemplateValidator.CommandType.PAY);
 		validateCommand(errors, template.commands.call, CommandTemplateValidator.CommandType.CALL);
 		validateCommand(errors, template.commands.mail, CommandTemplateValidator.CommandType.MAIL);
+		validateCommand(errors, template.commands.acceptTeleport,
+				CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);
 		if ("vanilla-game".equals(template.id)) {
 			validateCommand(errors, template.commands.marriageList,
 					CommandTemplateValidator.CommandType.MARRIAGE_LIST);
@@ -34,6 +36,7 @@ public final class TemplateSettingsValidator {
 		validatePattern(errors, "Lookup end", parsers.lookupEndPattern, false);
 		validatePattern(errors, "Lookup output", parsers.lookupOutputPattern, false);
 		validatePattern(errors, "Timestamp", parsers.timestampOnlyPattern, false);
+		validatePattern(errors, "Teleport request", parsers.teleportRequestPattern, true);
 		if ("vanilla-game".equals(template.id)) {
 			validatePattern(errors, "Marriage entry", parsers.marriageEntryPattern, 2);
 			validatePattern(errors, "Marriage page", parsers.marriagePagePattern, 2);

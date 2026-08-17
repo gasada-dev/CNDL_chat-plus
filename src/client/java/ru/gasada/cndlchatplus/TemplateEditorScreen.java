@@ -113,6 +113,13 @@ public final class TemplateEditorScreen extends CompatScreen {
 						draft.playerInfo.marriageLookupConfigured = true;
 					});
 		}
+		addCommandField(left, 222, columnWidth, draft.commands.acceptTeleport,
+				"tpaccept", value -> draft.commands.acceptTeleport = value);
+		addField(right, 222, columnWidth, ParserPatternValidator.MAX_PATTERN_LENGTH,
+				draft.parsers.teleportRequestPattern, "Regex запроса ТП, ник в group 1", value -> {
+					draft.parsers.teleportRequestPattern = value;
+					draft.parsers.teleportRequestConfigured = true;
+				});
 	}
 
 	private void initDiscord() {

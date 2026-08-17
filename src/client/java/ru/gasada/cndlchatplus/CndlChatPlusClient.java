@@ -30,6 +30,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	public static ChatTabController CHAT_TABS;
 	public static ChatTimestamps CHAT_TIMESTAMPS;
 	public static ChatSearchState CHAT_SEARCH;
+	public static TeleportRequestButton TELEPORT_REQUEST;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -62,6 +63,9 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		}
 		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
+		TELEPORT_REQUEST = new TeleportRequestButton(TEMPLATE_RUNTIME, SERVER_COMMANDS);
+		switchCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
+		TELEPORT_REQUEST.register();
 		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(
 				TEMPLATE_RUNTIME, engine.outgoingChatService());
 		switchCoordinator.register(periodicScheduler::resetRuntimeState);
@@ -110,6 +114,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
 			updateChecker.tick(minecraft);
+			TELEPORT_REQUEST.tick(minecraft);
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
@@ -128,6 +133,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (!overlay) {
 				recordIncoming(chatMessageStore, chatHistoryCodec, message, true);
+				TELEPORT_REQUEST.handleMessage(message.getString());
 			}
 			engine.handleSystemMessage(message, overlay);
 		});

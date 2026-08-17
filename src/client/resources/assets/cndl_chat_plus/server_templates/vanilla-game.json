@@ -25,7 +25,8 @@
     "pay": "pay {player} {amount}",
     "call": "tpa {player}",
     "mail": "mail send {player} {message}",
-    "marriageList": "marry list {page}"
+    "marriageList": "marry list {page}",
+    "acceptTeleport": "tpaccept"
   },
   "parsers": {
     "discordMarkerPattern": "(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)",
@@ -51,7 +52,9 @@
     "playerInfoPatternsConfigured": true,
     "marriageEntryPattern": "(?iu)(?:^|\\s)([A-Za-z0-9_]{1,16})\\s*[❤♥♡]\\s*([A-Za-z0-9_]{1,16})(?:\\s|$)",
     "marriagePagePattern": "(?iu)страниц(?:а|е|у|ы)?\\s+(\\d+)\\s*/\\s*(\\d+)",
-    "marriageEmptyPattern": "(?iu)нет\\s+(?:женатых|замужних)\\s+игроков"
+    "marriageEmptyPattern": "(?iu)нет\\s+(?:женатых|замужних)\\s+игроков",
+    "teleportRequestPattern": "(?iu)^([A-Za-z0-9_]{1,16})\\s+просит\\s+телепортироваться\\s+к\\s+вам\\.?$",
+    "teleportRequestConfigured": true
   },
   "playerInfo": {
     "provider": "VANILLA_GAME_PUBLIC_API",
