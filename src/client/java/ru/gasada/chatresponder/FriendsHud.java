@@ -65,10 +65,10 @@ public final class FriendsHud {
 		int x = graphics.guiWidth() - boxWidth - 5;
 		int y = graphics.guiHeight() - boxHeight - 5;
 		graphics.fill(x, y, x + boxWidth, y + boxHeight, 0xB0181D27);
-		graphics.outline(x, y, boxWidth, boxHeight, 0xCC536178);
-		graphics.text(font, title, x + 6, y + 4, 0xFFE8ECF2);
+		graphics.outline(x, y, boxWidth, boxHeight, UiConstants.BORDER);
+		graphics.text(font, title, x + 6, y + 4, UiConstants.TEXT);
 		for (int index = 0; index < online.size(); index++) {
-			graphics.text(font, "● " + online.get(index), x + 6, y + 15 + index * 11, 0xFF55FF55);
+			graphics.text(font, "● " + online.get(index), x + 6, y + 15 + index * 11, UiConstants.ONLINE);
 		}
 
 		int noticeY = y - 5;
@@ -80,11 +80,11 @@ public final class FriendsHud {
 			noticeY -= 20;
 			int noticeX = graphics.guiWidth() - noticeWidth - 5;
 			graphics.fill(noticeX, noticeY, noticeX + noticeWidth, noticeY + 18, 0xD0222937);
-			graphics.outline(noticeX, noticeY, noticeWidth, 18, 0xD0A242F3);
+			graphics.outline(noticeX, noticeY, noticeWidth, 18, UiConstants.ACCENT);
 			graphics.pushPose();
 			graphics.translatePose(noticeX + 8, noticeY + 4);
 			graphics.scalePose(noticeScale);
-			graphics.text(font, notice, 0, 0, 0xFF55FF55);
+			graphics.text(font, notice, 0, 0, UiConstants.ONLINE);
 			graphics.popPose();
 		}
 	}

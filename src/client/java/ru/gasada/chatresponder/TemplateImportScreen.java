@@ -1,10 +1,11 @@
 package ru.gasada.chatresponder;
 
+import static ru.gasada.chatresponder.UiConstants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -22,7 +23,7 @@ public final class TemplateImportScreen extends CompatScreen {
 	private TemplateImportPreview preview;
 	private boolean confirmationRequested;
 	private String status = "";
-	private int statusColor = 0xFF75D98B;
+	private int statusColor = SUCCESS;
 
 	public TemplateImportScreen(Screen parent) {
 		super(Component.literal("Импорт между шаблонами"));
@@ -48,11 +49,11 @@ public final class TemplateImportScreen extends CompatScreen {
 		targetIndex = Math.min(targetIndex == sourceIndex ? sourceIndex + 1 : targetIndex, templates.size() - 1);
 		int panelWidth = Math.min(760, width - 24);
 		int x = (width - panelWidth) / 2;
-		addRenderableWidget(Button.builder(Component.literal("Source: " + templates.get(sourceIndex).name), ignored -> {
+		addRenderableWidget(StyledButton.create(Component.literal("Source: " + templates.get(sourceIndex).name), ignored -> {
 			sourceIndex = nextDistinct(sourceIndex, targetIndex);
 			invalidatePreview(); rebuild();
 		}).bounds(x + 18, 48, panelWidth / 2 - 24, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Target: " + templates.get(targetIndex).name), ignored -> {
+		addRenderableWidget(StyledButton.create(Component.literal("Target: " + templates.get(targetIndex).name), ignored -> {
 			targetIndex = nextDistinct(targetIndex, sourceIndex);
 			invalidatePreview(); rebuild();
 		}).bounds(x + panelWidth / 2 + 6, 48, panelWidth / 2 - 24, 20).build());
@@ -62,15 +63,15 @@ public final class TemplateImportScreen extends CompatScreen {
 			TemplateImportOptions.Category category = categories[index];
 			int column = index % 2;
 			int row = index / 2;
-			CycleButton<Boolean> toggle = CycleButton.onOffBuilder(options.selected(category))
-					.create(x + 18 + column * (panelWidth / 2), 82 + row * 24,
-							panelWidth / 2 - 30, 20, Component.literal(label(category)),
-							(button, enabled) -> { options.select(category, enabled); invalidatePreview(); });
+			StyledCycleButton<Boolean> toggle = StyledCycleButton.onOff(options.selected(category),
+					x + 18 + column * (panelWidth / 2), 82 + row * 24, panelWidth / 2 - 30, 20,
+					Component.literal(label(category)),
+					(button, enabled) -> { options.select(category, enabled); invalidatePreview(); });
 			addRenderableWidget(toggle);
 		}
 
 		int controlsY = 82 + ((categories.length + 1) / 2) * 24 + 4;
-		addRenderableWidget(Button.builder(Component.literal("Списки: " + modeLabel()), ignored -> {
+		addRenderableWidget(StyledButton.create(Component.literal("Списки: " + modeLabel()), ignored -> {
 			listMode = switch (listMode) {
 				case REPLACE -> TemplateImportOptions.ListMode.MERGE;
 				case MERGE -> TemplateImportOptions.ListMode.SKIP;
@@ -79,17 +80,17 @@ public final class TemplateImportScreen extends CompatScreen {
 			for (TemplateImportOptions.Category category : categories) options.listMode(category, listMode);
 			invalidatePreview(); rebuild();
 		}).bounds(x + 18, controlsY, 170, 20).build());
-		CycleButton<Boolean> lastSeen = CycleButton.onOffBuilder(options.overwriteExistingLastSeen())
-				.create(x + 196, controlsY, 250, 20, Component.literal("Заменять существующий last seen"),
-						(button, enabled) -> { options.overwriteExistingLastSeen(enabled); invalidatePreview(); });
+		StyledCycleButton<Boolean> lastSeen = StyledCycleButton.onOff(options.overwriteExistingLastSeen(),
+				x + 196, controlsY, 250, 20, Component.literal("Заменять существующий last seen"),
+				(button, enabled) -> { options.overwriteExistingLastSeen(enabled); invalidatePreview(); });
 		addRenderableWidget(lastSeen);
-		addRenderableWidget(Button.builder(Component.literal("Preview"), ignored -> preview())
+		addRenderableWidget(StyledButton.create(Component.literal("Preview"), ignored -> preview())
 				.bounds(x + 18, height - 42, 90, 20).build());
-		Button apply = addRenderableWidget(Button.builder(Component.literal(
+		Button apply = addRenderableWidget(StyledButton.create(Component.literal(
 				confirmationRequested ? "Подтвердить импорт" : "Применить"), ignored -> apply())
 				.bounds(x + 114, height - 42, 150, 20).build());
 		apply.active = preview != null && preview.valid();
-		addRenderableWidget(Button.builder(Component.literal("Назад"), ignored -> onClose())
+		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(x + panelWidth - 98, height - 42, 80, 20).build());
 	}
 
@@ -134,7 +135,7 @@ public final class TemplateImportScreen extends CompatScreen {
 
 	private void setStatus(String value, boolean success) {
 		status = value;
-		statusColor = success ? 0xFF75D98B : 0xFFFF7777;
+		statusColor = success ? SUCCESS : ERROR;
 	}
 
 	private String modeLabel() {
@@ -163,10 +164,10 @@ public final class TemplateImportScreen extends CompatScreen {
 
 	@Override public void onClose() { ClientUi.setScreen(minecraft, parent); }
 	@Override protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xE010141D);
+		ScreenChrome.drawBackground(graphics, width, height);
 	}
 	@Override protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.centeredText(font, title, width / 2, 20, 0xFFE8ECF2);
+		ScreenChrome.drawHeader(graphics, font, title, width / 2, 20);
 		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2, height - 62, statusColor);
 	}
 	@Override public boolean isPauseScreen() { return false; }

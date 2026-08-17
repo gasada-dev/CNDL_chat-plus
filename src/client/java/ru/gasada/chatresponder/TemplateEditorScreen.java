@@ -1,12 +1,13 @@
 package ru.gasada.chatresponder;
 
+import static ru.gasada.chatresponder.UiConstants.*;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -45,7 +46,7 @@ public final class TemplateEditorScreen extends CompatScreen {
 		int tabWidth = panelWidth / EditorPage.values().length;
 		for (int index = 0; index < EditorPage.values().length; index++) {
 			EditorPage target = EditorPage.values()[index];
-			Button tab = addRenderableWidget(Button.builder(Component.literal(target.title), ignored -> {
+			Button tab = addRenderableWidget(StyledButton.create(Component.literal(target.title), ignored -> {
 				page = target;
 				status = "";
 				rebuild();
@@ -61,9 +62,9 @@ public final class TemplateEditorScreen extends CompatScreen {
 			case DISCORD -> initDiscord();
 			case PLAYER_INFO -> initPlayerInfo();
 		}
-		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> save())
+		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> save())
 				.bounds(panelX + panelWidth - 210, height - 32, 90, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Отмена"), ignored -> onClose())
+		addRenderableWidget(StyledButton.create(Component.literal("Отмена"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 110, height - 32, 90, 20).build());
 	}
 
@@ -71,15 +72,14 @@ public final class TemplateEditorScreen extends CompatScreen {
 		addField(panelX + 20, 84, panelWidth - 40, 64, nameValue, "Имя шаблона", value -> nameValue = value);
 		addField(panelX + 20, 130, panelWidth - 40, 1024, patternsValue,
 				"play.example.org, *.example.org", value -> patternsValue = value);
-		addRenderableWidget(CycleButton.builder(TemplateEditorScreen::providerTitle,
-				draft.playerInfo.provider == null ? PlayerInfoProvider.NONE : draft.playerInfo.provider)
-				.withValues(List.of(PlayerInfoProvider.values())).displayOnlyValue()
-				.create(panelX + 20, 176, Math.min(260, panelWidth - 40), 20,
-						Component.literal("Источник информации"),
-						(button, value) -> {
-							draft.playerInfo.provider = value;
-							draft.playerInfo.providerConfigured = true;
-						}));
+		addRenderableWidget(StyledCycleButton.of(TemplateEditorScreen::providerTitle,
+				draft.playerInfo.provider == null ? PlayerInfoProvider.NONE : draft.playerInfo.provider,
+				List.of(PlayerInfoProvider.values()), panelX + 20, 176,
+				Math.min(260, panelWidth - 40), 20, Component.empty(),
+				(button, value) -> {
+					draft.playerInfo.provider = value;
+					draft.playerInfo.providerConfigured = true;
+				}));
 	}
 
 	private static Component providerTitle(PlayerInfoProvider provider) {
@@ -169,7 +169,7 @@ public final class TemplateEditorScreen extends CompatScreen {
 
 	private void addField(int x, int y, int width, int maxLength, String value, String hint,
 			Consumer<String> responder) {
-		EditBox box = new EditBox(font, x, y, width, 20, Component.literal(hint));
+		EditBox box = new StyledEditBox(font, x, y, width, 20, Component.literal(hint));
 		box.setMaxLength(maxLength);
 		box.setValue(value == null ? "" : value);
 		box.setHint(Component.literal(hint));
@@ -212,13 +212,18 @@ public final class TemplateEditorScreen extends CompatScreen {
 
 	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xE010141D);
+		ScreenChrome.drawBackground(graphics, width, height);
 	}
 
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.centeredText(font, title, width / 2, 15, 0xFFE8ECF2);
-		graphics.text(font, "ID: " + draft.id, panelX + 4, 30, 0xFF9DA8B8);
+		ScreenChrome.drawHeader(graphics, font, title, width / 2, 15);
+		graphics.text(font, "ID: " + draft.id, panelX + 4, 30, MUTED);
+		int tabCount = EditorPage.values().length;
+		int tabWidth = panelWidth / tabCount;
+		int activeX = panelX + page.ordinal() * tabWidth;
+		int activeWidth = page.ordinal() == tabCount - 1 ? panelWidth - tabWidth * page.ordinal() : tabWidth;
+		graphics.fill(activeX + 3, 63, activeX + activeWidth - 3, 65, ACCENT);
 		switch (page) {
 			case GENERAL -> {
 				label(graphics, "Имя", panelX + 20, 72);
@@ -232,7 +237,7 @@ public final class TemplateEditorScreen extends CompatScreen {
 			}
 			case PLAYER_INFO -> drawPlayerInfoLabels(graphics);
 		}
-		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2, height - 48, 0xFFFF7777);
+		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2, height - 48, ERROR);
 	}
 
 	private void drawCommandLabels(CompatGraphics graphics) {
@@ -272,7 +277,7 @@ public final class TemplateEditorScreen extends CompatScreen {
 	}
 
 	private void label(CompatGraphics graphics, String text, int x, int y) {
-		graphics.text(font, text, x, y, 0xFF9DA8B8);
+		graphics.text(font, text, x, y, MUTED);
 	}
 
 	@Override

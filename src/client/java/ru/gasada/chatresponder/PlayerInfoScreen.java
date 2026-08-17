@@ -1,5 +1,7 @@
 package ru.gasada.chatresponder;
 
+import static ru.gasada.chatresponder.UiConstants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,10 +12,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public final class PlayerInfoScreen extends CompatScreen {
-	private static final int TEXT_COLOR = 0xFFE8ECF2;
-	private static final int MUTED_COLOR = 0xFF9DA8B8;
-	private static final int ERROR_COLOR = 0xFFFF7777;
-	private static final int SUCCESS_COLOR = 0xFF75D98B;
+	private static final int TEXT_COLOR = TEXT;
+	private static final int MUTED_COLOR = MUTED;
+	private static final int ERROR_COLOR = ERROR;
+	private static final int SUCCESS_COLOR = SUCCESS;
 	private static final int BUILDINGS_PER_PAGE = 6;
 
 	private final Screen parent;
@@ -43,7 +45,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 		suggestionButtons.clear();
 		int panelWidth = Math.min(760, width - 30);
 		int panelX = (width - panelWidth) / 2;
-		playerBox = new EditBox(font, panelX + 18, 54, 220, 20, Component.literal("Ник игрока"));
+		playerBox = new StyledEditBox(font, panelX + 18, 54, 220, 20, Component.literal("Ник игрока"));
 		playerBox.setMaxLength(PlayerNameValidator.MAX_LENGTH);
 		playerBox.setHint(Component.literal("Ник игрока"));
 		playerBox.setValue(playerValue);
@@ -53,16 +55,16 @@ public final class PlayerInfoScreen extends CompatScreen {
 		});
 		addRenderableWidget(playerBox);
 
-		Button refresh = addRenderableWidget(Button.builder(Component.literal("Обновить"), ignored -> refresh())
+		Button refresh = addRenderableWidget(StyledButton.create(Component.literal("Обновить"), ignored -> refresh())
 				.bounds(panelX + 246, 54, 90, 20)
 				.tooltip(Tooltip.create(Component.literal("Загрузить свежие данные профиля"))).build());
 		refresh.active = !loading;
-		addRenderableWidget(Button.builder(Component.literal("Назад"), ignored -> onClose())
+		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 108, 54, 90, 20).build());
 
 		int suggestionWidth = Math.max(70, Math.min(120, (panelWidth - 36) / 4));
 		for (int index = 0; index < 4; index++) {
-			Button button = addRenderableWidget(Button.builder(Component.empty(), clicked -> select(clicked.getMessage().getString()))
+			Button button = addRenderableWidget(StyledButton.create(Component.empty(), clicked -> select(clicked.getMessage().getString()))
 					.bounds(panelX + 18 + index * (suggestionWidth + 4), 80, suggestionWidth, 18).build());
 			button.visible = false;
 			suggestionButtons.add(button);
@@ -71,12 +73,12 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 		if (profile != null && profile.buildings().size() > BUILDINGS_PER_PAGE) {
 			int pages = (profile.buildings().size() - 1) / BUILDINGS_PER_PAGE;
-			Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
+			Button previous = addRenderableWidget(StyledButton.create(Component.literal("<"), ignored -> {
 				buildingPage--;
 				rebuildContents();
 			}).bounds(panelX + panelWidth - 94, height - 44, 30, 20).build());
 			previous.active = buildingPage > 0;
-			Button next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> {
+			Button next = addRenderableWidget(StyledButton.create(Component.literal(">"), ignored -> {
 				buildingPage++;
 				rebuildContents();
 			}).bounds(panelX + panelWidth - 56, height - 44, 30, 20).build());
@@ -200,16 +202,15 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xE010141D);
+		ScreenChrome.drawBackground(graphics, width, height);
 	}
 
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		int panelWidth = Math.min(760, width - 30);
 		int panelX = (width - panelWidth) / 2;
-		graphics.fill(panelX - 2, 28, panelX + panelWidth + 2, height - 18, 0xFF536178);
-		graphics.fill(panelX, 30, panelX + panelWidth, height - 20, 0xD9242B38);
-		graphics.centeredText(font, title, width / 2, 36, TEXT_COLOR);
+		ScreenChrome.drawPanel(graphics, panelX, 30, panelWidth, height - 50);
+		ScreenChrome.drawHeader(graphics, font, title, width / 2, 36);
 		graphics.text(font, status, panelX + 350, 60, statusColor);
 
 		int y = 110;

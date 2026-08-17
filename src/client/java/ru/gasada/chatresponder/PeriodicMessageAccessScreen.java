@@ -1,6 +1,7 @@
 package ru.gasada.chatresponder;
 
-import net.minecraft.client.gui.components.Button;
+import static ru.gasada.chatresponder.UiConstants.*;
+
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -27,15 +28,15 @@ public final class PeriodicMessageAccessScreen extends CompatScreen {
 	protected void init() {
 		int panelX = (width - PANEL_WIDTH) / 2;
 		int panelY = (height - PANEL_HEIGHT) / 2;
-		passwordBox = new EditBox(font, panelX + 50, panelY + 48, 180, 20,
+		passwordBox = new StyledEditBox(font, panelX + 50, panelY + 48, 180, 20,
 				Component.literal("Пароль"));
 		passwordBox.setMaxLength(PASSWORD.length());
 		passwordBox.setHint(Component.literal("Пароль"));
 		addRenderableWidget(passwordBox);
 
-		addRenderableWidget(Button.builder(Component.literal("Открыть"), ignored -> unlock())
+		addRenderableWidget(StyledButton.create(Component.literal("Открыть"), ignored -> unlock())
 				.bounds(panelX + 50, panelY + 82, 85, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Назад"), ignored -> onClose())
+		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + 145, panelY + 82, 85, 20).build());
 	}
 
@@ -67,19 +68,17 @@ public final class PeriodicMessageAccessScreen extends CompatScreen {
 
 	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xE010141D);
+		ScreenChrome.drawBackground(graphics, width, height);
 	}
 
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		int panelX = (width - PANEL_WIDTH) / 2;
 		int panelY = (height - PANEL_HEIGHT) / 2;
-		graphics.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2,
-				0xFF536178);
-		graphics.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xF0242B38);
-		graphics.centeredText(font, title, width / 2, panelY + 16, 0xFFE8ECF2);
+		ScreenChrome.drawPanel(graphics, panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT);
+		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 16);
 		if (!statusText.isEmpty()) {
-			graphics.centeredText(font, statusText, width / 2, panelY + 110, 0xFFFF7777);
+			graphics.centeredText(font, statusText, width / 2, panelY + 110, ERROR);
 		}
 	}
 

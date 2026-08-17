@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер и настраиваемый автоответчик для Minecraft 1.21.11 и 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.6-B76EF5)
+![Version](https://img.shields.io/badge/version-0.6.1-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11%20%7C%2026.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)

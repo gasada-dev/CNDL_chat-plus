@@ -11,7 +11,6 @@ import java.util.function.Function;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.input.KeyEvent;
@@ -69,7 +68,7 @@ public final class ResponderScreen extends CompatScreen {
 		initTemplateSelector();
 
 		int quarter = panelWidth / 4;
-		addRenderableWidget(Button.builder(Component.literal("Информация об игроке"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
 				.bounds(panelX + quarter * 3, 2, panelWidth - quarter * 3, 18)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
@@ -87,7 +86,7 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private void addTabButton(Tab target, int x, int y, int buttonWidth) {
-		Button button = addRenderableWidget(Button.builder(Component.literal(target.title), ignored -> {
+		Button button = addRenderableWidget(StyledButton.create(Component.literal(target.title), ignored -> {
 			tab = target;
 			status.clear();
 			rebuildContents();
@@ -106,15 +105,14 @@ public final class ResponderScreen extends CompatScreen {
 		if (loaded.success() && !loaded.value().templates.isEmpty()) {
 			List<String> ids = loaded.value().templates.stream().map(info -> info.id).toList();
 			String initial = activeId != null && ids.contains(activeId) ? activeId : ids.getFirst();
-			CycleButton<String> selector = CycleButton.builder(
-					id -> Component.literal(templateName(loaded.value(), id)), initial)
-					.withValues(ids).displayOnlyValue()
-					.create(panelX + 6, 2, Math.max(60, settingsX - panelX - 10), 18,
-							Component.empty(), (button, id) -> selectTemplate(id));
+			StyledCycleButton<String> selector = StyledCycleButton.of(
+					id -> Component.literal(templateName(loaded.value(), id)), initial, ids,
+					panelX + 6, 2, Math.max(60, settingsX - panelX - 10), 18, Component.empty(),
+					(button, id) -> selectTemplate(id));
 			addRenderableWidget(selector);
 			selector.setTooltip(help("Активный серверный шаблон"));
 		}
-		addRenderableWidget(Button.builder(Component.literal("⚙"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("⚙"), ignored ->
 				ClientUi.setScreen(minecraft, new TemplatesScreen(this)))
 				.bounds(settingsX, 2, 28, 18)
 				.tooltip(help("Настройки серверных шаблонов")).build());
@@ -131,19 +129,19 @@ public final class ResponderScreen extends CompatScreen {
 						.map(ActiveTemplateSnapshot::id).orElse(null);
 		if (id.equals(current)) return;
 		if (!saveCurrentTab()) {
-			setStatus("Не удалось сохранить текущий шаблон", 0xFFFF7777);
+			setStatus("Не удалось сохранить текущий шаблон", ERROR);
 			rebuildContents();
 			return;
 		}
 		TemplateOperationResult<ServerTemplate> selected = GasadaChatResponderClient.TEMPLATE_SELECTION.select(id);
 		if (!selected.success()) {
-			setStatus(selected.errorMessage(), 0xFFFF7777);
+			setStatus(selected.errorMessage(), ERROR);
 			rebuildContents();
 			return;
 		}
 		selectedFriend = null;
 		friendLookupsQueued = false;
-		setStatus("Активный шаблон: " + selected.value().name, 0xFF75D98B);
+		setStatus("Активный шаблон: " + selected.value().name, SUCCESS);
 		rebuildContents();
 	}
 
@@ -160,13 +158,13 @@ public final class ResponderScreen extends CompatScreen {
 		}
 
 		int bottomY = height - 38;
-		CycleButton<Boolean> masterToggle = CycleButton.onOffBuilder(config.enabled)
-				.create(panelX, bottomY, 70, FIELD_HEIGHT, Component.literal("Мод"),
-						(button, enabled) -> rulesController.setEnabled(enabled));
+		StyledCycleButton<Boolean> masterToggle = StyledCycleButton.onOff(config.enabled,
+				panelX, bottomY, 70, FIELD_HEIGHT, Component.literal("Мод"),
+				(button, enabled) -> rulesController.setEnabled(enabled));
 		addRenderableWidget(masterToggle);
 		masterToggle.setTooltip(help("Полностью включает или выключает автоматические ответы"));
 
-		addRenderableWidget(Button.builder(Component.literal("+ Правило"), ignored -> {
+		addRenderableWidget(StyledButton.create(Component.literal("+ Правило"), ignored -> {
 			rulesController.addRule();
 			page = maxPage();
 			if (config.rules.size() > pageSize) {
@@ -176,14 +174,14 @@ public final class ResponderScreen extends CompatScreen {
 		}).bounds(panelX + 75, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Создать новое правило автоответа")).build());
 
-		Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
+		Button previous = addRenderableWidget(StyledButton.create(Component.literal("<"), ignored -> {
 			page--;
 			rebuildContents();
 		}).bounds(panelX + panelWidth / 2 - 65, bottomY, 30, FIELD_HEIGHT)
 				.tooltip(help("Предыдущая страница правил")).build());
 		previous.active = page > 0;
 
-		Button next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> {
+		Button next = addRenderableWidget(StyledButton.create(Component.literal(">"), ignored -> {
 			page++;
 			rebuildContents();
 		}).bounds(panelX + panelWidth / 2 + 35, bottomY, 30, FIELD_HEIGHT)
@@ -193,7 +191,7 @@ public final class ResponderScreen extends CompatScreen {
 		int saveX = panelX + panelWidth - 90;
 		addRenderableWidget(new InvisibleButton(0, 0, 15, 15,
 				() -> ClientUi.setScreen(minecraft, new PeriodicMessageAccessScreen(this, config))));
-		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> saveConfig())
+		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> saveConfig())
 				.bounds(saveX, bottomY, 90, FIELD_HEIGHT)
 				.tooltip(help("Сохранить все настройки мода")).build());
 	}
@@ -208,14 +206,14 @@ public final class ResponderScreen extends CompatScreen {
 		int triggerWidth = fieldsWidth / 2;
 		int responseWidth = fieldsWidth - triggerWidth;
 
-		CycleButton<Boolean> enabled = CycleButton.onOffBuilder(rule.enabled)
-				.create(x, y, enabledWidth, FIELD_HEIGHT, Component.empty(),
-						(button, value) -> rule.enabled = value);
+		StyledCycleButton<Boolean> enabled = StyledCycleButton.onOff(rule.enabled,
+				x, y, enabledWidth, FIELD_HEIGHT, Component.empty(),
+				(button, value) -> rule.enabled = value);
 		addRenderableWidget(enabled);
 		enabled.setTooltip(help("Включить или выключить только это правило"));
 		x += enabledWidth + 4;
 
-		EditBox trigger = new EditBox(font, x, y, triggerWidth, FIELD_HEIGHT,
+		EditBox trigger = new StyledEditBox(font, x, y, triggerWidth, FIELD_HEIGHT,
 				Component.literal("Фраза-триггер"));
 		trigger.setMaxLength(256);
 		trigger.setValue(rule.trigger);
@@ -224,7 +222,7 @@ public final class ResponderScreen extends CompatScreen {
 		addRenderableWidget(trigger);
 		x += triggerWidth + 4;
 
-		EditBox response = new EditBox(font, x, y, responseWidth, FIELD_HEIGHT,
+		EditBox response = new StyledEditBox(font, x, y, responseWidth, FIELD_HEIGHT,
 				Component.literal("Ответ"));
 		response.setMaxLength(256);
 		response.setValue(rule.response);
@@ -233,17 +231,15 @@ public final class ResponderScreen extends CompatScreen {
 		addRenderableWidget(response);
 		x += responseWidth + 4;
 
-		CycleButton<ChatChannel> channel = CycleButton.builder(
-				value -> Component.literal(value.displayName()), rule.channel)
-				.withValues(List.of(ChatChannel.values()))
-				.displayOnlyValue()
-				.create(x, y, channelWidth, FIELD_HEIGHT, Component.literal("Канал"),
-						(button, value) -> rule.channel = value);
+		StyledCycleButton<ChatChannel> channel = StyledCycleButton.of(
+				value -> Component.literal(value.displayName()), rule.channel,
+				List.of(ChatChannel.values()), x, y, channelWidth, FIELD_HEIGHT, Component.empty(),
+				(button, value) -> rule.channel = value);
 		addRenderableWidget(channel);
 		channel.setTooltip(help("Выбрать тип входящего чата и канал ответа"));
 		x += channelWidth + 4;
 
-		addRenderableWidget(Button.builder(Component.literal("×"), ignored -> {
+		addRenderableWidget(StyledButton.create(Component.literal("×"), ignored -> {
 			rulesController.removeRule(ruleIndex);
 			page = Math.min(page, maxPage());
 			rebuildContents();
@@ -284,14 +280,14 @@ public final class ResponderScreen extends CompatScreen {
 				"Маркеры личных сообщений через запятую", config.privateMarkers,
 				"[pm],[лс],->,шепчет", value -> config.privateMarkers = value);
 
-		addRenderableWidget(Button.builder(Component.literal("Сохранить"), ignored -> saveConfig())
+		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> saveConfig())
 				.bounds(panelX + panelWidth - 108, height - 38, 90, FIELD_HEIGHT)
 				.tooltip(help("Сохранить префиксы и маркеры каналов")).build());
 	}
 
 	private EditBox addTextField(int x, int y, int fieldWidth, String narration, String value,
 			String hint, java.util.function.Consumer<String> responder) {
-		EditBox field = new EditBox(font, x, y, fieldWidth, FIELD_HEIGHT, Component.literal(narration));
+		EditBox field = new StyledEditBox(font, x, y, fieldWidth, FIELD_HEIGHT, Component.literal(narration));
 		field.setMaxLength(512);
 		field.setValue(value);
 		field.setHint(Component.literal(hint));
@@ -303,7 +299,7 @@ public final class ResponderScreen extends CompatScreen {
 	private void initBlacklistTab() {
 		int modeWidth = 100;
 		int modesX = panelX + (panelWidth - modeWidth * 2) / 2;
-		Button nickMode = addRenderableWidget(Button.builder(Component.literal("Ники"), ignored -> {
+		Button nickMode = addRenderableWidget(StyledButton.create(Component.literal("Ники"), ignored -> {
 			blacklistMode = BlacklistMode.NICKS;
 			status.clear();
 			rebuildContents();
@@ -311,7 +307,7 @@ public final class ResponderScreen extends CompatScreen {
 				.tooltip(help("Открыть мут обычных и Discord-пользователей")).build());
 		nickMode.active = blacklistMode != BlacklistMode.NICKS;
 
-		Button wordMode = addRenderableWidget(Button.builder(Component.literal("Слова"), ignored -> {
+		Button wordMode = addRenderableWidget(StyledButton.create(Component.literal("Слова"), ignored -> {
 			blacklistMode = BlacklistMode.WORDS;
 			status.clear();
 			rebuildContents();
@@ -326,12 +322,11 @@ public final class ResponderScreen extends CompatScreen {
 		}
 
 		int bottomButtonWidth = Math.min(180, panelWidth - 36);
-		CycleButton<Boolean> discordChat = CycleButton.builder(
-				value -> Component.literal(value ? "Включён" : "Выключен"), config.discordChatEnabled)
-				.withValues(false, true)
-				.create(panelX + 18, height - 38, bottomButtonWidth, FIELD_HEIGHT,
-						Component.literal("Чат Discord"),
-						(button, value) -> config.discordChatEnabled = value);
+		StyledCycleButton<Boolean> discordChat = StyledCycleButton.of(
+				value -> Component.literal(value ? "Включён" : "Выключен"), config.discordChatEnabled,
+				List.of(false, true), panelX + 18, height - 38, bottomButtonWidth, FIELD_HEIGHT,
+				Component.literal("Чат Discord"),
+				(button, value) -> config.discordChatEnabled = value);
 		addRenderableWidget(discordChat);
 		discordChat.setTooltip(help("Показывать или полностью скрывать все сообщения из Discord"));
 
@@ -343,19 +338,19 @@ public final class ResponderScreen extends CompatScreen {
 		int discordMuteWidth = 112;
 		int fieldWidth = panelWidth - 36 - muteWidth - discordMuteWidth - 8;
 
-		nicknameBox = new EditBox(font, x, 84, fieldWidth, FIELD_HEIGHT, Component.literal("Ник"));
+		nicknameBox = new StyledEditBox(font, x, 84, fieldWidth, FIELD_HEIGHT, Component.literal("Ник"));
 		nicknameBox.setMaxLength(32);
 		nicknameBox.setValue(nicknameValue);
 		nicknameBox.setHint(Component.literal("ник игрока"));
 		addRenderableWidget(nicknameBox);
 		x += fieldWidth + 4;
 
-		addRenderableWidget(Button.builder(Component.literal("Мут"), ignored -> addMutedPlayer())
+		addRenderableWidget(StyledButton.create(Component.literal("Мут"), ignored -> addMutedPlayer())
 				.bounds(x, 84, muteWidth, FIELD_HEIGHT)
 				.tooltip(help("Отправить серверную команду /ignoreplayer для этого ника")).build());
 		x += muteWidth + 4;
 
-		addRenderableWidget(Button.builder(Component.literal("Мут Discord"), ignored -> addDiscordMutedPlayer())
+		addRenderableWidget(StyledButton.create(Component.literal("Мут Discord"), ignored -> addDiscordMutedPlayer())
 				.bounds(x, 84, discordMuteWidth, FIELD_HEIGHT)
 				.tooltip(help("Скрывать сообщения этого пользователя из Discord")).build());
 
@@ -364,7 +359,7 @@ public final class ResponderScreen extends CompatScreen {
 		int listY = 118;
 		int visibleRows = Math.max(2, Math.min(5, (height - 180) / 22));
 		for (int index = 0; index < visibleRows; index++) {
-			Button suggestion = Button.builder(Component.empty(), button -> {
+			Button suggestion = StyledButton.create(Component.empty(), button -> {
 				nicknameValue = button.getMessage().getString();
 				nicknameBox.setValue(nicknameValue);
 			}).bounds(panelX + 18, listY + index * 22, columnWidth, FIELD_HEIGHT)
@@ -377,7 +372,7 @@ public final class ResponderScreen extends CompatScreen {
 		int mutedCount = Math.min(visibleRows, config.discordMutedPlayers.size());
 		for (int index = 0; index < mutedCount; index++) {
 			String name = config.discordMutedPlayers.get(index);
-			addRenderableWidget(Button.builder(Component.literal(name + " (discord)  ×"), ignored -> {
+			addRenderableWidget(StyledButton.create(Component.literal(name + " (discord)  ×"), ignored -> {
 				blacklistController.removeDiscord(name);
 				rebuildContents();
 			}).bounds(mutedX, listY + index * 22, columnWidth, FIELD_HEIGHT)
@@ -394,7 +389,7 @@ public final class ResponderScreen extends CompatScreen {
 	private void initWordBlacklist() {
 		int x = panelX + 18;
 		int addWidth = 105;
-		wordBox = new EditBox(font, x, 84, panelWidth - 40 - addWidth, FIELD_HEIGHT,
+		wordBox = new StyledEditBox(font, x, 84, panelWidth - 40 - addWidth, FIELD_HEIGHT,
 				Component.literal("Скрываемое слово"));
 		wordBox.setMaxLength(64);
 		wordBox.setValue(wordValue);
@@ -402,7 +397,7 @@ public final class ResponderScreen extends CompatScreen {
 		wordBox.setResponder(value -> wordValue = value);
 		addRenderableWidget(wordBox);
 
-		addRenderableWidget(Button.builder(Component.literal("Мут"), ignored -> addMutedWord())
+		addRenderableWidget(StyledButton.create(Component.literal("Мут"), ignored -> addMutedWord())
 				.bounds(panelX + panelWidth - 18 - addWidth, 84, addWidth, FIELD_HEIGHT)
 				.tooltip(help("Скрывать сообщения с введённым словом или фразой")).build());
 
@@ -410,7 +405,7 @@ public final class ResponderScreen extends CompatScreen {
 		int count = Math.min(visibleRows, config.mutedWords.size());
 		for (int index = 0; index < count; index++) {
 			String word = config.mutedWords.get(index);
-			addRenderableWidget(Button.builder(Component.literal("\"" + word + "\"  ×"), ignored -> {
+			addRenderableWidget(StyledButton.create(Component.literal("\"" + word + "\"  ×"), ignored -> {
 				blacklistController.removeWord(word);
 				rebuildContents();
 			}).bounds(panelX + 18, 130 + index * 22, Math.min(400, panelWidth - 36), FIELD_HEIGHT)
@@ -431,7 +426,7 @@ public final class ResponderScreen extends CompatScreen {
 		int rightX = leftX + columnWidth + columnGap;
 		int addWidth = 82;
 
-		friendNameBox = new EditBox(font, leftX, 60, columnWidth - addWidth - 4, FIELD_HEIGHT,
+		friendNameBox = new StyledEditBox(font, leftX, 60, columnWidth - addWidth - 4, FIELD_HEIGHT,
 				Component.literal("Ник друга"));
 		friendNameBox.setMaxLength(16);
 		friendNameBox.setValue(friendNameValue);
@@ -442,12 +437,12 @@ public final class ResponderScreen extends CompatScreen {
 		});
 		addRenderableWidget(friendNameBox);
 
-		addRenderableWidget(Button.builder(Component.literal("Добавить"), ignored -> addFriend())
+		addRenderableWidget(StyledButton.create(Component.literal("Добавить"), ignored -> addFriend())
 				.bounds(leftX + columnWidth - addWidth, 60, addWidth, FIELD_HEIGHT)
 				.tooltip(help("Добавить введённый ник в сохранённый список друзей")).build());
 
 		for (int index = 0; index < 2; index++) {
-			Button suggestion = Button.builder(Component.empty(), button -> {
+			Button suggestion = StyledButton.create(Component.empty(), button -> {
 				friendNameValue = button.getMessage().getString();
 				friendNameBox.setValue(friendNameValue);
 			}).bounds(leftX, 86 + index * 22, columnWidth, FIELD_HEIGHT)
@@ -470,76 +465,75 @@ public final class ResponderScreen extends CompatScreen {
 			String lastSeen = lastSeenFor(friend);
 			String label = selection + friend + (online ? " — онлайн" : " — был: " + lastSeen);
 			Component labelComponent = Component.literal(label).withColor(online ? 0x55FF55 : 0xA0A0A0);
-			addRenderableWidget(Button.builder(labelComponent, ignored -> {
+			addRenderableWidget(StyledButton.create(labelComponent, ignored -> {
 				selectedFriend = friend;
-				setStatus("Выбран друг: " + friend, 0xFF75D98B);
+				setStatus("Выбран друг: " + friend, SUCCESS);
 				rebuildContents();
 			}).bounds(leftX, y, columnWidth - 26, FIELD_HEIGHT)
 					.tooltip(help(online ? "Друг сейчас онлайн"
 							: "Последний раз был в сети: " + lastSeen)).build());
-			addRenderableWidget(Button.builder(Component.literal("×"), ignored -> removeFriend(friend))
+			addRenderableWidget(StyledButton.create(Component.literal("×"), ignored -> removeFriend(friend))
 					.bounds(leftX + columnWidth - 22, y, 22, FIELD_HEIGHT)
 					.tooltip(help("Удалить этого игрока из списка друзей")).build());
 		}
 
-		Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> {
+		Button previous = addRenderableWidget(StyledButton.create(Component.literal("<"), ignored -> {
 			friendPage--;
 			rebuildContents();
 		}).bounds(leftX, height - 38, 30, FIELD_HEIGHT)
 				.tooltip(help("Предыдущая страница списка друзей")).build());
 		previous.active = friendPage > 0;
-		Button next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> {
+		Button next = addRenderableWidget(StyledButton.create(Component.literal(">"), ignored -> {
 			friendPage++;
 			rebuildContents();
 		}).bounds(leftX + 36, height - 38, 30, FIELD_HEIGHT)
 				.tooltip(help("Следующая страница списка друзей")).build());
 		next.active = friendPage < maxPage;
 		int actionWidth = 84;
-		friendMessageBox = new EditBox(font, rightX, 78, columnWidth - actionWidth - 4, FIELD_HEIGHT,
+		friendMessageBox = new StyledEditBox(font, rightX, 78, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Личное сообщение"));
 		friendMessageBox.setMaxLength(220);
 		friendMessageBox.setValue(friendMessageValue);
 		friendMessageBox.setHint(Component.literal("текст личного сообщения"));
 		friendMessageBox.setResponder(value -> friendMessageValue = value);
 		addRenderableWidget(friendMessageBox);
-		addRenderableWidget(Button.builder(Component.literal("Отправить ЛС"), ignored -> sendPrivateToFriend())
+		addRenderableWidget(StyledButton.create(Component.literal("Отправить ЛС"), ignored -> sendPrivateToFriend())
 				.bounds(rightX + columnWidth - actionWidth, 78, actionWidth, FIELD_HEIGHT)
 				.tooltip(help(commandHelp("Личное сообщение", ActiveTemplateSnapshot.CommandSnapshot::privateMessage)))
 				.build());
 
-		friendMailBox = new EditBox(font, rightX, 103, columnWidth - actionWidth - 4, FIELD_HEIGHT,
+		friendMailBox = new StyledEditBox(font, rightX, 103, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Сообщение на почту"));
 		friendMailBox.setMaxLength(220);
 		friendMailBox.setValue(friendMailValue);
 		friendMailBox.setHint(Component.literal("текст сообщения на почту"));
 		friendMailBox.setResponder(value -> friendMailValue = value);
 		addRenderableWidget(friendMailBox);
-		addRenderableWidget(Button.builder(Component.literal("Почта"), ignored -> mailFriend())
+		addRenderableWidget(StyledButton.create(Component.literal("Почта"), ignored -> mailFriend())
 				.bounds(rightX + columnWidth - actionWidth, 103, actionWidth, FIELD_HEIGHT)
 				.tooltip(help(commandHelp("Почта", ActiveTemplateSnapshot.CommandSnapshot::mail))).build());
 
-		friendAmountBox = new EditBox(font, rightX, 128, columnWidth - actionWidth - 4, FIELD_HEIGHT,
+		friendAmountBox = new StyledEditBox(font, rightX, 128, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Сумма"));
 		friendAmountBox.setMaxLength(16);
 		friendAmountBox.setValue(friendAmountValue);
 		friendAmountBox.setHint(Component.literal("сумма"));
 		friendAmountBox.setResponder(value -> friendAmountValue = value);
 		addRenderableWidget(friendAmountBox);
-		addRenderableWidget(Button.builder(Component.literal("Деньги"), ignored -> payFriend())
+		addRenderableWidget(StyledButton.create(Component.literal("Деньги"), ignored -> payFriend())
 				.bounds(rightX + columnWidth - actionWidth, 128, actionWidth, FIELD_HEIGHT)
 				.tooltip(help(commandHelp("Перевод", ActiveTemplateSnapshot.CommandSnapshot::pay))).build());
 
 		int halfActionWidth = (columnWidth - 4) / 2;
-		addRenderableWidget(Button.builder(Component.literal("Отправить ТП"), ignored -> callFriend())
+		addRenderableWidget(StyledButton.create(Component.literal("Отправить ТП"), ignored -> callFriend())
 				.bounds(rightX, 153, halfActionWidth, FIELD_HEIGHT)
 				.tooltip(help(commandHelp("Телепорт", ActiveTemplateSnapshot.CommandSnapshot::call))).build());
 
-		CycleButton<Boolean> hudToggle = CycleButton.onOffBuilder(Boolean.TRUE.equals(config.friendHudEnabled))
-				.create(rightX + halfActionWidth + 4, 153, columnWidth - halfActionWidth - 4,
-						FIELD_HEIGHT, Component.literal("HUD друзей"),
-						(button, enabled) -> {
-							friendsController.setHudEnabled(enabled);
-						});
+		StyledCycleButton<Boolean> hudToggle = StyledCycleButton.onOff(
+				Boolean.TRUE.equals(config.friendHudEnabled),
+				rightX + halfActionWidth + 4, 153, columnWidth - halfActionWidth - 4,
+				FIELD_HEIGHT, Component.literal("HUD друзей"),
+				(button, enabled) -> friendsController.setHudEnabled(enabled));
 		addRenderableWidget(hudToggle);
 		hudToggle.setTooltip(help("Показывать онлайн-друзей справа снизу во время игры"));
 
@@ -554,11 +548,11 @@ public final class ResponderScreen extends CompatScreen {
 		String name = friendNameBox.getValue().trim();
 		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(name);
 		if (!validation.valid()) {
-			setStatus(validation.errorMessage(), 0xFFFF7777);
+			setStatus(validation.errorMessage(), ERROR);
 			return;
 		}
 		if (config.friends.stream().anyMatch(value -> value.equalsIgnoreCase(name))) {
-			setStatus(name + " уже находится в друзьях", 0xFFFFCC66);
+			setStatus(name + " уже находится в друзьях", WARNING);
 			return;
 		}
 		friendsController.add(name);
@@ -567,7 +561,7 @@ public final class ResponderScreen extends CompatScreen {
 		if (GasadaChatResponderClient.FRIEND_LOOKUP != null) {
 			GasadaChatResponderClient.FRIEND_LOOKUP.queueFriends(List.of(name));
 		}
-		setStatus("Добавлен друг: " + name, 0xFF75D98B);
+		setStatus("Добавлен друг: " + name, SUCCESS);
 		rebuildContents();
 	}
 
@@ -576,7 +570,7 @@ public final class ResponderScreen extends CompatScreen {
 		if (name.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend)) {
 			selectedFriend = null;
 		}
-		setStatus("Друг удалён: " + name, 0xFF75D98B);
+		setStatus("Друг удалён: " + name, SUCCESS);
 		rebuildContents();
 	}
 
@@ -586,18 +580,18 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		String message = friendMessageBox.getValue().trim();
 		if (message.isEmpty()) {
-			setStatus("Введите текст личного сообщения", 0xFFFF7777);
+			setStatus("Введите текст личного сообщения", ERROR);
 			return;
 		}
 		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS
 				.privateMessage(selectedFriend, message);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), 0xFFFF7777);
+			setStatus(result.errorMessage(), ERROR);
 			return;
 		}
 		friendMessageValue = "";
 		friendMessageBox.setValue("");
-		setStatus("ЛС отправлено: " + selectedFriend, 0xFF75D98B);
+		setStatus("ЛС отправлено: " + selectedFriend, SUCCESS);
 	}
 
 	private void payFriend() {
@@ -606,16 +600,16 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		AmountValidator.AmountValidationResult amountResult = AmountValidator.validate(friendAmountBox.getValue());
 		if (!amountResult.valid()) {
-			setStatus(amountResult.errorMessage(), 0xFFFF7777);
+			setStatus(amountResult.errorMessage(), ERROR);
 			return;
 		}
 		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS
 				.pay(selectedFriend, amountResult.normalizedAmount());
 		if (!result.success()) {
-			setStatus(result.errorMessage(), 0xFFFF7777);
+			setStatus(result.errorMessage(), ERROR);
 			return;
 		}
-		setStatus("Перевод отправлен: " + selectedFriend, 0xFF75D98B);
+		setStatus("Перевод отправлен: " + selectedFriend, SUCCESS);
 	}
 
 	private void callFriend() {
@@ -624,10 +618,10 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS.call(selectedFriend);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), 0xFFFF7777);
+			setStatus(result.errorMessage(), ERROR);
 			return;
 		}
-		setStatus("Запрос телепорта отправлен: " + selectedFriend, 0xFF75D98B);
+		setStatus("Запрос телепорта отправлен: " + selectedFriend, SUCCESS);
 	}
 
 	private void mailFriend() {
@@ -636,17 +630,17 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		String message = friendMailBox.getValue().trim();
 		if (message.isEmpty()) {
-			setStatus("Введите текст сообщения на почту", 0xFFFF7777);
+			setStatus("Введите текст сообщения на почту", ERROR);
 			return;
 		}
 		ServerCommandService.CommandResult result = GasadaChatResponderClient.FRIEND_ACTIONS.mail(selectedFriend, message);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), 0xFFFF7777);
+			setStatus(result.errorMessage(), ERROR);
 			return;
 		}
 		friendMailValue = "";
 		friendMailBox.setValue("");
-		setStatus("Почта отправлена: " + selectedFriend, 0xFF75D98B);
+		setStatus("Почта отправлена: " + selectedFriend, SUCCESS);
 	}
 
 	private String lastSeenFor(String friend) {
@@ -659,11 +653,11 @@ public final class ResponderScreen extends CompatScreen {
 
 	private boolean checkFriendAction() {
 		if (selectedFriend == null) {
-			setStatus("Сначала выберите друга из списка", 0xFFFF7777);
+			setStatus("Сначала выберите друга из списка", ERROR);
 			return false;
 		}
 		if (minecraft.getConnection() == null) {
-			setStatus("Нет подключения к серверу", 0xFFFF7777);
+			setStatus("Нет подключения к серверу", ERROR);
 			return false;
 		}
 		return true;
@@ -749,59 +743,59 @@ public final class ResponderScreen extends CompatScreen {
 		String nickname = nicknameBox.getValue().trim();
 		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(nickname);
 		if (!validation.valid()) {
-			setStatus(validation.errorMessage(), 0xFFFF7777);
+			setStatus(validation.errorMessage(), ERROR);
 			return;
 		}
 
 		if (minecraft.getConnection() == null) {
-			setStatus("Нет подключения к серверу", 0xFFFF7777);
+			setStatus("Нет подключения к серверу", ERROR);
 			return;
 		}
 
 		ServerCommandService.CommandResult result = GasadaChatResponderClient.SERVER_COMMANDS.ignorePlayer(nickname);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), 0xFFFF7777);
+			setStatus(result.errorMessage(), ERROR);
 			return;
 		}
-		setStatus("Отправлено: /ignoreplayer " + nickname, 0xFF75D98B);
+		setStatus("Отправлено: /ignoreplayer " + nickname, SUCCESS);
 	}
 
 	private void addDiscordMutedPlayer() {
 		if (nicknameBox == null) {
-			setStatus("Откройте вкладку «Ники»", 0xFFFF7777);
+			setStatus("Откройте вкладку «Ники»", ERROR);
 			return;
 		}
 		String nickname = nicknameBox.getValue().trim();
 		DiscordNameValidator.ValidationResult validation = DiscordNameValidator.validate(nickname);
 		if (!validation.valid()) {
-			setStatus(validation.errorMessage(), 0xFFFF7777);
+			setStatus(validation.errorMessage(), ERROR);
 			return;
 		}
 		if (config.discordMutedPlayers.stream().anyMatch(value -> value.equalsIgnoreCase(nickname))) {
-			setStatus(nickname + " уже находится в Discord-муте", 0xFFFFCC66);
+			setStatus(nickname + " уже находится в Discord-муте", WARNING);
 			return;
 		}
 
 		blacklistController.addDiscord(nickname);
 		nicknameValue = "";
-		setStatus("Добавлен: " + nickname + " (discord)", 0xFF75D98B);
+		setStatus("Добавлен: " + nickname + " (discord)", SUCCESS);
 		rebuildContents();
 	}
 
 	private void addMutedWord() {
 		String word = wordBox.getValue().trim();
 		if (word.isEmpty()) {
-			setStatus("Введите слово или фразу", 0xFFFF7777);
+			setStatus("Введите слово или фразу", ERROR);
 			return;
 		}
 		if (config.mutedWords.stream().anyMatch(value -> value.equalsIgnoreCase(word))) {
-			setStatus("Это слово уже находится в списке", 0xFFFFCC66);
+			setStatus("Это слово уже находится в списке", WARNING);
 			return;
 		}
 
 		blacklistController.addWord(word);
 		wordValue = "";
-		setStatus("Слово добавлено в чёрный список", 0xFF75D98B);
+		setStatus("Слово добавлено в чёрный список", SUCCESS);
 		rebuildContents();
 	}
 
@@ -827,14 +821,18 @@ public final class ResponderScreen extends CompatScreen {
 
 	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xE010141D);
+		ScreenChrome.drawBackground(graphics, width, height);
 	}
 
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(panelX - 2, 20, panelX + panelWidth + 2, height - 2, PANEL_BORDER);
-		graphics.fill(panelX, 22, panelX + panelWidth, height - 4, PANEL_COLOR);
+		ScreenChrome.drawPanel(graphics, panelX, 22, panelWidth, height - 26);
 		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
+		int quarter = panelWidth / 4;
+		int tabIndex = tab.ordinal();
+		int tabX = panelX + quarter * tabIndex;
+		int tabWidth = tabIndex == 3 ? panelWidth - quarter * 3 : quarter;
+		graphics.fill(tabX + 3, 47, tabX + tabWidth - 3, 49, ACCENT);
 		if (tab == Tab.RULES) {
 			graphics.text(font, "Слева — входящая фраза (* означает любой текст), справа — ответ", panelX + 8, 53, MUTED_COLOR);
 			graphics.centeredText(font, (page + 1) + " / " + (maxPage() + 1), width / 2, height - 32, MUTED_COLOR);
@@ -867,11 +865,11 @@ public final class ResponderScreen extends CompatScreen {
 			int rightX = panelX + 28 + columnWidth;
 			graphics.text(font, "Список друзей", panelX + 18, 139, MUTED_COLOR);
 			graphics.text(font, selectedFriend == null ? "Друг не выбран" : "Выбран: " + selectedFriend,
-					rightX, 60, selectedFriend == null ? MUTED_COLOR : 0xFF75D98B);
+					rightX, 60, selectedFriend == null ? MUTED_COLOR : SUCCESS);
 			if (selectedFriend != null) {
 				boolean online = onlineFriends.contains(selectedFriend.toLowerCase(Locale.ROOT));
 				graphics.text(font, online ? "Сейчас онлайн" : "Последний вход: " + lastSeenFor(selectedFriend),
-						rightX, 68, online ? 0xFF55FF55 : MUTED_COLOR);
+						rightX, 68, online ? ONLINE : MUTED_COLOR);
 			}
 		}
 
@@ -905,7 +903,7 @@ public final class ResponderScreen extends CompatScreen {
 	private void saveConfig() {
 		boolean saved = saveCurrentTab();
 		setStatus(saved ? "Настройки сохранены" : "Ошибка сохранения",
-				saved ? 0xFF75D98B : 0xFFFF7777);
+				saved ? SUCCESS : ERROR);
 	}
 
 	private boolean saveCurrentTab() {

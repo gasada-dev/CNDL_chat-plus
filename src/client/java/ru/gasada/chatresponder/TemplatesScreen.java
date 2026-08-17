@@ -1,5 +1,7 @@
 package ru.gasada.chatresponder;
 
+import static ru.gasada.chatresponder.UiConstants.*;
+
 import java.util.List;
 
 import net.minecraft.client.gui.components.Button;
@@ -20,7 +22,7 @@ public final class TemplatesScreen extends CompatScreen {
 	private EditBox idBox;
 	private EditBox nameBox;
 	private String status = "";
-	private int statusColor = 0xFF75D98B;
+	private int statusColor = SUCCESS;
 
 	public TemplatesScreen(Screen parent) {
 		super(Component.literal("Серверные шаблоны"));
@@ -51,7 +53,7 @@ public final class TemplatesScreen extends CompatScreen {
 		int y = 54;
 		for (ServerTemplateInfo info : root.templates.stream().limit(9).toList()) {
 			String prefix = info.id.equals(activeId) ? "● " : info.id.equals(selectedId) ? "▶ " : "";
-			Button button = addRenderableWidget(Button.builder(
+			Button button = addRenderableWidget(StyledButton.create(
 					Component.literal(prefix + info.name + "  [" + info.id + "]"), ignored -> {
 						selectedId = info.id;
 						pendingDeleteId = null;
@@ -69,36 +71,36 @@ public final class TemplatesScreen extends CompatScreen {
 		addAction(actionX, 126, actionWidth, "Привязать текущий адрес", this::bindCurrentAddress);
 		addAction(actionX, 150, actionWidth, "Удалить", this::deleteSelected);
 		int importButtonWidth = (actionWidth - 4) / 2;
-		addRenderableWidget(Button.builder(Component.literal("Импорт между"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("Импорт между"), ignored ->
 				ClientUi.setScreen(minecraft, new TemplateImportScreen(this)))
 				.bounds(actionX, 174, importButtonWidth, 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Загрузить шаблоны из папки"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("Загрузить шаблоны из папки"), ignored ->
 				loadFromFolder()).bounds(actionX + importButtonWidth + 4, 174,
 						actionWidth - importButtonWidth - 4, 20)
 				.tooltip(help(ConfigManager.templateImportDirectory().toString())).build());
 
 		int createY = height - 91;
-		idBox = new EditBox(font, x + 16, createY, 150, 20, Component.literal("ID шаблона"));
+		idBox = new StyledEditBox(font, x + 16, createY, 150, 20, Component.literal("ID шаблона"));
 		idBox.setMaxLength(64);
 		idBox.setHint(Component.literal("my-server"));
 		addRenderableWidget(idBox);
-		nameBox = new EditBox(font, x + 172, createY, 190, 20, Component.literal("Имя шаблона"));
+		nameBox = new StyledEditBox(font, x + 172, createY, 190, 20, Component.literal("Имя шаблона"));
 		nameBox.setMaxLength(64);
 		nameBox.setHint(Component.literal("Мой сервер"));
 		addRenderableWidget(nameBox);
-		addRenderableWidget(Button.builder(Component.literal("Пустой"), ignored -> create(null))
+		addRenderableWidget(StyledButton.create(Component.literal("Пустой"), ignored -> create(null))
 				.bounds(x + 368, createY, 72, 20).tooltip(help("Создать пустой шаблон")).build());
-		addRenderableWidget(Button.builder(Component.literal("Vanilla-box"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("Vanilla-box"), ignored ->
 				create(LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID))
 				.bounds(x + 444, createY, 100, 20).tooltip(help("Создать копию Vanilla-box")).build());
-		addRenderableWidget(Button.builder(Component.literal("Копия выбранного"), ignored -> create(selectedId))
+		addRenderableWidget(StyledButton.create(Component.literal("Копия выбранного"), ignored -> create(selectedId))
 				.bounds(x + 548, createY, Math.max(110, panelWidth - 564), 20).build());
-		addRenderableWidget(Button.builder(Component.literal("Назад"), ignored -> onClose())
+		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(x + panelWidth - 96, height - 36, 80, 20).build());
 	}
 
 	private void addAction(int x, int y, int width, String label, Runnable action) {
-		Button button = addRenderableWidget(Button.builder(Component.literal(label), ignored -> action.run())
+		Button button = addRenderableWidget(StyledButton.create(Component.literal(label), ignored -> action.run())
 				.bounds(x, y, width, 20).build());
 		button.active = selectedId != null;
 	}
@@ -185,7 +187,7 @@ public final class TemplatesScreen extends CompatScreen {
 
 	private void setStatus(String value, boolean success) {
 		status = value;
-		statusColor = success ? 0xFF75D98B : 0xFFFF7777;
+		statusColor = success ? SUCCESS : ERROR;
 	}
 
 	private void rebuild() {
@@ -200,17 +202,17 @@ public final class TemplatesScreen extends CompatScreen {
 
 	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xE010141D);
+		ScreenChrome.drawBackground(graphics, width, height);
 	}
 
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.centeredText(font, title, width / 2, 20, 0xFFE8ECF2);
+		ScreenChrome.drawHeader(graphics, font, title, width / 2, 20);
 		String active = runtime == null ? "нет" : runtime.activeSnapshot()
 				.map(ActiveTemplateSnapshot::name).orElse("нет");
-		graphics.text(font, "Активный: " + active, 20, 36, 0xFF75D98B);
+		graphics.text(font, "Активный: " + active, 20, 36, SUCCESS);
 		graphics.text(font, "Default: " + (root.defaultTemplateId == null ? "нет" : root.defaultTemplateId),
-				width - 190, 36, 0xFF9DA8B8);
+				width - 190, 36, MUTED);
 		if (!status.isEmpty()) {
 			graphics.centeredText(font, status, width / 2, height - 57, statusColor);
 		}
