@@ -4,14 +4,17 @@
 
 | Файл | Назначение |
 |---|---|
-| `.minecraft/config/gasada-chat-responder.json` | совместимый legacy view; для `Vanilla-box` сохраняется прежний JSON format |
-| `.minecraft/config/gasada-chat-responder.legacy-backup.json` | побайтовый backup старого config перед первой миграцией |
+| `.minecraft/config/cndl-chat-plus.json` | совместимый view; для `Vanilla-box` сохраняется прежний JSON format |
+| `.minecraft/config/cndl-chat-plus.legacy-backup.json` | побайтовый backup config перед первой миграцией в `Vanilla-box` |
 | `.minecraft/config/server-templates.json` | `RootConfig`: schema, default, список templates, exact bindings |
 | `.minecraft/config/server-templates/<id>.json` | один `ServerTemplate` на файл |
-| `.minecraft/config/gasada-chat-responder-template-imports/*.json` | входящие пользовательские templates; читаются только по кнопке загрузки |
-| `.minecraft/config/gasada-chat-responder-chat-history/<server>.json` | сохранённая история чата per server; пишется на disconnect, читается на join |
+| `.minecraft/config/cndl-chat-plus-template-imports/*.json` | входящие пользовательские templates; читаются только по кнопке загрузки |
+| `.minecraft/config/cndl-chat-plus-chat-history/<server>.json` | сохранённая история чата per server; пишется на disconnect, читается на join |
 
-Имя legacy-файла и существующие поля не удалены. Все записи repository и legacy config используют UTF-8 и sibling `.tmp` → atomic move с replace fallback.
+До чтения config старые `gasada-chat-responder.json`,
+`gasada-chat-responder-template-imports/` и `gasada-chat-responder-chat-history/` копируются
+в новые пути через sibling `.tmp` → atomic move. Исходники не удаляются, существующие новые
+файлы не перезаписываются, скопированные bytes проверяются. JSON fields не меняются.
 
 ## RootConfig
 
@@ -44,7 +47,7 @@
 `ActiveTemplateSnapshot` является deep immutable copy. Runtime state (guards, lookup queue, presence/notices, timers и compiled data) в JSON не сохраняется.
 
 Bundled templates находятся внутри JAR в
-`assets/gasada_chat_responder/server_templates/`; `catalog.json` связывает JSON-файлы
+`assets/cndl_chat_plus/server_templates/`; `catalog.json` связывает JSON-файлы
 с официальными address patterns. При запуске отсутствующие ID регистрируются, а для
 существующих встроенных ID добавляются только отсутствующие официальные домены и
 пустые новые marriage-поля без перезаписи пользовательских значений. Внешний import ограничен

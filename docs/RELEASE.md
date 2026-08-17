@@ -32,7 +32,7 @@ git diff --check
 - оба JAR из `build/release/` открываются как ZIP и содержат свой `fabric.mod.json`;
 - JAR `mc1.21.11` требует Java 21, а JAR `mc26.2` требует Java 25;
 - JUnit отсутствует в runtimeClasspath и внутри JAR;
-- старый `gasada-chat-responder.json` мигрирует с backup в `Vanilla-box`;
+- старый `gasada-chat-responder.json` копируется в `cndl-chat-plus.json` и мигрирует с backup в `Vanilla-box`;
 - bundled template JSON находится внутри JAR, пользовательские config/log/tmp не попали;
 - при недоступности player-profile API server lookup сохраняет named fields из active template;
 - при `marry: null` проверяется только настроенный в active template постраничный marriage lookup;
@@ -53,7 +53,7 @@ git push origin v<mod_version>
 `gh release create --verify-tag --generate-notes --latest`. Если tag не равен
 `v<mod_version>`, один из двух JAR отсутствует или тесты не прошли, release не создаётся.
 
-После завершения открыть `https://github.com/gasada-dev/MineModChat-/releases/latest`
+После завершения открыть `https://github.com/gasada-dev/CNDL_chat-plus/releases/latest`
 и проверить оба asset. `UpdateChecker` использует этот же latest release через GitHub REST API;
 отдельный `version.json` больше не используется. Автоматической установки обновления в
 папку mods нет: пользователь подтверждает открытие ссылки и скачивает JAR сам.

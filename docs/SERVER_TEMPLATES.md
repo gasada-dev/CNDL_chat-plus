@@ -28,7 +28,7 @@ Server templates предотвращают смешивание rules, commands
 
 ## Vanilla-box migration
 
-Первый успешный migration старого `gasada-chat-responder.json` создаёт template ID `vanilla-box`, name `Vanilla-box`. Переносятся все server-specific legacy fields без потери rules/friends/blacklists/last seen/periodic data. Команды и parsers получают `ServerCommandSettings.vanillaBoxDefaults()` и `ParserSettings.vanillaBoxDefaults()`.
+Первый успешный migration совместимого `cndl-chat-plus.json` создаёт template ID `vanilla-box`, name `Vanilla-box`. При обновлении старый `gasada-chat-responder.json` сначала безопасно копируется в этот путь. Переносятся все server-specific legacy fields без потери rules/friends/blacklists/last seen/periodic data. Команды и parsers получают `ServerCommandSettings.vanillaBoxDefaults()` и `ParserSettings.vanillaBoxDefaults()`.
 
 Порядок безопасности: byte-for-byte backup → read/sanitize → atomic template save → reread/equality check → root save → root reread. Старый config не удаляется и повторная migration не создаёт duplicates.
 
@@ -66,7 +66,7 @@ group 1 и становится отдельной строкой экрана. 
 ## Каталог и обмен готовыми шаблонами
 
 - Для предустановки разработчик кладёт полные `ServerTemplate` JSON в
-  `src/client/resources/assets/gasada_chat_responder/server_templates/` и описывает ресурс
+  `src/client/resources/assets/cndl_chat_plus/server_templates/` и описывает ресурс
   с официальными доменами в `catalog.json`. При первом запуске template копируется в
   repository; существующее содержимое никогда не перезаписывается.
 - Текущий каталог содержит `vanilla-box.json` и `vanilla-game.json`. Их домены:
@@ -76,7 +76,7 @@ group 1 и становится отдельной строкой экрана. 
 Старый `vanilla-game` без явно сохранённого выбора provider один раз получает
 `VANILLA_GAME_PUBLIC_API`; ручной выбор в editor помечается как явный и не заменяется.
 - Пользователь кладёт полученные JSON в
-  `.minecraft/config/gasada-chat-responder-template-imports/` и нажимает
+  `.minecraft/config/cndl-chat-plus-template-imports/` и нажимает
   «Загрузить шаблоны из папки». Source-файлы остаются на месте, duplicate ID пропускаются.
 - Импорт принимает только UTF-8 JSON до 1 MiB, безопасный ID, корректное имя, command
   placeholders и компилируемые parser patterns. Новый template сначала атомарно сохраняется,

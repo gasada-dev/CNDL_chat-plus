@@ -1,5 +1,11 @@
 # История изменений
 
+## 0.7.1 — 2026-08-17
+
+- название унифицировано как CNDL_chat+ в Fabric ID, resources, Java package и release links;
+- GitHub repository и встроенная проверка обновлений переведены на `gasada-dev/CNDL_chat-plus`;
+- старые config, imports и история безопасно копируются в новые `cndl-chat-plus-*` пути.
+
 ## 0.7.0 — 2026-08-17
 
 - добавлена сохраняемая per-server история чата с настраиваемым лимитом больше vanilla 100;

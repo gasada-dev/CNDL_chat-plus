@@ -2,7 +2,7 @@
 
 | Функция | Основной владелец | Active/template data | Проверка |
 |---|---|---|---|
-| Bootstrap, F8, Fabric events | `GasadaChatResponderClient` | active runtime | Запуск, F8, connect/disconnect |
+| Bootstrap, F8, Fabric events | `CndlChatPlusClient` | active runtime | Запуск, F8, connect/disconnect |
 | Автовыбор template | `TemplateSelectionService`, `ServerTemplateResolver` | root bindings/patterns/default | exact, wildcard, default, unknown server |
 | Template CRUD/UI | `ServerTemplateManager`, `TemplatesScreen`, `TemplateEditorScreen` | root + template files | create/copy/rename/commands/Discord/delete/default/bind/temp select |
 | Bundled/external templates | `TemplateCatalogService` | JAR catalog + import folder | install once/no overwrite/validation/load button |
@@ -20,7 +20,7 @@
 | Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
 | Периодические сообщения | `PeriodicMessageScheduler`, `PeriodicMessageAccessScreen`, `PeriodicMessageScreen` | active periodic slots | password, полный interval, reset, chat vs command, max 3 |
 | Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, template selector/settings, player info над друзьями, hidden 15×15 periodic hotspot |
-| Legacy config/migration | `ConfigManager`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | backup, sanitize, schema/ID migration, no repeat/no loss |
+| Legacy config/migration | `ConfigManager`, `BrandPathMigration`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | brand paths, backup, sanitize, schema/ID migration, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
 | Update check | `UpdateChecker`, `UpdateVersion` | GitHub latest release | async/status/type/size/UTF-8/tag/asset URL/client tick |
 | История чата | `ChatMessageStore`, `ChatHistoryStore`, `ChatHistoryCodec`, `ChatComponentMixin`, `ChatAccess` | `ResponderConfig` chatHistory*, per-server JSON | ring buffer/limit, atomic save/load, corrupt file, fileKey, mixin limit |

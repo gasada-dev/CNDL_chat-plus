@@ -4,7 +4,7 @@
 
 ## Bootstrap и active template
 
-`GasadaChatResponderClient` загружает совместимый `ResponderConfig`, создаёт services и регистрирует F8, client tick, ALLOW/CHAT/GAME events и HUD. `TemplateSelectionService` открывает repository, выбирает default template до обработки сообщений и при новом connection разрешает шаблон по фактическому `ServerData.ip`.
+`CndlChatPlusClient` загружает совместимый `ResponderConfig`, создаёт services и регистрирует F8, client tick, ALLOW/CHAT/GAME events и HUD. `TemplateSelectionService` открывает repository, выбирает default template до обработки сообщений и при новом connection разрешает шаблон по фактическому `ServerData.ip`.
 
 `ServerTemplateRuntime` публикует immutable `ActiveTemplateSnapshot`. Перед публикацией строятся `CompiledParserSettings`, `CompiledFilterSet` и `ReplyRuleMatcher`; message hot path не читает JSON и не компилирует regex. `TemplateSwitchCoordinator` сначала очищает:
 
@@ -74,12 +74,16 @@ player-info fallback принимает любой валидный Minecraft-н
 `RootConfigSchemaMigration` обновляет schema 1: безопасно переносит ID `game` в
 `vanilla-game`, сохраняя template data/default/bindings и не объединяя конфликтующие ID.
 `TemplateCatalogService` до начального выбора устанавливает отсутствующие bundled JSON из
-`assets/gasada_chat_responder/server_templates/catalog.json`. Descriptor также добавляет
+`assets/cndl_chat_plus/server_templates/catalog.json`. Descriptor также добавляет
 официальный домен существующему встроенному ID, не перезаписывая template. Внешние JSON размером до 1 MiB
-загружаются только по команде UI из `config/gasada-chat-responder-template-imports`; перед
+загружаются только по команде UI из `config/cndl-chat-plus-template-imports`; перед
 регистрацией проверяются ID/name, command placeholders и parser patterns.
 
-`LegacyConfigToVanillaBoxMigration` до завершения новой схемы создаёт побайтовый backup старого config, сохраняет и перечитывает `server-templates/vanilla-box.json`, затем последним пишет root. Старый файл не удаляется и остаётся совместимым view Vanilla-box.
+`BrandPathMigration` до config load копирует старые branded config/import/history files в
+`cndl-chat-plus-*` без удаления source или перезаписи target. Затем
+`LegacyConfigToVanillaBoxMigration` до завершения новой схемы создаёт побайтовый backup
+`cndl-chat-plus.json`, сохраняет и перечитывает `server-templates/vanilla-box.json`, затем
+последним пишет root. Совместимый config остаётся view Vanilla-box.
 
 `TemplateImportService` строит отдельный `TemplateImportPreview`; source и persisted target до confirmation не меняются. Categories импортируются выборочно, списки поддерживают REPLACE/MERGE/SKIP, periodic ограничены тремя, existing last seen сохраняется без explicit overwrite, commands/parsers валидируются до apply.
 
@@ -127,7 +131,7 @@ CHAT/GAME после `ChatVisibilityFilter`: скрытые и overlay-сооб�
 `ChatComponentMixin` поднимает vanilla-лимит 100 в `addMessageToQueue`/`addMessageToDisplayQueue`
 до configured limit (`@ModifyConstant`, `require=0`: при смене байткода Mojang лимит молча
 остаётся vanilla вместо падения). `ChatHistoryStore` пишет per-server JSON в
-`config/gasada-chat-responder-chat-history/<fileKey>.json` (имя файла — нормализованный адрес
+`config/cndl-chat-plus-chat-history/<fileKey>.json` (имя файла — нормализованный адрес
 с sanitization) через sibling temp → atomic move. Save — на disconnect, load и вставка в
 `ChatComponent` — на join до прихода новых сообщений; повреждённый файл fail-open. Singleplayer
 и direct connect без `ServerData` не сохраняются. Доступ к чату различается между target'ами

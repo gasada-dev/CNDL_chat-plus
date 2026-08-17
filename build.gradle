@@ -31,7 +31,7 @@ targets.each { projectName, target ->
 		loom {
 			splitEnvironmentSourceSets()
 			mods {
-				"gasada_chat_responder" {
+				"cndl_chat_plus" {
 					sourceSet sourceSets.client
 				}
 			}

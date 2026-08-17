@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "ru.gasada.cndlchatplus.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ChatComponentMixin",
+		"ChatComponentFilterMixin",
+		"ChatScreenMixin",
+		"ChatTimestampMixin",
+		"ScreenMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

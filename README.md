@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер и настраиваемый автоответчик для Minecraft 1.21.11 и 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.7.0-B76EF5)
+![Version](https://img.shields.io/badge/version-0.7.1-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11%20%7C%2026.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
@@ -38,7 +38,7 @@ CNDL_chat+ помогает управлять чатом без постоян�
 
 1. Установите Fabric Loader 0.19.3 или новее для Minecraft 1.21.11 либо 26.2.
 2. Установите Fabric API для своей версии игры.
-3. Скачайте подходящий JAR из **[GitHub Releases](https://github.com/gasada-dev/MineModChat-/releases/latest)**.
+3. Скачайте подходящий JAR из **[GitHub Releases](https://github.com/gasada-dev/CNDL_chat-plus/releases/latest)**.
 4. Поместите JAR в папку `.minecraft/mods`.
 5. Запустите игру, подключитесь к серверу и нажмите `F8`.
 
@@ -145,7 +145,7 @@ CNDL_chat+ помогает управлять чатом без постоян�
 Дополнительные JSON-шаблоны можно загрузить из:
 
 ```text
-.minecraft/config/gasada-chat-responder-template-imports/
+.minecraft/config/cndl-chat-plus-template-imports/
 ```
 
 ## Конфигурация
@@ -153,14 +153,14 @@ CNDL_chat+ помогает управлять чатом без постоян�
 Основные файлы:
 
 ```text
-.minecraft/config/gasada-chat-responder.json
+.minecraft/config/cndl-chat-plus.json
 .minecraft/config/server-templates.json
 .minecraft/config/server-templates/*.json
-.minecraft/config/gasada-chat-responder-template-imports/*.json
+.minecraft/config/cndl-chat-plus-template-imports/*.json
 ```
 
-Внутренний ID мода и имя старого файла конфигурации сохранены для совместимости с
-предыдущими версиями.
+При первом запуске старые config, imports и история копируются в новые пути без удаления
+или перезаписи исходных данных.
 
 ## Обновления
 
@@ -169,7 +169,7 @@ CNDL_chat+ помогает управлять чатом без постоян�
 обновлений выполняется только пользователем.
 
 Релизными файлами считаются JAR из
-**[GitHub Releases](https://github.com/gasada-dev/MineModChat-/releases/latest)** с именами:
+**[GitHub Releases](https://github.com/gasada-dev/CNDL_chat-plus/releases/latest)** с именами:
 
 ```text
 CNDL_chat+-<version>-mc1.21.11.jar

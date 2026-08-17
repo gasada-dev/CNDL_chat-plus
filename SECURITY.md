@@ -7,7 +7,7 @@
 потерей или смешиванием template/config данных, обходом проверки update URL либо
 раскрытием приватных сообщений. Используйте приватный отчёт GitHub:
 
-https://github.com/gasada-dev/MineModChat-/security/advisories/new
+https://github.com/gasada-dev/CNDL_chat-plus/security/advisories/new
 
 Укажите версию, Minecraft/Fabric окружение, минимальные шаги воспроизведения, ожидаемый
 и фактический результат. Не прикладывайте реальные приватные сообщения, токены или

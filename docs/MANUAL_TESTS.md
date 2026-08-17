@@ -2,7 +2,7 @@
 
 Сценарии предназначены для проверки текущего поведения. Используйте тестовый сервер/аккаунт: команды `/pay`, `/mail send`, `/ignoreplayer` и автоответы изменяют серверное состояние.
 
-Перед проверкой сохраните копию `.minecraft/config/gasada-chat-responder.json`. Для timing-сценариев не меняйте системное время во время запуска.
+Перед проверкой сохраните копию `.minecraft/config/cndl-chat-plus.json`. Для timing-сценариев не меняйте системное время во время запуска.
 
 ## 1. Запуск, F8 и сохранение
 
@@ -28,7 +28,7 @@
 
 1. На чистом config запустить мод и проверить bundled `Vanilla-box` и `Vanilla-game` с доменами `mc.vanilla-box.ru` и `mc.vanilla-game.ru`. У `vanilla-game` должны быть пустые друзья и last seen.
 2. Изменить его команду, перезапустить клиент и убедиться, что bundled catalog не перезаписал изменение.
-3. Положить корректный template JSON в `.minecraft/config/gasada-chat-responder-template-imports/`.
+3. Положить корректный template JSON в `.minecraft/config/cndl-chat-plus-template-imports/`.
 4. На экране шаблонов нажать «Загрузить шаблоны из папки» и проверить новую запись.
 5. Повторить с duplicate ID, invalid path-like ID, неверным placeholder/regex и файлом >1 MiB.
 
@@ -219,9 +219,13 @@ invalid files не меняют root/существующие templates и по�
 5. Повторить, открыть и закрыть F8 screen, затем проверить файл.
 6. Восстановить backup вручную.
 
-Ожидается: migration/load error логируется, runtime получает defaults, а `gasada-chat-responder.legacy-backup.json` сохраняет исходные повреждённые bytes, потому что backup создаётся до parse. После закрытия `ResponderScreen` основной файл может быть перезаписан defaults; восстановление выполняется из backup вручную.
+Ожидается: migration/load error логируется, runtime получает defaults, а `cndl-chat-plus.legacy-backup.json` сохраняет исходные повреждённые bytes, потому что backup создаётся до parse. После закрытия `ResponderScreen` основной файл может быть перезаписан defaults; восстановление выполняется из backup вручную.
 
 ## 15. Старый config и sanitize
+
+1. Оставить только старые `gasada-chat-responder.json`, imports и chat-history directories.
+2. Запустить мод и проверить появление соответствующих `cndl-chat-plus-*` файлов.
+3. Убедиться, что старые файлы сохранены, bytes совпадают и существующие новые файлы не заменены.
 
 Проверить отдельными копиями JSON:
 
@@ -233,14 +237,14 @@ invalid files не меняют root/существующие templates и по�
 - `globalMarkers` без `(!)`;
 - точную старую пару default rules.
 
-Ожидается: поведение соответствует `docs/CONFIG.md`; путь и имя config не меняются.
+Ожидается: поведение соответствует `docs/CONFIG.md`; используется `cndl-chat-plus.json`.
 
 ## 16. История чата
 
 1. Зайти на сервер с `chatHistoryEnabled: true`, написать/получить >100 сообщений (спам ботом или долгая сессия).
 2. Прокрутить чат вверх: доступны больше 100 сообщений, до `chatHistoryLimit`.
 3. Выйти с сервера и зайти снова: прежние сообщения видны сразу, до новых.
-4. Проверить `config/gasada-chat-responder-chat-history/<server>.json` — файл появился, JSON валиден, нет `.tmp`.
+4. Проверить `config/cndl-chat-plus-chat-history/<server>.json` — файл появился, JSON валиден, нет `.tmp`.
 5. Повредить JSON вручную и зайти: клиент не падает, в log warn, история просто пустая.
 6. Установить `chatHistoryPersist: false` — после перезахода история не восстанавливается.
 7. Установить `chatHistoryEnabled: false` — лимит чата снова vanilla 100, файлы не пишутся.

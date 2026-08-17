@@ -8,10 +8,10 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 
 ## Быстрая навигация
 
-- Production: `src/client/java/ru/gasada/chatresponder/` (один flat package).
-- Tests: `src/test/java/ru/gasada/chatresponder/`; fixtures: `src/test/resources/fixtures/`.
+- Production: `src/client/java/ru/gasada/cndlchatplus/` (один flat package).
+- Tests: `src/test/java/ru/gasada/cndlchatplus/`; fixtures: `src/test/resources/fixtures/`.
 - Resources/templates: `src/client/resources/`; metadata: `src/client/resources/fabric.mod.json`.
-- Composition root, Fabric events и tick order: `GasadaChatResponderClient`.
+- Composition root, Fabric events и tick order: `CndlChatPlusClient`.
 - Карта feature → owner → tests: `docs/FEATURE_MAP.md`.
 - Build truth: `gradle.properties`, `build.gradle`.
 
@@ -54,8 +54,8 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 
 ## Стиль кода
 
-- Отступы — табы. Один класс = один файл, flat package `ru.gasada.chatresponder`.
-- Mixin-классы — исключение: только в `ru.gasada.chatresponder.mixin` (mixin config package
+- Отступы — табы. Один класс = один файл, flat package `ru.gasada.cndlchatplus`.
+- Mixin-классы — исключение: только в `ru.gasada.cndlchatplus.mixin` (mixin config package
   не должен включать обычные классы, иначе entrypoint не загружается).
 - Package-private по умолчанию; `public` только там, где нужен внешний доступ (Fabric entrypoint,
   UI, cross-feature API). Не добавляйте getters/accessors без вызовов.
