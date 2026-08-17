@@ -55,6 +55,8 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 ## Стиль кода
 
 - Отступы — табы. Один класс = один файл, flat package `ru.gasada.chatresponder`.
+- Mixin-классы — исключение: только в `ru.gasada.chatresponder.mixin` (mixin config package
+  не должен включать обычные классы, иначе entrypoint не загружается).
 - Package-private по умолчанию; `public` только там, где нужен внешний доступ (Fabric entrypoint,
   UI, cross-feature API). Не добавляйте getters/accessors без вызовов.
 - Records для DTO (`VisibilityDecision`, `PlayerLookupData` и т.п.).

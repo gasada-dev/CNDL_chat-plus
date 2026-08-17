@@ -116,6 +116,65 @@ lookup и marriage lookup. Оба состояния сбрасываются п
 
 `UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; release обязан содержать точные assets `CNDL_chat+-<version>-mc1.21.11.jar` и `CNDL_chat+-<version>-mc26.2.jar` с HTTPS URL точного release path репозитория. `UpdateVersion` отдельно сохраняет comparison characterization. Экран с отдельной кнопкой для каждой версии открывается только из client tick; автоматической установки нет.
 
+## История чата
+
+`ChatMessageStore` хранит входящие сообщения (timestamp + JSON `Component`) в ring buffer с
+лимитом из `ResponderConfig.chatHistoryLimit`. Запись идёт из `ClientReceiveMessageEvents`
+CHAT/GAME после `ChatVisibilityFilter`: скрытые и overlay-сообщения не сохраняются.
+Сериализация — `ChatHistoryCodec` через `ComponentSerialization.CODEC` с registry access
+текущего уровня/connection; MC API изолирован от store.
+
+`ChatComponentMixin` поднимает vanilla-лимит 100 в `addMessageToQueue`/`addMessageToDisplayQueue`
+до configured limit (`@ModifyConstant`, `require=0`: при смене байткода Mojang лимит молча
+остаётся vanilla вместо падения). `ChatHistoryStore` пишет per-server JSON в
+`config/gasada-chat-responder-chat-history/<fileKey>.json` (имя файла — нормализованный адрес
+с sanitization) через sibling temp → atomic move. Save — на disconnect, load и вставка в
+`ChatComponent` — на join до прихода новых сообщений; повреждённый файл fail-open. Singleplayer
+и direct connect без `ServerData` не сохраняются. Доступ к чату различается между target'ами
+и вынесен в per-target `ChatAccess` (`src/targets/`).
+
+## Вкладки чата и timestamps
+
+`ChatTabClassifier` классифицирует входящее сообщение в `ChatTab` (ALL/GLOBAL/LOCAL/CLAN/
+PRIVATE/DISCORD/SYSTEM): Discord parser active template имеет приоритет, затем
+`ChatChannelDetector` по маркерам (маркеры важнее типа пакета — серверы могут слать чат
+системными сообщениями), и только сообщения без маркеров становятся SYSTEM (GAME-события) или
+LOCAL. `ChatTabController` хранит active tab,
+unread counters (инкремент, если chat закрыт или tab не активна; сброс при выборе/открытии) и
+identity map `Component → fromGame` (cap 16384, при переполнении чистится). Канал всегда
+вычисляется из текста + флага fromGame, поэтому счётчик и фильтр согласованы; в 26.2 флаг
+берётся из `GuiMessage.source()` (PLAYER/SYSTEM_*), в 1.21.11 — из identity map.
+`ChatComponentFilterMixin` (per-target, класс `GuiMessage`
+различается) отменяет `addMessageToDisplayQueue` для сообщений вне active tab; переключение
+вкладки вызывает private `refreshTrimmedMessages` через `@Invoker` в `ChatComponentMixin`.
+
+`ChatScreenMixin` (per-target: `render` в 1.21.11, `extractRenderState` в 26.2) рисует
+`ChatTabBar` над верхней строкой чата (позиция от private `getHeight` через `@Invoker` и
+vanilla bottom margin 40) и
+перехватывает ЛКМ по вкладкам. `ChatTimestampMixin`
+(per-target descriptor `addMessage`) подставляет серый префикс `[HH:mm]` через
+`@ModifyVariable`; префикс создаёт новый `Component`, поэтому `ChatTimestamps` вызывает
+`ChatTabController.remapComponent`, чтобы перенести флаг fromGame на prefixed instance. Восстановленные
+из истории сообщения получают префикс с исходным timestamp и заносятся в skip-set, чтобы
+mixin не добавил второй. Все новые injector'ы используют `require=0`, кроме `@Invoker`
+refreshTrimmedMessages (проверен в байткоде обоих target'ов).
+
+`ChatSearchState` хранит нормализованный lowercase query только пока открыт `ChatScreen`.
+Ctrl+F показывает native `EditBox`; изменение строки вызывает `refreshTrimmedMessages`, а
+`ChatComponentFilterMixin` применяет search predicate вместе с active tab через AND. Пустой
+query и закрытие поиска возвращают все сообщения active tab; unread counters поиск не меняет.
+
+ПКМ по видимой строке получает `ChatMessageTarget` через per-target
+`ChatMessageUnderMouseAccess`: 26.2 использует parent из `GuiMessage.Line`, 1.21.11 сопоставляет
+группу wrapped lines с visible `allMessages`. `ChatMessageSenderExtractor` применяет Discord
+parser и separators active template; SYSTEM не получает player actions. `ContextMenuBuilder`
+показывает только доступные validated command actions. Перед copy и sender extraction
+`ChatMessageTextSanitizer` удаляет synthetic accessibility labels вида `[Player head]`.
+Copy работает локально; ЛС/pay/mail
+подставляют draft в chat input, call/ignore идут через `ServerCommandService`, friend add сохраняет
+active template, player info открывает предзаполненный `PlayerInfoScreen`. Без active template
+командные действия отсутствуют.
+
 ## Threading и I/O invariants
 
 - UI, connection/player list, chat/command send, HUD state и sound — client thread.

@@ -9,6 +9,7 @@
 | `.minecraft/config/server-templates.json` | `RootConfig`: schema, default, список templates, exact bindings |
 | `.minecraft/config/server-templates/<id>.json` | один `ServerTemplate` на файл |
 | `.minecraft/config/gasada-chat-responder-template-imports/*.json` | входящие пользовательские templates; читаются только по кнопке загрузки |
+| `.minecraft/config/gasada-chat-responder-chat-history/<server>.json` | сохранённая история чата per server; пишется на disconnect, читается на join |
 
 Имя legacy-файла и существующие поля не удалены. Все записи repository и legacy config используют UTF-8 и sibling `.tmp` → atomic move с replace fallback.
 
@@ -58,6 +59,17 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 
 Сохранены поля `enabled`, Discord toggle/mutes, `mutedWords`, `friends`, `friendLastSeen`, `friendHudEnabled`, `periodicMessages`, `rules`, prefixes и markers, а также старые одиночные `periodicEnabled`, `periodicMessage`, `periodicIntervalMinutes` для чтения миграции.
 
+Глобальные настройки истории чата (не template-specific):
+
+- `chatHistoryEnabled` (default `true`) — запись истории и повышенный лимит чата;
+- `chatHistoryPersist` (default `true`) — сохранение истории между сессиями per server;
+- `chatHistoryLimit` (default 1000, clamp 100–16384) — лимит ring buffer и отображаемой истории;
+- `chatTabsEnabled` (default `true`) — вкладки чата (Все/Глобал/Локал/Клан/ЛС/Discord/Система)
+  с непрочитанными счётчиками в открытом чате;
+- `chatTimestampsEnabled` (default `true`) — серый префикс `[HH:mm]` у каждого сообщения.
+- `chatSearchEnabled` (default `true`) — фильтр открытого чата по Ctrl+F без учёта регистра.
+- `chatContextMenuEnabled` (default `true`) — interaction menu по ПКМ на видимой строке чата.
+
 `ResponderConfig.sanitize()`:
 
 1. восстанавливает null wrappers/collections/strings;
@@ -68,7 +80,11 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 6. исправляет interval `<1` на 5;
 7. восстанавливает обязательный global marker `(!)`;
 8. восстанавливает rule fields/channel;
-9. мигрирует точную старую пару стандартных rules в текущий default rule.
+9. мигрирует точную старую пару стандартных rules в текущий default rule;
+10. восстанавливает null `chatHistoryEnabled`/`chatHistoryPersist`/`chatHistoryLimit` и clamps
+    limit к `[MIN_CHAT_HISTORY_LIMIT, MAX_CHAT_HISTORY_LIMIT]` (100–16384);
+11. восстанавливает null `chatTabsEnabled`/`chatTimestampsEnabled`/`chatSearchEnabled`/
+    `chatContextMenuEnabled`.
 
 При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. Для `Vanilla-box` старый JSON сохраняется и те же server-specific fields синхронизируются в template, не заменяя commands/parsers.
 
