@@ -27,6 +27,10 @@ public final class ConfigManager {
 		return CONFIG_PATH.getParent().resolve("gasada-chat-responder-template-imports");
 	}
 
+	public static Path chatHistoryDirectory() {
+		return CONFIG_PATH.getParent().resolve("gasada-chat-responder-chat-history");
+	}
+
 	public static ResponderConfig load() {
 		if (!Files.exists(CONFIG_PATH)) {
 			return ResponderConfig.defaults();

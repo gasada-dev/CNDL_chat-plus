@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 public final class ResponderConfig {
+	public static final int MIN_CHAT_HISTORY_LIMIT = 100;
+	public static final int MAX_CHAT_HISTORY_LIMIT = 16384;
+	public static final int DEFAULT_CHAT_HISTORY_LIMIT = 1000;
+
 	public boolean enabled = true;
 	public Boolean discordChatEnabled = true;
 	public List<String> discordMutedPlayers = new ArrayList<>();
@@ -24,6 +28,13 @@ public final class ResponderConfig {
 	public String globalMarkers = "(!),[g],[global],[глобальный],глобальный чат";
 	public String clanMarkers = "(клан),<клан>,〈клан〉,‹клан›";
 	public String privateMarkers = "[pm],[лс],личное сообщение,шепчет,->,→";
+	public Boolean chatHistoryEnabled = true;
+	public Boolean chatHistoryPersist = true;
+	public Integer chatHistoryLimit = DEFAULT_CHAT_HISTORY_LIMIT;
+	public Boolean chatTabsEnabled = true;
+	public Boolean chatTimestampsEnabled = true;
+	public Boolean chatSearchEnabled = true;
+	public Boolean chatContextMenuEnabled = true;
 
 	public static ResponderConfig defaults() {
 		ResponderConfig config = new ResponderConfig();
@@ -109,6 +120,28 @@ public final class ResponderConfig {
 		}
 		if (privateMarkers == null) {
 			privateMarkers = "";
+		}
+		if (chatHistoryEnabled == null) {
+			chatHistoryEnabled = true;
+		}
+		if (chatHistoryPersist == null) {
+			chatHistoryPersist = true;
+		}
+		if (chatHistoryLimit == null) {
+			chatHistoryLimit = DEFAULT_CHAT_HISTORY_LIMIT;
+		}
+		chatHistoryLimit = Math.clamp(chatHistoryLimit, MIN_CHAT_HISTORY_LIMIT, MAX_CHAT_HISTORY_LIMIT);
+		if (chatTabsEnabled == null) {
+			chatTabsEnabled = true;
+		}
+		if (chatTimestampsEnabled == null) {
+			chatTimestampsEnabled = true;
+		}
+		if (chatSearchEnabled == null) {
+			chatSearchEnabled = true;
+		}
+		if (chatContextMenuEnabled == null) {
+			chatContextMenuEnabled = true;
 		}
 
 		rules.removeIf(rule -> rule == null);

@@ -22,6 +22,7 @@ final class ServerCommandServiceTest {
 		runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
 		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
 		template.commands = ServerCommandSettings.vanillaBoxDefaults();
+		template.privateReplyCommand = "/r";
 		template.parsers = ParserSettings.vanillaBoxDefaults();
 		runtime.switchTo(template);
 		commands = new ServerCommandService(runtime, outgoing);
@@ -98,6 +99,34 @@ final class ServerCommandServiceTest {
 		assertTrue(commands.marriageList(2).success());
 		assertFalse(commands.marriageList(0).success());
 		assertEquals(List.of("marry list 2"), transport.commands);
+	}
+
+	@Test
+	void buildsValidatedDraftsWithoutSending() {
+		assertEquals("/w Player_1 ", commands.privateMessageDraft("Player_1").orElseThrow());
+		assertEquals("/pay Player_1 ", commands.payDraft("Player_1").orElseThrow());
+		assertEquals("/mail send Player_1 ", commands.mailDraft("Player_1").orElseThrow());
+		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
+	void missingOrInvalidDraftTemplateFailsClosed() {
+		ServerTemplate empty = ServerTemplate.empty("empty", "Empty");
+		runtime.switchTo(empty);
+
+		assertTrue(commands.privateMessageDraft("Player_1").isEmpty());
+		assertTrue(commands.payDraft("bad player").isEmpty());
+		assertFalse(commands.supports(CommandTemplateValidator.CommandType.CALL));
+	}
+
+	@Test
+	void draftRequiresInputPlaceholderAtEnd() {
+		ServerTemplate template = templateWithCommands();
+		template.commands.privateMessage = "tell {message} to {player}";
+		runtime.switchTo(template);
+
+		assertTrue(commands.privateMessageDraft("Player_1").isEmpty());
+		assertFalse(commands.supportsDraft(CommandTemplateValidator.CommandType.PRIVATE_MESSAGE));
 	}
 
 	private static ServerTemplate templateWithCommands() {

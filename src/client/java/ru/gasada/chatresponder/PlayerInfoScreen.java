@@ -40,6 +40,11 @@ public final class PlayerInfoScreen extends CompatScreen {
 		this.parent = parent;
 	}
 
+	public PlayerInfoScreen(Screen parent, String player) {
+		this(parent);
+		playerValue = player;
+	}
+
 	@Override
 	protected void init() {
 		suggestionButtons.clear();

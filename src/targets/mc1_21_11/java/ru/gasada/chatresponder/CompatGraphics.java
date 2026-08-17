@@ -4,10 +4,10 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
-final class CompatGraphics {
+public final class CompatGraphics {
 	private final GuiGraphics graphics;
 
-	CompatGraphics(GuiGraphics graphics) {
+	public CompatGraphics(GuiGraphics graphics) {
 		this.graphics = graphics;
 	}
 

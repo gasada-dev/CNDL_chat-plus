@@ -1,10 +1,16 @@
 package ru.gasada.chatresponder;
 
+import java.util.List;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +27,9 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 	public static TemplateCatalogService TEMPLATE_CATALOG;
 	public static PlayerInfoService PLAYER_INFO;
 	public static MarriageLookupManager MARRIAGE_LOOKUP;
+	public static ChatTabController CHAT_TABS;
+	public static ChatTimestamps CHAT_TIMESTAMPS;
+	public static ChatSearchState CHAT_SEARCH;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -72,6 +81,16 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 		switchCoordinator.register(MARRIAGE_LOOKUP::resetRuntimeState);
 		friendsHud.register();
 
+		ChatMessageStore chatMessageStore = new ChatMessageStore(() -> CONFIG.chatHistoryLimit);
+		ChatHistoryStore chatHistoryStore = new ChatHistoryStore(ConfigManager.chatHistoryDirectory());
+		ChatHistoryCodec chatHistoryCodec = new ChatHistoryCodec();
+		CHAT_TIMESTAMPS = new ChatTimestamps(() -> Boolean.TRUE.equals(CONFIG.chatTimestampsEnabled));
+		CHAT_TABS = new ChatTabController(new ChatTabClassifier(TEMPLATE_RUNTIME),
+				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled));
+		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));
+		switchCoordinator.register(CHAT_TABS::resetRuntimeState);
+		switchCoordinator.register(CHAT_TIMESTAMPS::resetRuntimeState);
+
 		KeyMapping.Category category = KeyMapping.Category.register(
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
 		KeyMapping openScreen = PlatformKeyMapping.register(new KeyMapping(
@@ -102,9 +121,80 @@ public final class GasadaChatResponderClient implements ClientModInitializer {
 						&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 						&& visibilityFilter.decide(message.getString()).visible());
 
-		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
-				engine.handlePlayerMessage(message, signedMessage, sender));
-		ClientReceiveMessageEvents.GAME.register(engine::handleSystemMessage);
+		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
+			recordIncoming(chatMessageStore, chatHistoryCodec, message, false);
+			engine.handlePlayerMessage(message, signedMessage, sender);
+		});
+		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+			if (!overlay) {
+				recordIncoming(chatMessageStore, chatHistoryCodec, message, true);
+			}
+			engine.handleSystemMessage(message, overlay);
+		});
+
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) ->
+				restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec, minecraft));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
+			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
+			CHAT_TABS.resetRuntimeState();
+			CHAT_TIMESTAMPS.resetRuntimeState();
+		});
+	}
+
+	private static void recordIncoming(ChatMessageStore store, ChatHistoryCodec codec, Component message,
+			boolean fromGame) {
+		if (CHAT_TABS.enabled()) {
+			CHAT_TABS.recordMessage(message, fromGame);
+		}
+		if (Boolean.TRUE.equals(CONFIG.chatHistoryEnabled)) {
+			String json = codec.toJson(message);
+			if (json != null) {
+				ChatTab tab = CHAT_TABS.classify(message.getString(), fromGame);
+				store.add(new ChatHistoryEntry(System.currentTimeMillis(), json, tab));
+			}
+		}
+	}
+
+	private static void restoreChatHistory(ChatMessageStore store, ChatHistoryStore historyStore,
+			ChatHistoryCodec codec, Minecraft minecraft) {
+		if (!Boolean.TRUE.equals(CONFIG.chatHistoryEnabled) || !Boolean.TRUE.equals(CONFIG.chatHistoryPersist)) {
+			return;
+		}
+		String key = currentServerKey(minecraft);
+		if (key == null) {
+			return;
+		}
+		List<ChatHistoryEntry> entries = historyStore.load(key);
+		if (entries.size() > CONFIG.chatHistoryLimit) {
+			entries = entries.subList(entries.size() - CONFIG.chatHistoryLimit, entries.size());
+		}
+		for (ChatHistoryEntry entry : entries) {
+			Component component = codec.fromJson(entry.json());
+			if (component != null) {
+				Component stamped = CHAT_TIMESTAMPS.restored(component, entry.timestamp());
+				CHAT_TABS.mapSource(stamped, entry.tab() == ChatTab.SYSTEM);
+				ChatAccess.addMessage(ChatAccess.chat(minecraft), stamped);
+				store.add(entry);
+			}
+		}
+	}
+
+	private static void saveChatHistory(ChatMessageStore store, ChatHistoryStore historyStore, Minecraft minecraft) {
+		String key = Boolean.TRUE.equals(CONFIG.chatHistoryEnabled)
+				&& Boolean.TRUE.equals(CONFIG.chatHistoryPersist) ? currentServerKey(minecraft) : null;
+		if (key != null && !historyStore.save(key, store.snapshot())) {
+			LOGGER.warn("История чата для текущего сервера не сохранена");
+		}
+		store.clear();
+	}
+
+	private static String currentServerKey(Minecraft minecraft) {
+		ServerData server = minecraft.getCurrentServer();
+		if (server == null) {
+			return null;
+		}
+		ServerAddressNormalizer.NormalizationResult normalized = ServerAddressNormalizer.normalize(server.ip);
+		return normalized.valid() ? ChatHistoryStore.fileKey(normalized.normalizedAddress()) : null;
 	}
 
 }

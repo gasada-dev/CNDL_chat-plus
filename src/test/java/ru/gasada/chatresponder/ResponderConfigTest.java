@@ -70,6 +70,44 @@ final class ResponderConfigTest {
 	}
 
 	@Test
+	void sanitizeRestoresChatHistoryDefaultsAndClampsLimit() {
+		ResponderConfig config = new ResponderConfig();
+		config.chatHistoryEnabled = null;
+		config.chatHistoryPersist = null;
+		config.chatHistoryLimit = null;
+
+		config.sanitize();
+
+		assertTrue(config.chatHistoryEnabled);
+		assertTrue(config.chatHistoryPersist);
+		assertEquals(ResponderConfig.DEFAULT_CHAT_HISTORY_LIMIT, config.chatHistoryLimit);
+
+		config.chatHistoryLimit = 1;
+		config.sanitize();
+		assertEquals(ResponderConfig.MIN_CHAT_HISTORY_LIMIT, config.chatHistoryLimit);
+
+		config.chatHistoryLimit = 999_999;
+		config.sanitize();
+		assertEquals(ResponderConfig.MAX_CHAT_HISTORY_LIMIT, config.chatHistoryLimit);
+	}
+
+	@Test
+	void sanitizeRestoresChatUiDefaults() {
+		ResponderConfig config = new ResponderConfig();
+		config.chatTabsEnabled = null;
+		config.chatTimestampsEnabled = null;
+		config.chatSearchEnabled = null;
+		config.chatContextMenuEnabled = null;
+
+		config.sanitize();
+
+		assertTrue(config.chatTabsEnabled);
+		assertTrue(config.chatTimestampsEnabled);
+		assertTrue(config.chatSearchEnabled);
+		assertTrue(config.chatContextMenuEnabled);
+	}
+
+	@Test
 	void sanitizeRemovesBlankEntriesAndDeduplicatesIgnoringCase() {
 		ResponderConfig config = new ResponderConfig();
 		config.discordMutedPlayers = mutableList(" User ", "user", "", null, "Other");

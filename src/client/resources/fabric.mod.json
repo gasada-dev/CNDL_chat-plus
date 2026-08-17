@@ -3,7 +3,7 @@
 	"id": "gasada_chat_responder",
 	"version": "${version}",
 	"name": "CNDL_chat+",
-	"description": "Настраиваемый автоответчик с GUI, каналами чата и чёрным списком.",
+	"description": "Клиентский менеджер чата с историей, вкладками, поиском, фильтрами, автоответами, друзьями и отдельными настройками для разных серверов.",
 	"authors": [
 		"CNDL"
 	],
@@ -15,6 +15,9 @@
 			"ru.gasada.chatresponder.GasadaChatResponderClient"
 		]
 	},
+	"mixins": [
+		"gasada_chat_responder.mixins.json"
+	],
 	"depends": {
 		"fabricloader": "${loader_constraint}",
 		"minecraft": "${minecraft_constraint}",

@@ -55,6 +55,69 @@ public final class ServerCommandService {
 				Map.of("page", Integer.toString(page)));
 	}
 
+	public Optional<String> privateMessageDraft(String player) {
+		return playerDraft(CommandTemplateValidator.CommandType.PRIVATE_MESSAGE,
+				command("privateMessage"), player, "message");
+	}
+
+	public Optional<String> payDraft(String player) {
+		return playerDraft(CommandTemplateValidator.CommandType.PAY, command("pay"), player, "amount");
+	}
+
+	public Optional<String> mailDraft(String player) {
+		return playerDraft(CommandTemplateValidator.CommandType.MAIL, command("mail"), player, "message");
+	}
+
+	public boolean supports(CommandTemplateValidator.CommandType type) {
+		Optional<String> template = switch (type) {
+			case IGNORE_PLAYER -> command("ignorePlayer");
+			case LOOKUP_FRIEND -> command("lookupFriend");
+			case PRIVATE_MESSAGE -> command("privateMessage");
+			case PAY -> command("pay");
+			case CALL -> command("call");
+			case MAIL -> command("mail");
+			case MARRIAGE_LIST -> command("marriageList");
+		};
+		return template.filter(value -> CommandTemplateValidator.validate(value, type).valid()).isPresent();
+	}
+
+	public boolean supportsDraft(CommandTemplateValidator.CommandType type) {
+		String placeholder = switch (type) {
+			case PRIVATE_MESSAGE, MAIL -> "message";
+			case PAY -> "amount";
+			default -> null;
+		};
+		if (placeholder == null) return false;
+		Optional<String> template = switch (type) {
+			case PRIVATE_MESSAGE -> command("privateMessage");
+			case PAY -> command("pay");
+			case MAIL -> command("mail");
+			default -> Optional.empty();
+		};
+		return template.filter(value -> {
+			CommandTemplateValidator.ValidationResult validation = CommandTemplateValidator.validate(value, type);
+			return validation.valid() && validation.normalizedTemplate().endsWith("{" + placeholder + "}");
+		}).isPresent();
+	}
+
+	private Optional<String> playerDraft(CommandTemplateValidator.CommandType type, Optional<String> template,
+			String player, String remainingPlaceholder) {
+		PlayerNameValidator.ValidationResult playerResult = PlayerNameValidator.validate(player);
+		if (!playerResult.valid() || template.isEmpty()) {
+			return Optional.empty();
+		}
+		CommandTemplateValidator.ValidationResult validation = CommandTemplateValidator.validate(template.get(), type);
+		if (!validation.valid()) {
+			return Optional.empty();
+		}
+		if (!validation.normalizedTemplate().endsWith("{" + remainingPlaceholder + "}")) {
+			return Optional.empty();
+		}
+		String command = validation.normalizedTemplate().replace("{player}", player)
+				.replace("{" + remainingPlaceholder + "}", "");
+		return Optional.of("/" + command);
+	}
+
 	private CommandResult playerCommand(CommandTemplateValidator.CommandType type,
 			Optional<String> template, String player) {
 		PlayerNameValidator.ValidationResult playerResult = PlayerNameValidator.validate(player);

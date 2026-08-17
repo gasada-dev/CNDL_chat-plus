@@ -1,5 +1,7 @@
 package ru.gasada.chatresponder;
 
+import java.util.ArrayList;
+
 public final class FriendActionService {
 	private final ServerTemplateRuntime runtime;
 	private final ServerCommandService commands;
@@ -63,5 +65,22 @@ public final class FriendActionService {
 
 	public ServerCommandService.CommandResult mail(String player, String message) {
 		return commands.mail(player, message);
+	}
+
+	public boolean addFriend(String player) {
+		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(player);
+		ActiveTemplateSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		if (!validation.valid() || snapshot == null
+				|| snapshot.friends().stream().anyMatch(friend -> friend.equalsIgnoreCase(player))) {
+			return false;
+		}
+		ArrayList<String> previous = new ArrayList<>(legacyConfig.friends);
+		legacyConfig.friends = new ArrayList<>(snapshot.friends());
+		legacyConfig.friends.add(player);
+		if (ConfigManager.save(legacyConfig)) {
+			return true;
+		}
+		legacyConfig.friends = previous;
+		return false;
 	}
 }
