@@ -18,14 +18,13 @@ import net.minecraft.network.chat.Component;
 
 public final class ResponderScreen extends CompatScreen {
 	private final ResponderConfig config;
-	private final ChannelsTabController channelsController;
 	private final BlacklistTabController blacklistController;
 	private final FriendsTabController friendsController;
 	private final PlayerSuggestionProvider suggestionProvider = new PlayerSuggestionProvider();
 	private final ScreenStatus status = new ScreenStatus();
 	private final List<Button> suggestionButtons = new ArrayList<>();
 	private final List<Button> friendSuggestionButtons = new ArrayList<>();
-	private Tab tab = Tab.CHANNELS;
+	private Tab tab = Tab.BLACKLIST;
 	private int panelX;
 	private int panelWidth;
 	private EditBox nicknameBox;
@@ -51,7 +50,6 @@ public final class ResponderScreen extends CompatScreen {
 	public ResponderScreen(ResponderConfig config) {
 		super(Component.literal("CNDL_chat+"));
 		this.config = config;
-		this.channelsController = new ChannelsTabController(config);
 		this.blacklistController = new BlacklistTabController(config);
 		this.friendsController = new FriendsTabController(config);
 	}
@@ -62,17 +60,15 @@ public final class ResponderScreen extends CompatScreen {
 		panelX = (width - panelWidth) / 2;
 		initTemplateSelector();
 
-		int third = panelWidth / 3;
+		int half = panelWidth / 2;
 		addRenderableWidget(StyledButton.create(Component.literal("Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
-				.bounds(panelX + third * 2, 2, panelWidth - third * 2, 18)
+				.bounds(panelX + half, 2, panelWidth - half, 18)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
-		addTabButton(Tab.CHANNELS, panelX, 27, third);
-		addTabButton(Tab.BLACKLIST, panelX + third, 27, third);
-		addTabButton(Tab.FRIENDS, panelX + third * 2, 27, panelWidth - third * 2);
+		addTabButton(Tab.BLACKLIST, panelX, 27, half);
+		addTabButton(Tab.FRIENDS, panelX + half, 27, panelWidth - half);
 
 		switch (tab) {
-			case CHANNELS -> initChannelsTab();
 			case BLACKLIST -> initBlacklistTab();
 			case FRIENDS -> initFriendsTab();
 		}
@@ -89,7 +85,7 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private void initTemplateSelector() {
-		int infoX = panelX + (panelWidth / 3) * 2;
+		int infoX = panelX + panelWidth / 2;
 		int settingsX = Math.min(panelX + 198, infoX - 30);
 		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
 		String activeId = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
@@ -136,45 +132,6 @@ public final class ResponderScreen extends CompatScreen {
 		friendLookupsQueued = false;
 		setStatus("Активный шаблон: " + selected.value().name, SUCCESS);
 		rebuildContents();
-	}
-
-	private void initChannelsTab() {
-		int leftX = panelX + 18;
-		int columnGap = 10;
-		int fieldWidth = (panelWidth - 46) / 2;
-		int rightX = leftX + fieldWidth + columnGap;
-
-		EditBox globalPrefix = addTextField(leftX, 72, fieldWidth,
-				"Префикс глобального чата", config.globalPrefix, "!",
-				value -> config.globalPrefix = value);
-		globalPrefix.setMaxLength(16);
-
-		addTextField(leftX, 112, fieldWidth,
-				"Маркеры глобального чата через запятую", config.globalMarkers,
-				"[g],[global],[глобальный]", value -> config.globalMarkers = value);
-
-		addTextField(rightX, 72, fieldWidth,
-				"Маркеры кланового чата через запятую", config.clanMarkers,
-				"(клан),〈клан〉", value -> config.clanMarkers = value);
-
-		addTextField(rightX, 112, fieldWidth,
-				"Маркеры личных сообщений через запятую", config.privateMarkers,
-				"[pm],[лс],->,шепчет", value -> config.privateMarkers = value);
-
-		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> saveConfig())
-				.bounds(panelX + panelWidth - 108, height - 38, 90, FIELD_HEIGHT)
-				.tooltip(help("Сохранить префиксы и маркеры каналов")).build());
-	}
-
-	private EditBox addTextField(int x, int y, int fieldWidth, String narration, String value,
-			String hint, java.util.function.Consumer<String> responder) {
-		EditBox field = new StyledEditBox(font, x, y, fieldWidth, FIELD_HEIGHT, Component.literal(narration));
-		field.setMaxLength(512);
-		field.setValue(value);
-		field.setHint(Component.literal(hint));
-		field.setResponder(responder);
-		addRenderableWidget(field);
-		return field;
 	}
 
 	private void initBlacklistTab() {
@@ -709,23 +666,12 @@ public final class ResponderScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, 22, panelWidth, height - 26);
 		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
-		int third = panelWidth / 3;
+		int half = panelWidth / 2;
 		int tabIndex = tab.ordinal();
-		int tabX = panelX + third * tabIndex;
-		int tabWidth = tabIndex == 2 ? panelWidth - third * 2 : third;
+		int tabX = panelX + half * tabIndex;
+		int tabWidth = tabIndex == 1 ? panelWidth - half : half;
 		graphics.fill(tabX + 3, 47, tabX + tabWidth - 3, 49, ACCENT);
-		if (tab == Tab.CHANNELS) {
-			int leftX = panelX + 18;
-			int rightX = leftX + (panelWidth - 46) / 2 + 10;
-			drawFieldLabel(graphics, "Префикс глобального чата", leftX, 58);
-			drawFieldLabel(graphics, "Маркеры глобального чата", leftX, 98);
-			drawFieldLabel(graphics, "Маркеры кланового чата", rightX, 58);
-			drawFieldLabel(graphics, "Маркеры личных сообщений", rightX, 98);
-			if (status.empty()) {
-				graphics.text(font, "Маркеры используются вкладками, фильтрами и контекстным меню чата.",
-						panelX + 18, 141, MUTED_COLOR);
-			}
-		} else if (tab == Tab.BLACKLIST) {
+		if (tab == Tab.BLACKLIST) {
 			if (blacklistMode == BlacklistMode.NICKS) {
 				int columnWidth = (panelWidth - 46) / 2;
 				graphics.text(font, "Подсказки игроков сервера", panelX + 18, 106, MUTED_COLOR);
@@ -756,10 +702,6 @@ public final class ResponderScreen extends CompatScreen {
 		CreditRenderer.draw(graphics, font, panelX + 4, height - 13, MUTED_COLOR);
 	}
 
-	private void drawFieldLabel(CompatGraphics graphics, String text, int x, int y) {
-		graphics.text(font, text, x, y, MUTED_COLOR);
-	}
-
 	private static Tooltip help(String text) {
 		return Tooltip.create(Component.literal(text));
 	}
@@ -772,15 +714,8 @@ public final class ResponderScreen extends CompatScreen {
 		return action + " — " + CommandTemplateDisplay.format(template);
 	}
 
-	private void saveConfig() {
-		boolean saved = saveCurrentTab();
-		setStatus(saved ? "Настройки сохранены" : "Ошибка сохранения",
-				saved ? SUCCESS : ERROR);
-	}
-
 	private boolean saveCurrentTab() {
 		return switch (tab) {
-			case CHANNELS -> channelsController.save();
 			case BLACKLIST -> blacklistController.save();
 			case FRIENDS -> friendsController.save();
 		};
@@ -819,7 +754,6 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private enum Tab {
-		CHANNELS("Каналы", "Настроить префиксы и распознавание каналов"),
 		BLACKLIST("Чёрный список", "Настроить мут пользователей, Discord и слов"),
 		FRIENDS("Друзья", "Сохранить друзей и использовать команды активного шаблона");
 

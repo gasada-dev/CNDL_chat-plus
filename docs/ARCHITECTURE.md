@@ -84,7 +84,7 @@ custom sound event, ссылающийся на встроенный `minecraft:
 
 ## UI
 
-`ResponderScreen` сохраняет три равные вкладки: каналы, чёрный список и друзья. Часть mutations/save и UI helpers вынесена в tab
+`ResponderScreen` содержит две равные вкладки: чёрный список и друзья. Часть mutations/save и UI helpers вынесена в tab
 controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`; layout
 и orchestration остаются в screen. Верхняя строка содержит cycle selector active template и
 кнопку настроек. Rules tab, periodic hotspot и password UI отсутствуют.
@@ -107,7 +107,7 @@ lookup и marriage lookup. Оба состояния сбрасываются п
 Подсказки friend actions получают templates из active `CommandSnapshot` и форматируют их
 через `CommandTemplateDisplay`; названия `/w`, `/tpa`, pay/mail не зашиты в UI.
 
-`TemplatesScreen`, `TemplateEditorScreen` и `TemplateImportScreen` используют draft/preview. Editor имеет страницы identity/address, именованных команд CNDL_chat+ и Discord marker/name patterns; private auto-reply prefix не показывается. Runtime меняется только после успешного save или явного временного выбора. Активный/default/единственный template защищён от небезопасного удаления.
+`TemplatesScreen`, `TemplateEditorScreen` и `TemplateImportScreen` используют draft/preview. Editor имеет страницы identity/address, именованных команд CNDL_chat+, каналов с Discord marker/name patterns и player info; private auto-reply prefix не показывается. Runtime меняется только после успешного save или явного временного выбора. Активный/default/единственный template защищён от небезопасного удаления.
 
 ## Update checker
 

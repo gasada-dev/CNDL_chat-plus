@@ -59,7 +59,7 @@ public final class TemplateEditorScreen extends CompatScreen {
 		switch (page) {
 			case GENERAL -> initGeneral();
 			case COMMANDS -> initCommands();
-			case DISCORD -> initDiscord();
+			case DISCORD -> initChannels();
 			case PLAYER_INFO -> initPlayerInfo();
 		}
 		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> save())
@@ -120,11 +120,23 @@ public final class TemplateEditorScreen extends CompatScreen {
 				});
 	}
 
-	private void initDiscord() {
-		addField(panelX + 20, 84, panelWidth - 40, ParserPatternValidator.MAX_PATTERN_LENGTH,
+	private void initChannels() {
+		int gap = 16;
+		int columnWidth = (panelWidth - 56 - gap) / 2;
+		int left = panelX + 20;
+		int right = left + columnWidth + gap;
+		addField(left, 84, columnWidth, 16, draft.globalPrefix, "!",
+				value -> draft.globalPrefix = value);
+		addField(left, 130, columnWidth, 512, draft.globalMarkers,
+				"[g],[global],[глобальный]", value -> draft.globalMarkers = value);
+		addField(right, 84, columnWidth, 512, draft.clanMarkers,
+				"(клан),〈клан〉", value -> draft.clanMarkers = value);
+		addField(right, 130, columnWidth, 512, draft.privateMarkers,
+				"[pm],[лс],->,шепчет", value -> draft.privateMarkers = value);
+		addField(panelX + 20, 184, panelWidth - 40, ParserPatternValidator.MAX_PATTERN_LENGTH,
 				draft.parsers.discordMarkerPattern, "Regex маркера: Discord, DS, Bridge...",
 				value -> draft.parsers.discordMarkerPattern = value);
-		addField(panelX + 20, 130, panelWidth - 40, ParserPatternValidator.MAX_PATTERN_LENGTH,
+		addField(panelX + 20, 230, panelWidth - 40, ParserPatternValidator.MAX_PATTERN_LENGTH,
 				draft.parsers.discordNamePattern, "Regex имени автора Discord",
 				value -> draft.parsers.discordNamePattern = value);
 	}
@@ -237,8 +249,16 @@ public final class TemplateEditorScreen extends CompatScreen {
 			}
 			case COMMANDS -> drawCommandLabels(graphics);
 			case DISCORD -> {
-				label(graphics, "Как распознать маркер Discord в строке чата", panelX + 20, 72);
-				label(graphics, "Как извлечь имя Discord-пользователя", panelX + 20, 118);
+				int gap = 16;
+				int columnWidth = (panelWidth - 56 - gap) / 2;
+				int left = panelX + 20;
+				int right = left + columnWidth + gap;
+				label(graphics, "Префикс глобального чата", left, 72);
+				label(graphics, "Маркеры глобального чата", left, 118);
+				label(graphics, "Маркеры кланового чата", right, 72);
+				label(graphics, "Маркеры личных сообщений", right, 118);
+				label(graphics, "Как распознать маркер Discord в строке чата", panelX + 20, 172);
+				label(graphics, "Как извлечь имя Discord-пользователя", panelX + 20, 218);
 			}
 			case PLAYER_INFO -> drawPlayerInfoLabels(graphics);
 		}
@@ -290,7 +310,7 @@ public final class TemplateEditorScreen extends CompatScreen {
 	}
 
 	private enum EditorPage {
-		GENERAL("Основное"), COMMANDS("Команды"), DISCORD("Discord"), PLAYER_INFO("Инфо игрока");
+		GENERAL("Основное"), COMMANDS("Команды"), DISCORD("Каналы"), PLAYER_INFO("Инфо игрока");
 
 		private final String title;
 		EditorPage(String title) { this.title = title; }

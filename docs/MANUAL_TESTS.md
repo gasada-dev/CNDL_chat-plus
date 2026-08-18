@@ -13,8 +13,8 @@ F8 открывает менеджер чата, F9 — toolkit. CNDL_chat+ не
 1. Запустить Minecraft 26.2 с Fabric и модом.
 2. В главном меню нажать F8: не должно быть crash; если экран не открывается вне мира, повторить после входа на сервер.
 3. На сервере нажать F8.
-4. Проверить три равные вкладки: «Каналы», «Чёрный список», «Друзья»; первой открыты «Каналы».
-5. Изменить безопасное поле, нажать «Сохранить», закрыть и открыть экран.
+4. Проверить две равные вкладки: «Чёрный список» и «Друзья»; первым открыт «Чёрный список».
+5. Изменить безопасное поле, закрыть и открыть экран.
 
 Ожидается: экран не ставит игру на паузу; F8 открывает `ResponderScreen`; сохранённое значение восстанавливается после перезапуска.
 
@@ -78,7 +78,8 @@ reply prefixes и `periodicMessages`; source остаётся неизменны
 
 ## 2. Каналы
 
-1. Настроить global prefix и global/clan/private markers во вкладке «Каналы».
+1. Открыть `⚙` → редактор нужного шаблона → «Каналы» и настроить global prefix и
+   global/clan/private markers.
 2. Получить сообщения каждого канала и проверить вкладки, unread counters и context actions.
 3. Отправить строку одновременно с private и clan/global markers: private имеет приоритет,
    clan имеет приоритет над global.
@@ -299,7 +300,8 @@ migration non-empty list переносится вместо singleton; при �
 1. `./gradlew clean test build assembleRelease` и `git diff --check`.
 2. Проверить оба JAR в `build/release/`, их имена и target-specific `fabric.mod.json`.
 3. Запустить оба client targets с существующим config.
-4. F8, три равные вкладки, channel markers, один word/Discord filter; F9 не перехватывается CNDL_chat+.
+4. F8, две равные вкладки; в editor template проверить channel markers; проверить один
+   word/Discord filter; F9 не перехватывается CNDL_chat+.
 5. Friend add/lookup/HUD и одна безопасная friend action.
 6. С существующим config убедиться, что automation не отправляется, а его JSON-поля сохраняются после F8 save/template copy/import другой категории.
 7. Update check failure, success и обе кнопки скачивания target-specific JAR.
