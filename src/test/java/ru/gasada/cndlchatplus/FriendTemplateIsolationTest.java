@@ -85,4 +85,41 @@ final class FriendTemplateIsolationTest {
 
 		assertTrue(lookup.shouldShowSystemMessage(Component.literal("Клан: Builders"), false));
 	}
+
+	@Test
+	void trailingBlankLookupLinesRemainHiddenAfterLookupEnd() {
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		template.commands = ServerCommandSettings.vanillaBoxDefaults();
+		template.parsers = ParserSettings.vanillaBoxDefaults();
+		template.friends.add("Player_1");
+		runtime.switchTo(template);
+		ServerCommandService commands = new ServerCommandService(runtime,
+				new OutgoingChatService(new ConnectedTransport(), ignored -> { }));
+		FriendLookupManager lookup = new FriendLookupManager(runtime,
+				new FriendActionService(runtime, commands, null), () -> 1L);
+
+		lookup.queueActiveFriends();
+		lookup.tick(true);
+
+		assertFalse(lookup.shouldShowSystemMessage(Component.literal("Тип убийства: обычный"), false));
+		assertFalse(lookup.shouldShowSystemMessage(Component.literal(""), false));
+		assertFalse(lookup.shouldShowSystemMessage(Component.literal("   "), false));
+		assertTrue(lookup.shouldShowSystemMessage(Component.literal("Обычное сообщение"), false));
+		assertTrue(lookup.shouldShowSystemMessage(Component.literal(""), false));
+	}
+
+	private static final class ConnectedTransport implements OutgoingChatService.Transport {
+		@Override
+		public boolean connected() { return true; }
+
+		@Override
+		public void execute(Runnable action) { action.run(); }
+
+		@Override
+		public void sendChat(String message) { }
+
+		@Override
+		public void sendCommand(String command) { }
+	}
 }

@@ -26,6 +26,7 @@ public final class FriendLookupManager {
 	private final Map<String, String> pendingPlayerInfo = new LinkedHashMap<>();
 	private long pendingSince;
 	private long nextCommandAt;
+	private boolean suppressTrailingWhitespace;
 
 	public FriendLookupManager(ResponderConfig config) {
 		this(config, null, ServerTemplateRuntime.fromLegacyConfig(config));
@@ -87,16 +88,22 @@ public final class FriendLookupManager {
 		pendingPlayerInfo.clear();
 		pendingSince = 0L;
 		nextCommandAt = 0L;
+		suppressTrailingWhitespace = false;
 		coordinator.release(this);
 	}
 
 	public void tick(Minecraft minecraft) {
-		if (minecraft.getConnection() == null) {
+		tick(minecraft.getConnection() != null);
+	}
+
+	void tick(boolean connected) {
+		if (!connected) {
 			completePendingRequests();
 			queue.clear();
 			pendingRequest = null;
 			pendingLastSeen = null;
 			pendingPlayerInfo.clear();
+			suppressTrailingWhitespace = false;
 			coordinator.release(this);
 			return;
 		}
@@ -115,6 +122,7 @@ public final class FriendLookupManager {
 		pendingRequest = queue.removeFirst();
 		pendingLastSeen = null;
 		pendingPlayerInfo.clear();
+		suppressTrailingWhitespace = false;
 		pendingSince = now;
 		if (!actions.lookup(pendingRequest.player()).success()) {
 			LookupRequest failed = pendingRequest;
@@ -127,13 +135,19 @@ public final class FriendLookupManager {
 	}
 
 	public boolean shouldShowSystemMessage(Component message, boolean overlay) {
-		if (overlay || pendingRequest == null) {
+		if (overlay || pendingRequest == null && !suppressTrailingWhitespace) {
 			return true;
 		}
 
 		String text = message.getString();
 		FriendLookupParser parser = activeParser();
 		LookupParseResult parsed = parseMessage(parser, text);
+		if (pendingRequest == null) {
+			boolean trailingWhitespace = suppressTrailingWhitespace
+					&& parsed.type() == LookupMessageType.EMPTY_OR_TIMESTAMP;
+			suppressTrailingWhitespace = trailingWhitespace;
+			return !trailingWhitespace;
+		}
 		switch (parsed.type()) {
 			case EMPTY_OR_TIMESTAMP, LOOKUP_OUTPUT -> {
 				return false;
@@ -155,12 +169,16 @@ public final class FriendLookupManager {
 			case PLAYER_INFO_FIELD -> {
 				if (pendingRequest != null && parsed.fieldName() != null && parsed.value() != null) {
 					pendingPlayerInfo.put(parsed.fieldName(), parsed.value());
-					if (parser.isLookupEnd(text)) finishLookup();
+					if (parser.isLookupEnd(text)) {
+						suppressTrailingWhitespace = true;
+						finishLookup();
+					}
 				}
 				return false;
 			}
 			case LOOKUP_END -> {
 				if (pendingRequest != null) {
+					suppressTrailingWhitespace = true;
 					finishLookup();
 				}
 				return false;
