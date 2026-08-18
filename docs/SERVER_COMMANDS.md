@@ -20,8 +20,8 @@ Vanilla strings определены только в `ServerCommandSettings.vani
 Страница «Команды» в `TemplateEditorScreen` позволяет для каждого template заменить,
 например, `w {player} {message}` на `msg {player} {message}`, `call {player}` на
 `tpa {player}` или `ignoreplayer {player}` на серверный аналог. Пользователь вводит
-команду без начального `/` и не меняет обязательные placeholders. Там же редактируется
-private reply prefix автоответчика; Discord marker/name находятся на соседней странице.
+команду без начального `/` и не меняет обязательные placeholders. Discord marker/name
+находятся на соседней странице; legacy private reply prefix в CNDL_chat+ не редактируется.
 
 Во вкладке друзей `CommandTemplateDisplay` строит подсказки из immutable command snapshot
 активного шаблона. Поэтому UI показывает фактические `/w`/`/msg`, `/call`/`/tpa`, pay и
@@ -30,20 +30,11 @@ Vanilla-box. Пустой template отображается как «коман�
 
 `PlayerNameValidator` принимает только `[A-Za-z0-9_]{1,16}`. `InputSanitizer`/message validators отклоняют CR, LF, NUL и control/format/line/paragraph characters. Sensitive private/mail text и суммы не логируются.
 
-## Автоответчик
+## Automation boundary
 
-`ChatResponderEngine` формирует response по channel:
-
-- LOCAL — исходный response;
-- GLOBAL — active `globalPrefix`;
-- CLAN — active `clanReplyPrefix`;
-- PRIVATE — active `privateReplyCommand`, если response не начинается `/`.
-
-Итог с leading `/` классифицируется как command, остальное как chat, затем проходит общий `OutgoingChatService`. Это сохранённое пользовательское поведение: rule response по-прежнему может быть явной произвольной командой. Own-message recorder получает отправленный вид для 5-секундной echo guard.
-
-## Периодические сообщения
-
-`PeriodicMessageScheduler` trim-ит активный text: leading `/` означает command без первого slash, обычный text — chat. Blank/disabled/invalid slots не отправляются, максимум три. Общий outgoing sanitizer не допускает пустой command, control characters и длину больше 256.
+CNDL_chat+ 0.8.0 не формирует и не отправляет replies/periodic messages. Их persisted поля
+остаются inert migration bridge для CNDL_toolkit. `OutgoingChatService` создаётся с no-op
+recorder и обслуживает только именованные server commands/context actions CNDL_chat+.
 
 ## Parser/lookup boundaries
 

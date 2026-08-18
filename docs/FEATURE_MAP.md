@@ -7,20 +7,18 @@
 | Template CRUD/UI | `ServerTemplateManager`, `TemplatesScreen`, `TemplateEditorScreen` | root + template files | create/copy/rename/commands/Discord/delete/default/bind/temp select |
 | Bundled/external templates | `TemplateCatalogService` | JAR catalog + import folder | install once/no overwrite/validation/load button |
 | Выборочный import | `TemplateImportService`, `TemplateImportScreen` | source/target template | preview, confirmation, REPLACE/MERGE/SKIP |
-| Wildcard rules | `WildcardMatcher`, `ReplyRuleMatcher` | compiled active rules | exact/все позиции `*`/regex literals/first wins |
-| Канал ответа | `ChatChannelDetector` | active prefixes/markers/parsers | Discord → private → clan → global → LOCAL |
-| Candidates/normalization | `ReplyCandidateBuilder`, `ChatTextNormalizer` | active separators | prefixes, Unicode whitespace, punctuation |
-| Echo и duplicate guards | `OwnMessageGuard`, `DuplicateMessageGuard` | runtime only | окна 5 с и 400 мс, reset on switch |
-| Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | active Discord/mutes/words | hidden message не активирует responder |
+| Wildcard filters | `WildcardMatcher` | compiled muted words | все позиции `*`/regex literals/case handling |
+| Каналы чата | `ChatChannelDetector` | active global prefix/markers/parsers | Discord → private → clan → global → LOCAL |
+| Normalization | `ChatTextNormalizer` | chat text | Unicode whitespace и lowercase matching |
+| Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | active Discord/mutes/words | hidden message не попадает в history/tabs |
 | Исходящий chat/command | `OutgoingChatService` | connection | единственные Minecraft API send calls |
 | Именованные команды | `ServerCommandService` | active command templates | validators, missing command → no send |
 | Friend actions | `FriendActionService`, `CommandTemplateDisplay` | active friends/commands | send validators + подсказки фактических templates |
 | Friend lookup | `FriendLookupManager`, `FriendLookupParser`, `ServerLookupCoordinator` | active friends/patterns/last seen | delay/timeout/block interception/named fields/switch reset |
 | Информация об игроке | `PlayerInfoScreen`, `PlayerInfoService`, `VanillaGameProfileClient`, `MarriageLookupManager` | active provider + commands/parsers + session cache | suggestions/manual refresh/API validation/lookup fields/marriage pages/stale reset |
 | Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
-| Периодические сообщения | `PeriodicMessageScheduler`, `PeriodicMessageAccessScreen`, `PeriodicMessageScreen` | active periodic slots | password, полный interval, reset, chat vs command, max 3 |
-| Main UI | `ResponderScreen` + tab controllers | compatible active view | четыре вкладки, template selector/settings, player info над друзьями, hidden 15×15 periodic hotspot |
-| Legacy config/migration | `ConfigManager`, `BrandPathMigration`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | brand paths, backup, sanitize, schema/ID migration, no repeat/no loss |
+| Main UI | `ResponderScreen` + tab controllers | compatible active view | три равные вкладки, template selector/settings, player info над друзьями |
+| Legacy config/migration | `ConfigManager`, `BrandPathMigration`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | brand paths, backup, inert automation bridge, schema/ID migration, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
 | Update check | `UpdateChecker`, `UpdateVersion` | GitHub latest release | async/status/type/size/UTF-8/tag/asset URL/client tick |
 | История чата | `ChatMessageStore`, `ChatHistoryStore`, `ChatHistoryCodec`, `ChatComponentMixin`, `ChatAccess` | `ResponderConfig` chatHistory*, per-server JSON | ring buffer/limit, atomic save/load, corrupt file, fileKey, mixin limit |

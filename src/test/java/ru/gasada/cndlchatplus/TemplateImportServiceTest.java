@@ -2,9 +2,11 @@ package ru.gasada.cndlchatplus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -76,29 +78,52 @@ final class TemplateImportServiceTest {
 	}
 
 	@Test
-	void periodicMergeIsLimitedToThreeAndLastSeenKeepsTargetByDefault() {
+	void importingOtherCategoriesPreservesInertAutomationBridge() {
 		ServerTemplate source = template("source");
-		source.periodicMessages.add(new PeriodicMessageConfig(true, "source-one", 1));
-		source.periodicMessages.add(new PeriodicMessageConfig(true, "source-two", 2));
+		source.rules.add(new ReplyRule("source-rule", "source-reply", ChatChannel.AUTO));
+		source.periodicMessages.add(new PeriodicMessageConfig(true, "source-periodic", 1));
+		source.globalPrefix = "$";
+		source.clanReplyPrefix = "/source-clan";
+		source.privateReplyCommand = "/source-reply";
+		source.globalMarkers = "[source]";
 		source.friendLastSeen.put("Alice", "старое");
 		source.friendLastSeen.put("Bob", "вчера");
 		ServerTemplate target = template("target");
-		target.periodicMessages.add(new PeriodicMessageConfig(true, "target-one", 1));
-		target.periodicMessages.add(new PeriodicMessageConfig(true, "target-two", 2));
+		target.responderEnabled = false;
+		target.rules = new ArrayList<>();
+		ReplyRule targetRule = new ReplyRule(null, null, null);
+		targetRule.enabled = false;
+		target.rules.add(targetRule);
+		target.rules.add(null);
+		target.rules.add(new ReplyRule("last-rule", "last-reply", ChatChannel.PRIVATE));
+		target.periodicMessages = new ArrayList<>();
+		for (int index = 0; index < 5; index++) {
+			target.periodicMessages.add(new PeriodicMessageConfig(index % 2 == 0,
+					index == 0 ? null : "target-" + index, index - 3));
+		}
+		target.periodicMessages.add(2, null);
+		target.clanReplyPrefix = null;
+		target.privateReplyCommand = null;
 		target.friendLastSeen.put("alice", "новое");
 		save(source, target);
 		TemplateImportOptions options = new TemplateImportOptions()
-				.select(TemplateImportOptions.Category.PERIODIC_MESSAGES, true)
+				.select(TemplateImportOptions.Category.CHANNELS_AND_MARKERS, true)
 				.select(TemplateImportOptions.Category.LAST_SEEN, true);
 
-		ServerTemplate imported = service.apply(service.preview("source", "target", options).value(), true).value();
-		assertEquals(3, imported.periodicMessages.size());
+		TemplateImportPreview preview = service.preview("source", "target", options).value();
+		assertAutomationBridgePreserved(preview.proposedTargetCopy());
+		ServerTemplate imported = service.apply(preview, true).value();
+		assertAutomationBridgePreserved(imported);
+		assertAutomationBridgePreserved(repository.loadTemplate("target").value());
+		assertEquals("$", imported.globalPrefix);
+		assertEquals("[source]", imported.globalMarkers);
 		assertEquals("новое", imported.friendLastSeen.get("alice"));
 		assertEquals("вчера", imported.friendLastSeen.get("Bob"));
 
 		options.overwriteExistingLastSeen(true);
 		ServerTemplate overwritten = service.apply(service.preview("source", "target", options).value(), true).value();
 		assertEquals("старое", overwritten.friendLastSeen.get("alice"));
+		assertEquals("source-rule", repository.loadTemplate("source").value().rules.getFirst().trigger);
 	}
 
 	@Test
@@ -147,5 +172,23 @@ final class TemplateImportServiceTest {
 		template.commands = ServerCommandSettings.vanillaBoxDefaults();
 		template.parsers = ParserSettings.vanillaBoxDefaults();
 		return template;
+	}
+
+	private static void assertAutomationBridgePreserved(ServerTemplate template) {
+		assertFalse(template.responderEnabled);
+		assertEquals(3, template.rules.size());
+		assertFalse(template.rules.getFirst().enabled);
+		assertNull(template.rules.getFirst().trigger);
+		assertNull(template.rules.getFirst().response);
+		assertNull(template.rules.getFirst().channel);
+		assertNull(template.rules.get(1));
+		assertEquals("last-rule", template.rules.get(2).trigger);
+		assertNull(template.clanReplyPrefix);
+		assertNull(template.privateReplyCommand);
+		assertEquals(6, template.periodicMessages.size());
+		assertNull(template.periodicMessages.getFirst().message);
+		assertEquals(-3, template.periodicMessages.getFirst().intervalMinutes);
+		assertNull(template.periodicMessages.get(2));
+		assertEquals(1, template.periodicMessages.get(5).intervalMinutes);
 	}
 }

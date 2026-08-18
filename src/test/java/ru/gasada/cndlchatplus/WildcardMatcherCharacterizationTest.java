@@ -6,55 +6,61 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 final class WildcardMatcherCharacterizationTest {
+	private final WildcardMatcher matcher = new WildcardMatcher();
+
 	@Test
 	void exactPatternMatchesOnlyWholeNormalizedText() {
-		assertTrue(ChatResponderEngine.wildcardMatches("привет", "привет"));
-		assertFalse(ChatResponderEngine.wildcardMatches("привет", "ну привет"));
-		assertFalse(ChatResponderEngine.wildcardMatches("привет", "привет всем"));
+		assertTrue(matches("привет", "привет"));
+		assertFalse(matches("привет", "ну привет"));
+		assertFalse(matches("привет", "привет всем"));
 	}
 
 	@Test
 	void trailingWildcardMatchesPrefix() {
-		assertTrue(ChatResponderEngine.wildcardMatches("привет*", "привет"));
-		assertTrue(ChatResponderEngine.wildcardMatches("привет*", "привет всем"));
-		assertFalse(ChatResponderEngine.wildcardMatches("привет*", "ну привет"));
+		assertTrue(matches("привет*", "привет"));
+		assertTrue(matches("привет*", "привет всем"));
+		assertFalse(matches("привет*", "ну привет"));
 	}
 
 	@Test
 	void leadingWildcardMatchesSuffix() {
-		assertTrue(ChatResponderEngine.wildcardMatches("*привет", "привет"));
-		assertTrue(ChatResponderEngine.wildcardMatches("*привет", "ну привет"));
-		assertFalse(ChatResponderEngine.wildcardMatches("*привет", "привет всем"));
+		assertTrue(matches("*привет", "привет"));
+		assertTrue(matches("*привет", "ну привет"));
+		assertFalse(matches("*привет", "привет всем"));
 	}
 
 	@Test
 	void surroundingWildcardsMatchContainedText() {
-		assertTrue(ChatResponderEngine.wildcardMatches("*привет*", "ну привет всем"));
-		assertFalse(ChatResponderEngine.wildcardMatches("*привет*", "добрый день"));
+		assertTrue(matches("*привет*", "ну привет всем"));
+		assertFalse(matches("*привет*", "добрый день"));
 	}
 
 	@Test
 	void singleWildcardMatchesEveryStringIncludingEmptyAtHelperLevel() {
-		assertTrue(ChatResponderEngine.wildcardMatches("*", "любой текст"));
-		assertTrue(ChatResponderEngine.wildcardMatches("*", ""));
+		assertTrue(matches("*", "любой текст"));
+		assertTrue(matches("*", ""));
 	}
 
 	@Test
 	void emptyPatternMatchesOnlyEmptyNormalizedText() {
-		assertTrue(ChatResponderEngine.wildcardMatches("", ""));
-		assertTrue(ChatResponderEngine.wildcardMatches("   ", " \t "));
-		assertFalse(ChatResponderEngine.wildcardMatches("", "текст"));
+		assertTrue(matches("", ""));
+		assertTrue(matches("   ", " \t "));
+		assertFalse(matches("", "текст"));
 	}
 
 	@Test
 	void matchingIgnoresCaseAndCollapsesWhitespace() {
-		assertTrue(ChatResponderEngine.wildcardMatches("  ПрИвЕт   мир  ", "привет\t\nмир"));
+		assertTrue(matches("  ПрИвЕт   мир  ", "привет\t\nмир"));
 	}
 
 	@Test
 	void regexMetacharactersOtherThanWildcardAreLiteral() {
 		String literal = "цена.+? [один] (тест) ^$ \\";
-		assertTrue(ChatResponderEngine.wildcardMatches(literal, literal));
-		assertFalse(ChatResponderEngine.wildcardMatches(literal, "ценаXYZ [один] (тест) ^$ \\"));
+		assertTrue(matches(literal, literal));
+		assertFalse(matches(literal, "ценаXYZ [один] (тест) ^$ \\"));
+	}
+
+	private boolean matches(String pattern, String text) {
+		return matcher.matches(pattern, text, WildcardMatchMode.FULL_MATCH);
 	}
 }

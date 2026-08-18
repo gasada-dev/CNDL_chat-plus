@@ -3,9 +3,7 @@ package ru.gasada.cndlchatplus;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 
 public final class TemplateImportService {
 	private final ServerTemplateRepository repository;
@@ -49,13 +47,8 @@ public final class TemplateImportService {
 		for (TemplateImportOptions.Category category : TemplateImportOptions.Category.values()) {
 			if (!options.selected(category)) continue;
 			switch (category) {
-				case REPLY_RULES -> target.rules = importList(target.rules, source.rules,
-						options.listMode(category), TemplateImportService::ruleKey,
-						ServerTemplate::copyRules);
 				case CHANNELS_AND_MARKERS -> {
 					target.globalPrefix = source.globalPrefix;
-					target.clanReplyPrefix = source.clanReplyPrefix;
-					target.privateReplyCommand = source.privateReplyCommand;
 					target.globalMarkers = source.globalMarkers;
 					target.clanMarkers = source.clanMarkers;
 					target.privateMarkers = source.privateMarkers;
@@ -74,8 +67,6 @@ public final class TemplateImportService {
 					target.friendHudEnabled = source.friendHudEnabled;
 					target.friendSoundEnabled = source.friendSoundEnabled;
 				}
-				case PERIODIC_MESSAGES -> target.periodicMessages = importPeriodic(target.periodicMessages,
-						source.periodicMessages, options.listMode(category));
 				case COMMANDS -> target.commands = source.commands.copy();
 				case PARSER_PATTERNS -> target.parsers = source.parsers.copy();
 				case PLAYER_INFO -> target.playerInfo = source.playerInfo.copy();
@@ -100,33 +91,6 @@ public final class TemplateImportService {
 			if (result.stream().noneMatch(existing -> existing.equalsIgnoreCase(value))) result.add(value);
 		}
 		return result;
-	}
-
-	private static <T> List<T> importList(List<T> target, List<T> source,
-			TemplateImportOptions.ListMode mode, Function<T, String> key,
-			Function<List<T>, List<T>> copier) {
-		if (mode == TemplateImportOptions.ListMode.SKIP) return copier.apply(target);
-		List<T> result = mode == TemplateImportOptions.ListMode.REPLACE
-				? new ArrayList<>() : copier.apply(target);
-		for (T value : copier.apply(source)) {
-			String sourceKey = key.apply(value);
-			if (result.stream().noneMatch(existing -> key.apply(existing).equals(sourceKey))) result.add(value);
-		}
-		return result;
-	}
-
-	private static List<PeriodicMessageConfig> importPeriodic(List<PeriodicMessageConfig> target,
-			List<PeriodicMessageConfig> source, TemplateImportOptions.ListMode mode) {
-		List<PeriodicMessageConfig> result = new ArrayList<>();
-		if (mode != TemplateImportOptions.ListMode.REPLACE) target.forEach(value -> result.add(value.copy()));
-		if (mode != TemplateImportOptions.ListMode.SKIP) {
-			for (PeriodicMessageConfig value : source) {
-				String key = periodicKey(value);
-				if (result.stream().noneMatch(existing -> periodicKey(existing).equals(key))) result.add(value.copy());
-			}
-		}
-		return new ArrayList<>(result.subList(0,
-				Math.min(result.size(), PeriodicMessageConfig.MAX_PERIODIC_MESSAGES)));
 	}
 
 	private static void importLastSeen(ServerTemplate source, ServerTemplate target,
@@ -194,25 +158,13 @@ public final class TemplateImportService {
 		if (!result.valid()) errors.add(result.errorMessage());
 	}
 
-	private static String ruleKey(ReplyRule value) {
-		return (value.trigger + "\n" + value.response + "\n" + value.channel + "\n" + value.enabled)
-				.toLowerCase(Locale.ROOT);
-	}
-
-	private static String periodicKey(PeriodicMessageConfig value) {
-		return (value.message + "\n" + value.intervalMinutes + "\n" + value.enabled)
-				.toLowerCase(Locale.ROOT);
-	}
-
 	private static String describe(TemplateImportOptions.Category category, ServerTemplate target) {
 		return switch (category) {
-			case REPLY_RULES -> target.rules.size() + " правил";
 			case MUTED_WORDS -> target.mutedWords.size() + " фильтров";
 			case MUTED_MINECRAFT_PLAYERS -> target.mutedMinecraftPlayers.size() + " Minecraft-мутов";
 			case MUTED_DISCORD_USERS -> target.discordMutedPlayers.size() + " Discord-мутов";
 			case FRIENDS -> target.friends.size() + " друзей";
 			case LAST_SEEN -> target.friendLastSeen.size() + " last seen";
-			case PERIODIC_MESSAGES -> target.periodicMessages.size() + " рассылок";
 			default -> "заменено";
 		};
 	}

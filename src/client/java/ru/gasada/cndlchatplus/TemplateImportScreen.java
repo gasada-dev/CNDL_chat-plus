@@ -144,7 +144,6 @@ public final class TemplateImportScreen extends CompatScreen {
 
 	private static String label(TemplateImportOptions.Category category) {
 		return switch (category) {
-			case REPLY_RULES -> "Правила автоответчика";
 			case CHANNELS_AND_MARKERS -> "Каналы и markers";
 			case MUTED_WORDS -> "Muted words";
 			case MUTED_MINECRAFT_PLAYERS -> "Muted Minecraft";
@@ -153,7 +152,6 @@ public final class TemplateImportScreen extends CompatScreen {
 			case FRIENDS -> "Друзья";
 			case LAST_SEEN -> "Last seen";
 			case HUD_AND_SOUND -> "HUD и звук";
-			case PERIODIC_MESSAGES -> "Рассылки";
 			case COMMANDS -> "Команды";
 			case PARSER_PATTERNS -> "Parser patterns";
 			case PLAYER_INFO -> "Информация об игроке";

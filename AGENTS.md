@@ -6,6 +6,9 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 Без отдельной задачи сохраняйте UI, config compatibility, server-template isolation и
 существующие серверные команды.
 
+Автоответы и periodic automation с версии 0.8.0 принадлежат CNDL_toolkit. CNDL_chat+
+не показывает и не исполняет их, но сохраняет legacy JSON как migration bridge.
+
 ## Быстрая навигация
 
 - Production: `src/client/java/ru/gasada/cndlchatplus/` (один flat package).
@@ -37,7 +40,9 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 ## Жёсткие контракты
 
 - Без явной задачи и migration не меняйте MOD ID, config path/JSON fields, F8, template
-  IDs/paths, `ChatChannel`, first-match-wins, максимум три periodic messages и UI behavior.
+  IDs/paths, `ChatChannel` и UI behavior. F8 открывает менеджер чата; F9 принадлежит toolkit.
+- Не удаляйте и не перезаписывайте inert automation bridge: `ResponderConfig.enabled/rules/periodic*`,
+  `ServerTemplate.responderEnabled/rules/periodicMessages`, reply prefixes и их DTO/JSON.
 - Server-specific данные применяются только через active `ActiveTemplateSnapshot`.
 - Configured default template допустим. Missing/corrupt referenced template очищает runtime;
   никогда не подставляйте скрытый fallback `Vanilla-box`.
@@ -45,9 +50,8 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 - UI, connection/player list, send, HUD state и sound работают на client thread. Async HTTP
   не открывает screen напрямую.
 - В message/render hot paths запрещены file I/O, HTTP и повторная компиляция regex.
-- Named commands и substitutions идут через `ServerCommandService`; все sends — через
+- Named commands и substitutions идут через `ServerCommandService`; все CNDL_chat+ sends — через
   `OutgoingChatService`. Валидируйте данные повторно непосредственно перед отправкой.
-- Сохраняйте существующее поведение explicit slash commands из rules/periodic messages.
 - Не логируйте private messages, email, reply payloads и amounts.
 - Не подавляйте ошибки пустым `catch`; не добавляйте сторонние материалы без ясного
   происхождения и GPL-3.0-compatible лицензии.

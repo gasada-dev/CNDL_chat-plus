@@ -18,7 +18,6 @@ import net.minecraft.network.chat.Component;
 
 public final class ResponderScreen extends CompatScreen {
 	private final ResponderConfig config;
-	private final RulesTabController rulesController;
 	private final ChannelsTabController channelsController;
 	private final BlacklistTabController blacklistController;
 	private final FriendsTabController friendsController;
@@ -26,9 +25,7 @@ public final class ResponderScreen extends CompatScreen {
 	private final ScreenStatus status = new ScreenStatus();
 	private final List<Button> suggestionButtons = new ArrayList<>();
 	private final List<Button> friendSuggestionButtons = new ArrayList<>();
-	private Tab tab = Tab.RULES;
-	private int page;
-	private int pageSize;
+	private Tab tab = Tab.CHANNELS;
 	private int panelX;
 	private int panelWidth;
 	private EditBox nicknameBox;
@@ -54,7 +51,6 @@ public final class ResponderScreen extends CompatScreen {
 	public ResponderScreen(ResponderConfig config) {
 		super(Component.literal("CNDL_chat+"));
 		this.config = config;
-		this.rulesController = new RulesTabController(config);
 		this.channelsController = new ChannelsTabController(config);
 		this.blacklistController = new BlacklistTabController(config);
 		this.friendsController = new FriendsTabController(config);
@@ -64,21 +60,18 @@ public final class ResponderScreen extends CompatScreen {
 	protected void init() {
 		panelWidth = Math.min(820, width - 20);
 		panelX = (width - panelWidth) / 2;
-		pageSize = Math.max(3, Math.min(8, (height - 126) / ROW_HEIGHT));
 		initTemplateSelector();
 
-		int quarter = panelWidth / 4;
+		int third = panelWidth / 3;
 		addRenderableWidget(StyledButton.create(Component.literal("Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
-				.bounds(panelX + quarter * 3, 2, panelWidth - quarter * 3, 18)
+				.bounds(panelX + third * 2, 2, panelWidth - third * 2, 18)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
-		addTabButton(Tab.RULES, panelX, 27, quarter);
-		addTabButton(Tab.CHANNELS, panelX + quarter, 27, quarter);
-		addTabButton(Tab.BLACKLIST, panelX + quarter * 2, 27, quarter);
-		addTabButton(Tab.FRIENDS, panelX + quarter * 3, 27, panelWidth - quarter * 3);
+		addTabButton(Tab.CHANNELS, panelX, 27, third);
+		addTabButton(Tab.BLACKLIST, panelX + third, 27, third);
+		addTabButton(Tab.FRIENDS, panelX + third * 2, 27, panelWidth - third * 2);
 
 		switch (tab) {
-			case RULES -> initRulesTab();
 			case CHANNELS -> initChannelsTab();
 			case BLACKLIST -> initBlacklistTab();
 			case FRIENDS -> initFriendsTab();
@@ -96,7 +89,7 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private void initTemplateSelector() {
-		int infoX = panelX + (panelWidth / 4) * 3;
+		int infoX = panelX + (panelWidth / 3) * 2;
 		int settingsX = Math.min(panelX + 198, infoX - 30);
 		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
 		String activeId = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
@@ -145,108 +138,6 @@ public final class ResponderScreen extends CompatScreen {
 		rebuildContents();
 	}
 
-	private void initRulesTab() {
-		int maxPage = maxPage();
-		page = Pagination.clampPage(page, config.rules.size(), pageSize);
-		int start = page * pageSize;
-		int end = Math.min(config.rules.size(), start + pageSize);
-		int rowY = 67;
-
-		for (int index = start; index < end; index++) {
-			addRuleRow(config.rules.get(index), index, rowY);
-			rowY += ROW_HEIGHT;
-		}
-
-		int bottomY = height - 38;
-		StyledCycleButton<Boolean> masterToggle = StyledCycleButton.onOff(config.enabled,
-				panelX, bottomY, 70, FIELD_HEIGHT, Component.literal("Мод"),
-				(button, enabled) -> rulesController.setEnabled(enabled));
-		addRenderableWidget(masterToggle);
-		masterToggle.setTooltip(help("Полностью включает или выключает автоматические ответы"));
-
-		addRenderableWidget(StyledButton.create(Component.literal("+ Правило"), ignored -> {
-			rulesController.addRule();
-			page = maxPage();
-			if (config.rules.size() > pageSize) {
-				page = (config.rules.size() - 1) / pageSize;
-			}
-			rebuildContents();
-		}).bounds(panelX + 75, bottomY, 90, FIELD_HEIGHT)
-				.tooltip(help("Создать новое правило автоответа")).build());
-
-		Button previous = addRenderableWidget(StyledButton.create(Component.literal("<"), ignored -> {
-			page--;
-			rebuildContents();
-		}).bounds(panelX + panelWidth / 2 - 65, bottomY, 30, FIELD_HEIGHT)
-				.tooltip(help("Предыдущая страница правил")).build());
-		previous.active = page > 0;
-
-		Button next = addRenderableWidget(StyledButton.create(Component.literal(">"), ignored -> {
-			page++;
-			rebuildContents();
-		}).bounds(panelX + panelWidth / 2 + 35, bottomY, 30, FIELD_HEIGHT)
-				.tooltip(help("Следующая страница правил")).build());
-		next.active = page < maxPage;
-
-		int saveX = panelX + panelWidth - 90;
-		addRenderableWidget(new InvisibleButton(0, 0, 15, 15,
-				() -> ClientUi.setScreen(minecraft, new PeriodicMessageAccessScreen(this, config))));
-		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> saveConfig())
-				.bounds(saveX, bottomY, 90, FIELD_HEIGHT)
-				.tooltip(help("Сохранить все настройки мода")).build());
-	}
-
-	private void addRuleRow(ReplyRule rule, int ruleIndex, int y) {
-		int x = panelX + 8;
-		int available = panelWidth - 16;
-		int enabledWidth = 52;
-		int channelWidth = Math.min(92, Math.max(70, available / 8));
-		int deleteWidth = 22;
-		int fieldsWidth = available - enabledWidth - channelWidth - deleteWidth - 16;
-		int triggerWidth = fieldsWidth / 2;
-		int responseWidth = fieldsWidth - triggerWidth;
-
-		StyledCycleButton<Boolean> enabled = StyledCycleButton.onOff(rule.enabled,
-				x, y, enabledWidth, FIELD_HEIGHT, Component.empty(),
-				(button, value) -> rule.enabled = value);
-		addRenderableWidget(enabled);
-		enabled.setTooltip(help("Включить или выключить только это правило"));
-		x += enabledWidth + 4;
-
-		EditBox trigger = new StyledEditBox(font, x, y, triggerWidth, FIELD_HEIGHT,
-				Component.literal("Фраза-триггер"));
-		trigger.setMaxLength(256);
-		trigger.setValue(rule.trigger);
-		trigger.setHint(Component.literal("например: привет*"));
-		trigger.setResponder(value -> rule.trigger = value);
-		addRenderableWidget(trigger);
-		x += triggerWidth + 4;
-
-		EditBox response = new StyledEditBox(font, x, y, responseWidth, FIELD_HEIGHT,
-				Component.literal("Ответ"));
-		response.setMaxLength(256);
-		response.setValue(rule.response);
-		response.setHint(Component.literal("текст ответа"));
-		response.setResponder(value -> rule.response = value);
-		addRenderableWidget(response);
-		x += responseWidth + 4;
-
-		StyledCycleButton<ChatChannel> channel = StyledCycleButton.of(
-				value -> Component.literal(value.displayName()), rule.channel,
-				List.of(ChatChannel.values()), x, y, channelWidth, FIELD_HEIGHT, Component.empty(),
-				(button, value) -> rule.channel = value);
-		addRenderableWidget(channel);
-		channel.setTooltip(help("Выбрать тип входящего чата и канал ответа"));
-		x += channelWidth + 4;
-
-		addRenderableWidget(StyledButton.create(Component.literal("×"), ignored -> {
-			rulesController.removeRule(ruleIndex);
-			page = Math.min(page, maxPage());
-			rebuildContents();
-		}).bounds(x, y, deleteWidth, FIELD_HEIGHT)
-				.tooltip(help("Удалить это правило")).build());
-	}
-
 	private void initChannelsTab() {
 		int leftX = panelX + 18;
 		int columnGap = 10;
@@ -254,29 +145,19 @@ public final class ResponderScreen extends CompatScreen {
 		int rightX = leftX + fieldWidth + columnGap;
 
 		EditBox globalPrefix = addTextField(leftX, 72, fieldWidth,
-				"Префикс глобального ответа", config.globalPrefix, "!",
+				"Префикс глобального чата", config.globalPrefix, "!",
 				value -> config.globalPrefix = value);
 		globalPrefix.setMaxLength(16);
 
-		EditBox clanPrefix = addTextField(leftX, 112, fieldWidth,
-				"Префикс кланового ответа", config.clanReplyPrefix, "/.",
-				value -> config.clanReplyPrefix = value);
-		clanPrefix.setMaxLength(32);
-
-		EditBox privateCommand = addTextField(leftX, 152, fieldWidth,
-				"Команда ответа в ЛС", config.privateReplyCommand, "/r",
-				value -> config.privateReplyCommand = value);
-		privateCommand.setMaxLength(64);
-
-		addTextField(rightX, 72, fieldWidth,
+		addTextField(leftX, 112, fieldWidth,
 				"Маркеры глобального чата через запятую", config.globalMarkers,
 				"[g],[global],[глобальный]", value -> config.globalMarkers = value);
 
-		addTextField(rightX, 112, fieldWidth,
+		addTextField(rightX, 72, fieldWidth,
 				"Маркеры кланового чата через запятую", config.clanMarkers,
 				"(клан),〈клан〉", value -> config.clanMarkers = value);
 
-		addTextField(rightX, 152, fieldWidth,
+		addTextField(rightX, 112, fieldWidth,
 				"Маркеры личных сообщений через запятую", config.privateMarkers,
 				"[pm],[лс],->,шепчет", value -> config.privateMarkers = value);
 
@@ -828,26 +709,21 @@ public final class ResponderScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, 22, panelWidth, height - 26);
 		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
-		int quarter = panelWidth / 4;
+		int third = panelWidth / 3;
 		int tabIndex = tab.ordinal();
-		int tabX = panelX + quarter * tabIndex;
-		int tabWidth = tabIndex == 3 ? panelWidth - quarter * 3 : quarter;
+		int tabX = panelX + third * tabIndex;
+		int tabWidth = tabIndex == 2 ? panelWidth - third * 2 : third;
 		graphics.fill(tabX + 3, 47, tabX + tabWidth - 3, 49, ACCENT);
-		if (tab == Tab.RULES) {
-			graphics.text(font, "Слева — входящая фраза (* означает любой текст), справа — ответ", panelX + 8, 53, MUTED_COLOR);
-			graphics.centeredText(font, (page + 1) + " / " + (maxPage() + 1), width / 2, height - 32, MUTED_COLOR);
-		} else if (tab == Tab.CHANNELS) {
+		if (tab == Tab.CHANNELS) {
 			int leftX = panelX + 18;
 			int rightX = leftX + (panelWidth - 46) / 2 + 10;
-			drawFieldLabel(graphics, "Глобальный ответ", leftX, 58);
-			drawFieldLabel(graphics, "Клановый ответ", leftX, 98);
-			drawFieldLabel(graphics, "Ответ в личные сообщения", leftX, 138);
-			drawFieldLabel(graphics, "Маркеры глобального чата", rightX, 58);
-			drawFieldLabel(graphics, "Маркеры кланового чата", rightX, 98);
-			drawFieldLabel(graphics, "Маркеры личных сообщений", rightX, 138);
+			drawFieldLabel(graphics, "Префикс глобального чата", leftX, 58);
+			drawFieldLabel(graphics, "Маркеры глобального чата", leftX, 98);
+			drawFieldLabel(graphics, "Маркеры кланового чата", rightX, 58);
+			drawFieldLabel(graphics, "Маркеры личных сообщений", rightX, 98);
 			if (status.empty()) {
-				graphics.text(font, "Локальный ответ идёт без префикса. Первое подходящее правило имеет приоритет.",
-						panelX + 18, 181, MUTED_COLOR);
+				graphics.text(font, "Маркеры используются вкладками, фильтрами и контекстным меню чата.",
+						panelX + 18, 141, MUTED_COLOR);
 			}
 		} else if (tab == Tab.BLACKLIST) {
 			if (blacklistMode == BlacklistMode.NICKS) {
@@ -896,10 +772,6 @@ public final class ResponderScreen extends CompatScreen {
 		return action + " — " + CommandTemplateDisplay.format(template);
 	}
 
-	private int maxPage() {
-		return Pagination.maxPage(config.rules.size(), pageSize);
-	}
-
 	private void saveConfig() {
 		boolean saved = saveCurrentTab();
 		setStatus(saved ? "Настройки сохранены" : "Ошибка сохранения",
@@ -908,7 +780,6 @@ public final class ResponderScreen extends CompatScreen {
 
 	private boolean saveCurrentTab() {
 		return switch (tab) {
-			case RULES -> rulesController.save();
 			case CHANNELS -> channelsController.save();
 			case BLACKLIST -> blacklistController.save();
 			case FRIENDS -> friendsController.save();
@@ -948,7 +819,6 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private enum Tab {
-		RULES("Правила автоответа", "Настроить фразы, ответы и типы чата"),
 		CHANNELS("Каналы", "Настроить префиксы и распознавание каналов"),
 		BLACKLIST("Чёрный список", "Настроить мут пользователей, Discord и слов"),
 		FRIENDS("Друзья", "Сохранить друзей и использовать команды активного шаблона");

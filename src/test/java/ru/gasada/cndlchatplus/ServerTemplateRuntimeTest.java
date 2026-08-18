@@ -21,10 +21,8 @@ final class ServerTemplateRuntimeTest {
 		ServerTemplate first = template("first", "Alice", "one");
 		ActiveTemplateSnapshot snapshot = runtime.switchTo(first);
 		first.friends.add("MutatedAfterSwitch");
-		first.rules.getFirst().trigger = "mutated";
 		assertEquals(2, resets.get());
 		assertEquals("Alice", snapshot.friends().getFirst());
-		assertEquals("one", snapshot.rules().getFirst().trigger());
 		assertThrows(UnsupportedOperationException.class, () -> snapshot.friends().add("bad"));
 	}
 
@@ -54,6 +52,22 @@ final class ServerTemplateRuntimeTest {
 		runtime.clear();
 		assertEquals(2, resets.get());
 		assertTrue(runtime.activeSnapshot().isEmpty());
+	}
+
+	@Test
+	void runtimeIgnoresNullableAutomationBridge() {
+		ServerTemplate template = ServerTemplate.empty("nullable", "Nullable");
+		template.rules = null;
+		template.periodicMessages = null;
+		template.clanReplyPrefix = null;
+		template.privateReplyCommand = null;
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+
+		ActiveTemplateSnapshot snapshot = runtime.switchTo(template);
+
+		assertEquals("nullable", snapshot.id());
+		assertTrue(runtime.compiledParsers().isPresent());
+		assertTrue(runtime.compiledFilters().isPresent());
 	}
 
 	private static ServerTemplate template(String id, String friend, String trigger) {

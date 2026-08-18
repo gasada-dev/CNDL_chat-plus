@@ -7,12 +7,10 @@ import org.junit.jupiter.api.Test;
 
 final class ChatChannelDetectionTest {
 	private ResponderConfig config;
-	private ChatResponderEngine engine;
 
 	@BeforeEach
 	void setUp() {
 		config = ResponderConfig.defaults();
-		engine = new ChatResponderEngine(config);
 	}
 
 	@Test
@@ -25,40 +23,47 @@ final class ChatChannelDetectionTest {
 
 	@Test
 	void discordHasPriorityOverPrivateClanAndGlobalMarkers() {
-		assertEquals(ChatChannel.GLOBAL, engine.detectChannel(
+		assertEquals(ChatChannel.GLOBAL, detect(
 				"!сообщение", "[Discord] User » [лс] (клан) (!) сообщение"));
 	}
 
 	@Test
 	void privateMarkerHasPriorityOverClanAndGlobal() {
-		assertEquals(ChatChannel.PRIVATE, engine.detectChannel(
+		assertEquals(ChatChannel.PRIVATE, detect(
 				"!сообщение", "[лс] (клан) (!) сообщение"));
 	}
 
 	@Test
 	void clanMarkerHasPriorityOverGlobalPrefixAndMarkers() {
-		assertEquals(ChatChannel.CLAN, engine.detectChannel(
+		assertEquals(ChatChannel.CLAN, detect(
 				"!сообщение", "(клан) (!) сообщение"));
 	}
 
 	@Test
 	void globalPrefixInContentDetectsGlobalChannel() {
-		assertEquals(ChatChannel.GLOBAL, engine.detectChannel("!сообщение", "обычное отображение"));
+		assertEquals(ChatChannel.GLOBAL, detect("!сообщение", "обычное отображение"));
 	}
 
 	@Test
 	void mandatoryParenthesizedMarkerDetectsGlobalChannel() {
 		config.globalMarkers = "";
-		assertEquals(ChatChannel.GLOBAL, engine.detectChannel("сообщение", "Игрок (!) сообщение"));
+		assertEquals(ChatChannel.GLOBAL, detect("сообщение", "Игрок (!) сообщение"));
 	}
 
 	@Test
 	void configuredGlobalMarkerDetectsGlobalChannel() {
-		assertEquals(ChatChannel.GLOBAL, engine.detectChannel("сообщение", "[GLOBAL] Игрок: сообщение"));
+		assertEquals(ChatChannel.GLOBAL, detect("сообщение", "[GLOBAL] Игрок: сообщение"));
 	}
 
 	@Test
 	void missingMarkersFallBackToLocal() {
-		assertEquals(ChatChannel.LOCAL, engine.detectChannel("сообщение", "Игрок: сообщение"));
+		assertEquals(ChatChannel.LOCAL, detect("сообщение", "Игрок: сообщение"));
+	}
+
+	private ChatChannel detect(String content, String displayed) {
+		ActiveTemplateSnapshot template = ActiveTemplateSnapshot.from(
+				LegacyConfigToVanillaBoxMigration.fromLegacy(config), 1);
+		return new ChatChannelDetector(template, CompiledParserSettings.compile(template.parsers()))
+				.detect(content, displayed);
 	}
 }

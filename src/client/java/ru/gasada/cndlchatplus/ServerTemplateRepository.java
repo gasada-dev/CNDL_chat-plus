@@ -14,7 +14,7 @@ import com.google.gson.GsonBuilder;
 public final class ServerTemplateRepository {
 	public static final String ROOT_FILE_NAME = "server-templates.json";
 	private static final Pattern SAFE_ID = Pattern.compile("[a-z0-9][a-z0-9-]{0,63}");
-	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
 	private final Path directory;
 	private final Path templatesDirectory;

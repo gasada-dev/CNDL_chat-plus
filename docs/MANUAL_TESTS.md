@@ -1,6 +1,10 @@
 # Ручные проверки CNDL_chat+
 
-Сценарии предназначены для проверки текущего поведения. Используйте тестовый сервер/аккаунт: команды `/pay`, `/mail send`, `/ignoreplayer` и автоответы изменяют серверное состояние.
+Сценарии предназначены для проверки текущего поведения. Используйте тестовый сервер/аккаунт: команды `/pay`, `/mail send` и `/ignoreplayer` изменяют серверное состояние.
+
+Для migration проверки сначала запустите CNDL_chat+ 0.8.0 с существующим config, затем
+установите приватный [CNDL_toolkit 0.1.0](https://github.com/gasada-dev/CNDL_toolkit/releases/tag/v0.1.0).
+F8 открывает менеджер чата, F9 — toolkit. CNDL_chat+ не должен показывать или исполнять automation.
 
 Перед проверкой сохраните копию `.minecraft/config/cndl-chat-plus.json`. Для timing-сценариев не меняйте системное время во время запуска.
 
@@ -9,7 +13,7 @@
 1. Запустить Minecraft 26.2 с Fabric и модом.
 2. В главном меню нажать F8: не должно быть crash; если экран не открывается вне мира, повторить после входа на сервер.
 3. На сервере нажать F8.
-4. Проверить четыре вкладки: «Правила автоответа», «Каналы», «Чёрный список», «Друзья».
+4. Проверить три равные вкладки: «Каналы», «Чёрный список», «Друзья»; первой открыты «Каналы».
 5. Изменить безопасное поле, нажать «Сохранить», закрыть и открыть экран.
 
 Ожидается: экран не ставит игру на паузу; F8 открывает `ResponderScreen`; сохранённое значение восстанавливается после перезапуска.
@@ -20,9 +24,9 @@
 2. Создать empty template, copy Vanilla-box и copy выбранного; переименовать draft и задать exact/wildcard patterns.
 3. Проверить временный выбор, default и permanent binding текущего address после reconnect.
 4. Убедиться, что active/default/единственный template нельзя удалить; для обычного delete требуется второе нажатие.
-5. Настроить разные rule/friend/filter в двух templates и переключаться между ними.
+5. Настроить разные channel/friend/filter в двух templates и переключаться между ними.
 
-Ожидается: настройки не смешиваются, старые guards/lookup/notices/timers не переносятся, неизвестный сервер без default не получает чужой template.
+Ожидается: настройки не смешиваются, старые lookup/notices не переносятся, неизвестный сервер без default не получает чужой template.
 
 ### 1.2. Готовые и внешние шаблоны
 
@@ -66,60 +70,41 @@ invalid files не меняют root/существующие templates и по�
 2. Выбрать часть categories и поочерёдно REPLACE/MERGE/SKIP.
 3. Создать preview и до confirmation проверить, что оба файла не изменились.
 4. Подтвердить импорт, проверить только target; source должен совпадать с backup.
-5. Проверить case-insensitive dedup, максимум три periodic slots и last seen overwrite toggle.
+5. Проверить case-insensitive dedup и last seen overwrite toggle; categories rules/periodic отсутствуют.
 6. Вручную создать invalid command/parser в source и убедиться, что apply заблокирован.
 
-## 2. Правила автоответа
+Ожидается: import любой оставшейся категории не меняет target `responderEnabled`, `rules`,
+reply prefixes и `periodicMessages`; source остаётся неизменным.
 
-1. Создать enabled rule с trigger `привет` и уникальным response.
-2. Получить сообщения `привет` и `ну привет`.
-3. Повторить для `привет*`, `*привет`, `*привет*` и `*`.
-4. Создать два enabled rules, совпадающих с одной фразой, но с разными responses.
-5. Отключить первое rule и повторить.
+## 2. Каналы
 
-Ожидается: exact pattern совпадает целиком; варианты `*` соответствуют маске; `*` совпадает с любой непустой candidate; первым отвечает первое подходящее enabled rule, после отключения — следующее.
+1. Настроить global prefix и global/clan/private markers во вкладке «Каналы».
+2. Получить сообщения каждого канала и проверить вкладки, unread counters и context actions.
+3. Отправить строку одновременно с private и clan/global markers: private имеет приоритет,
+   clan имеет приоритет над global.
+4. Проверить Discord marker: сообщение попадает в отдельную Discord-вкладку.
 
-## 3. Каналы
+Ожидается: настройки влияют только на классификацию/фильтрацию. CNDL_chat+ не отправляет reply.
 
-Для каждого пункта поставить rule в соответствующий channel, получить сообщение сервера и проверить исходящий ответ:
-
-- `LOCAL`: сообщение без marker → обычный chat.
-- `GLOBAL`: content с `!`, displayed с `(!)` и отдельный configured global marker → response с `globalPrefix`.
-- `CLAN`: configured clan marker → response с `clanReplyPrefix`.
-- `PRIVATE`: configured private marker → response через `privateReplyCommand`.
-- `AUTO`: повторить все четыре входа; reply channel следует detected channel.
-- Discord marker → определяется как `GLOBAL`.
-
-Отдельно отправить текст одновременно с private и clan/global markers: private должен иметь приоритет. Clan должен иметь приоритет над global. Проверить candidates после `: `, `» `, `] ` и `→ `.
-
-## 4. Защита от своих сообщений и дублей
-
-1. Настроить взаимно похожие trigger/response, потенциально создающие цикл.
-2. Вызвать rule один раз.
-3. Убедиться, что отображённый собственный ответ не вызывает новый ответ.
-4. Воспроизвести одно входящее сообщение через player/system formatting так, чтобы callbacks пришли почти одновременно.
-
-Ожидается: локальный UUID/name и recently sent text подавляют цикл в окне 5 секунд; одинаковый fingerprint в пределах 400 мс отвечает один раз.
-
-## 5. Word filter
+## 3. Word filter
 
 1. Добавить `реклама` и проверить сообщения `РЕКЛАМА`, `это реклама здесь`.
 2. Добавить `казино*`, `*казино`, `*казино*` по одному и проверить соответствующие фразы.
 3. Добавить Unicode phrase, например `привет мир`, и проверить регистр.
 4. Удалить элементы через UI.
 
-Ожидается: pattern без `*` ищется как substring без учёта регистра; pattern с `*` использует glob внутри текста; скрытое сообщение не запускает автоответ; blank item нельзя добавить через UI.
+Ожидается: pattern без `*` ищется как substring без учёта регистра; pattern с `*` использует glob внутри текста; скрытое сообщение не попадает в историю/вкладки; blank item нельзя добавить через UI.
 
-## 6. Discord filter и мут
+## 4. Discord filter и мут
 
 1. Получить сообщения форматов `[Discord] name » text`, `(Discord) name ...` и вариантов `< >`, `{ }`, `« »`, `‹ ›`, `〈 〉`.
 2. Выключить «Чат Discord».
 3. Включить обратно, добавить sender в «Мут Discord» и повторить.
 4. Снять локальный мут.
 
-Ожидается: общий toggle скрывает все распознанные Discord messages; локальный мут скрывает только совпавшего sender без учёта регистра; скрытые сообщения не активируют rules.
+Ожидается: общий toggle скрывает все распознанные Discord messages; локальный мут скрывает только совпавшего sender без учёта регистра.
 
-## 7. Серверный `/ignoreplayer`
+## 5. Серверный `/ignoreplayer`
 
 1. В blacklist/nicks выбрать suggestion или ввести valid player name.
 2. Нажать «Мут» на тестовом сервере.
@@ -127,7 +112,7 @@ invalid files не меняют root/существующие templates и по�
 
 Ожидается: valid name отправляет ровно `/ignoreplayer <name>`; invalid input показывает ошибку и ничего не отправляет.
 
-## 8. Друзья и suggestions
+## 6. Друзья и suggestions
 
 1. Ввести prefix online player; проверить sorted suggestions и Tab completion.
 2. Добавить valid friend, выбрать его, закрыть/открыть screen.
@@ -136,7 +121,7 @@ invalid files не меняют root/существующие templates и по�
 
 Ожидается: duplicate/invalid отклоняются; friend сохраняется; удаление также удаляет его `friendLastSeen`; own player отсутствует в suggestions.
 
-## 9. Friend lookup
+## 7. Friend lookup
 
 1. Добавить друга и открыть friends tab.
 2. Наблюдать отправку `/clan lookup <friend>`.
@@ -152,7 +137,7 @@ invalid files не меняют root/существующие templates и по�
 
 Регрессионная проверка риска: вне активного lookup получить обычное сообщение, содержащее одно из широких слов `статус:`, `клан:` или `KDR:`. Зафиксировать, скрывает ли его текущая версия; не менять это поведение внутри несвязанного PR.
 
-## 10. Online state, HUD и уведомление
+## 8. Online state, HUD и уведомление
 
 1. Включить HUD и подключиться, когда friend уже online.
 2. В течение первых 30 секунд убедиться в отсутствии ложного sound/notice.
@@ -162,7 +147,7 @@ invalid files не меняют root/существующие templates и по�
 
 Ожидается: список online отображается справа снизу; initial online friend не вызывает notice; короткий TAB-list flicker <5 секунд не вызывает notice; выключенный HUD очищает notices и не воспроизводит звук.
 
-## 11. Действия с другом
+## 9. Действия с другом
 
 Перед проверкой открыть настройки выбранного шаблона → «Команды» и по очереди заменить
 `w` на `msg`, `call` на `tpa`, `ignoreplayer` на тестовые эквиваленты сервера. Сохранить,
@@ -182,24 +167,7 @@ invalid files не меняют root/существующие templates и по�
 
 Без выбранного друга или без connection ни одна команда не отправляется и показывается ошибка.
 
-## 12. Периодические сообщения
-
-1. На первой вкладке нажать скрытую область `15×15` в абсолютном левом верхнем углу экрана.
-2. Ввести неверный пароль: экран рассылок не должен открыться, появляется ошибка.
-3. Ввести точный пароль `1239` и нажать Enter: открывается экран периодических сообщений.
-4. Добавить до трёх slots; убедиться, что четвёртый недоступен.
-5. Убедиться, что числовое поле подписано `Интервал, мин`.
-6. Для chat slot задать короткий interval, включить и сохранить.
-7. Проверить отсутствие немедленной отправки и первую отправку после полного интервала.
-8. Изменить text, затем interval: каждый раз countdown начинается заново.
-9. Disable slot: timer сбрасывается.
-10. Задать text с leading `/` и убедиться в command path; plain text использует chat.
-11. Отключиться/подключиться и проверить отсутствие накопленной отправки с прошлого connection.
-12. Настроить три независимых slots и проверить, что ошибка/disable одного не меняет остальные.
-
-Ожидается: максимум три, интервалы 1..525600, enabled blank отклоняется, отсчёт и тип отправки соответствуют текущей реализации. Disconnect и template switch удаляют старые timers; новый template начинает полный interval без накопленной отправки.
-
-## 12a. Принятие запроса телепорта
+## 10. Принятие запроса телепорта
 
 1. На Vanilla-box или Vanilla-game получить запрос вида `Player просит телепортироваться к вам.`.
 2. Проверить однократный обычный голос шалкера, HUD-кнопку `Принять ТП от Player (60)` и уменьшающийся счётчик.
@@ -211,7 +179,7 @@ invalid files не меняют root/существующие templates и по�
 Ожидается: команда берётся из active template; без connection, команды или parser pattern
 ничего не отправляется. Во время обычной игры кнопка видна, для клика требуется открыть чат.
 
-## 13. Проверка обновления
+## 11. Проверка обновления
 
 1. Опубликовать тестовый latest GitHub Release с numeric tag `vX.Y.Z` и asset `CNDL_chat+-X.Y.Z.jar`, затем запустить более старую сборку.
 2. Убедиться, что в main menu/connection screen окно не появляется.
@@ -222,7 +190,7 @@ invalid files не меняют root/существующие templates и по�
 
 Ожидается: проверка один раз за запуск, async; показывается только valid newer update; URL не открывается без confirmation; invalid/network failure не мешают работе мода.
 
-## 14. Повреждённый config
+## 12. Повреждённый config
 
 1. При закрытом клиенте сделать backup config.
 2. Записать синтаксически неверный JSON.
@@ -233,7 +201,7 @@ invalid files не меняют root/существующие templates и по�
 
 Ожидается: migration/load error логируется, runtime получает defaults, а `cndl-chat-plus.legacy-backup.json` сохраняет исходные повреждённые bytes, потому что backup создаётся до parse. После закрытия `ResponderScreen` основной файл может быть перезаписан defaults; восстановление выполняется из backup вручную.
 
-## 15. Старый config и sanitize
+## 13. Старый config и sanitize
 
 1. Оставить только старые `gasada-chat-responder.json`, imports и chat-history directories.
 2. Запустить мод и проверить появление соответствующих `cndl-chat-plus-*` файлов.
@@ -241,17 +209,20 @@ invalid files не меняют root/существующие templates и по�
 
 Проверить отдельными копиями JSON:
 
-- null collections/wrappers;
+- null visible collections/wrappers;
 - blank/null/duplicate entries с разным регистром;
-- только legacy `periodicEnabled`, `periodicMessage`, `periodicIntervalMinutes`;
-- больше трёх periodic slots;
-- interval <1;
 - `globalMarkers` без `(!)`;
+- пять periodic slots с interval `0`, отрицательными и `Integer.MAX_VALUE`;
+- null `rules`/`periodicMessages` и null nested rule/message values;
+- legacy `periodicEnabled`/`periodicMessage`/`periodicIntervalMinutes` одновременно со списком;
 - точную старую пару default rules.
 
-Ожидается: поведение соответствует `docs/CONFIG.md`; используется `cndl-chat-plus.json`.
+Ожидается: visible fields sanitizes по `docs/CONFIG.md`; все automation values, order/count,
+invalid intervals, nulls и singleton сохраняются без изменений в compatible JSON. При initial
+migration non-empty list переносится вместо singleton; при пустом/null list и заданном
+`periodicEnabled` singleton создаёт одну template entry, не меняя source JSON.
 
-## 16. История чата
+## 14. История чата
 
 1. Зайти на сервер с `chatHistoryEnabled: true`, написать/получить >100 сообщений (спам ботом или долгая сессия).
 2. Прокрутить чат вверх: доступны больше 100 сообщений, до `chatHistoryLimit`.
@@ -266,7 +237,7 @@ invalid files не меняют root/существующие templates и по�
 если mixin молча не применился (require=0), лимит остаётся 100 — это сигнал перепроверить
 байткод после обновления Minecraft.
 
-## 17. Вкладки чата и timestamps
+## 15. Вкладки чата и timestamps
 
 1. Зайти на сервер: у каждого нового сообщения серый префикс `[HH:mm]` с реальным временем.
 2. Открыть чат (T): над верхней строкой чата видна панель
@@ -287,13 +258,12 @@ invalid files не меняют root/существующие templates и по�
    с исходным временем (не двойной).
 8. `"chatTabsEnabled": false` → панель не рисуется, фильтрация выключена.
 9. `"chatTimestampsEnabled": false` → префиксов нет, вкладки работают.
-10. Проверить, что автоответчик и скрытые фильтром сообщения работают как раньше (скрытое
-    сообщение не попадает ни во вкладки, ни в счётчики).
+10. Проверить, что скрытое фильтром сообщение не попадает ни во вкладки, ни в счётчики.
 
 Ожидается: фильтр и панель работают на обоих target'ах; require=0 молча отключает фичу при
 смене байткода — после обновления Minecraft перепроверить этот сценарий первым.
 
-### 17.1. Поиск по чату
+### 15.1. Поиск по чату
 
 1. Открыть чат и нажать Ctrl+F: над вкладками появляется строка `Поиск по чату` с фокусом.
 2. Ввести часть сообщения в другом регистре: остаются только совпадения без учёта регистра.
@@ -305,7 +275,7 @@ invalid files не меняют root/существующие templates и по�
 
 Ожидается: поиск не меняет unread counters, не теряет сообщения из истории и работает на обоих target'ах.
 
-### 17.2. Контекстное меню сообщения
+### 15.2. Контекстное меню сообщения
 
 1. Нажать ПКМ по global/local/clan/private сообщению с валидным Minecraft-ником: меню открывается у курсора.
 2. Проверить порядок `Копировать ник` → `Копировать сообщение`, draft ЛС, pay и mail; команды берутся из active template,
@@ -324,14 +294,14 @@ invalid files не меняют root/существующие templates и по�
 Ожидается: выбирается именно строка под курсором; unavailable/invalid command templates не показываются,
 содержимое сообщения и ник не попадают в log.
 
-## 18. Минимальный smoke test перед релизом
+## 16. Минимальный smoke test перед релизом
 
 1. `./gradlew clean test build assembleRelease` и `git diff --check`.
 2. Проверить оба JAR в `build/release/`, их имена и target-specific `fabric.mod.json`.
 3. Запустить оба client targets с существующим config.
-4. F8, один rule на каждом channel, один word/Discord filter.
+4. F8, три равные вкладки, channel markers, один word/Discord filter; F9 не перехватывается CNDL_chat+.
 5. Friend add/lookup/HUD и одна безопасная friend action.
-6. Один periodic chat и command.
+6. С существующим config убедиться, что automation не отправляется, а его JSON-поля сохраняются после F8 save/template copy/import другой категории.
 7. Update check failure, success и обе кнопки скачивания target-specific JAR.
 8. Убедиться, что JUnit отсутствует в runtime classpath/JAR, а `.tmp`, пользовательский config и временные файлы не попали в commit.
 9. В test repository push tag `v<mod_version>`: проверить успешный GitHub Release с двумя основными JAR. Несовпадающий tag должен завершить workflow до публикации.

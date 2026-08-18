@@ -98,8 +98,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 				"w {player} {message}", value -> draft.commands.privateMessage = value);
 		addCommandField(left, 150, columnWidth, draft.commands.pay,
 				"pay {player} {amount}", value -> draft.commands.pay = value);
-		addCommandField(left, 186, columnWidth, draft.privateReplyCommand,
-				"/r", value -> draft.privateReplyCommand = value);
 		addCommandField(right, 78, columnWidth, draft.commands.lookupFriend,
 				"clan lookup {player}", value -> draft.commands.lookupFriend = value);
 		addCommandField(right, 114, columnWidth, draft.commands.call,
@@ -255,7 +253,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 		label(graphics, "Чёрный список — {player}", left, 66);
 		label(graphics, "Личное сообщение — {player}, {message}", left, 102);
 		label(graphics, "Перевод — {player}, {amount}", left, 138);
-		label(graphics, "Ответ автоответчика в ЛС (с начальным /)", left, 174);
 		label(graphics, "Поиск друга — {player}", right, 66);
 		label(graphics, "Телепорт — {player}", right, 102);
 		label(graphics, "Почта — {player}, {message}", right, 138);

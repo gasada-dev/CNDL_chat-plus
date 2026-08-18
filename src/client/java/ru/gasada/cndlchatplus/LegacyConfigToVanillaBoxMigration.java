@@ -5,6 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -14,7 +17,7 @@ public final class LegacyConfigToVanillaBoxMigration {
 	public static final String VANILLA_BOX_NAME = "Vanilla-box";
 	public static final String BACKUP_FILE_NAME = "cndl-chat-plus.legacy-backup.json";
 
-	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
 	private final Path legacyConfigPath;
 	private final ServerTemplateRepository repository;
@@ -93,22 +96,36 @@ public final class LegacyConfigToVanillaBoxMigration {
 	static void applyLegacyFields(ServerTemplate template, ResponderConfig legacy) {
 		template.responderEnabled = legacy.enabled;
 		template.rules = ServerTemplate.copyRules(legacy.rules);
-		template.globalPrefix = legacy.globalPrefix;
 		template.clanReplyPrefix = legacy.clanReplyPrefix;
 		template.privateReplyCommand = legacy.privateReplyCommand;
-		template.globalMarkers = legacy.globalMarkers;
-		template.clanMarkers = legacy.clanMarkers;
-		template.privateMarkers = legacy.privateMarkers;
-		template.mutedWords = new java.util.ArrayList<>(legacy.mutedWords);
-		template.discordChatEnabled = Boolean.TRUE.equals(legacy.discordChatEnabled);
-		template.discordMutedPlayers = new java.util.ArrayList<>(legacy.discordMutedPlayers);
-		template.friends = new java.util.ArrayList<>(legacy.friends);
-		template.friendLastSeen = new java.util.LinkedHashMap<>(legacy.friendLastSeen);
-		template.friendHudEnabled = Boolean.TRUE.equals(legacy.friendHudEnabled);
-		template.friendSoundEnabled = true;
-		template.periodicMessages = legacy.periodicMessages.stream()
-				.map(PeriodicMessageConfig::copy)
-				.collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+		if (legacy.periodicMessages != null && !legacy.periodicMessages.isEmpty()) {
+			template.periodicMessages = ServerTemplate.copyPeriodicMessages(legacy.periodicMessages);
+		} else {
+			if (legacy.periodicEnabled != null) {
+				template.periodicMessages = new ArrayList<>();
+				template.periodicMessages.add(new PeriodicMessageConfig(
+						legacy.periodicEnabled,
+						legacy.periodicMessage == null ? "" : legacy.periodicMessage,
+						legacy.periodicIntervalMinutes == null ? 5 : legacy.periodicIntervalMinutes));
+			} else {
+				template.periodicMessages = ServerTemplate.copyPeriodicMessages(legacy.periodicMessages);
+			}
+		}
+		applyVisibleFields(template, legacy);
+	}
+
+	static void applyVisibleFields(ServerTemplate template, ResponderConfig config) {
+		template.globalPrefix = config.globalPrefix;
+		template.globalMarkers = config.globalMarkers;
+		template.clanMarkers = config.clanMarkers;
+		template.privateMarkers = config.privateMarkers;
+		template.mutedWords = copyStrings(config.mutedWords);
+		template.discordChatEnabled = Boolean.TRUE.equals(config.discordChatEnabled);
+		template.discordMutedPlayers = copyStrings(config.discordMutedPlayers);
+		template.friends = copyStrings(config.friends);
+		template.friendLastSeen = new LinkedHashMap<>(
+				config.friendLastSeen == null ? java.util.Map.of() : config.friendLastSeen);
+		template.friendHudEnabled = Boolean.TRUE.equals(config.friendHudEnabled);
 	}
 
 	static void populateLegacyView(ResponderConfig target, ServerTemplate template) {
@@ -126,8 +143,11 @@ public final class LegacyConfigToVanillaBoxMigration {
 		target.friends = new java.util.ArrayList<>(template.friends);
 		target.friendLastSeen = new java.util.LinkedHashMap<>(template.friendLastSeen);
 		target.friendHudEnabled = template.friendHudEnabled;
-		target.periodicMessages = template.periodicMessages.stream().map(PeriodicMessageConfig::copy)
-				.collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+		target.periodicMessages = ServerTemplate.copyPeriodicMessages(template.periodicMessages);
+	}
+
+	private static ArrayList<String> copyStrings(List<String> source) {
+		return new ArrayList<>(source == null ? List.of() : source);
 	}
 
 	private TemplateOperationResult<Void> createAndVerifyBackup() {

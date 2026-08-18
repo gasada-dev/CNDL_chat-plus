@@ -22,7 +22,6 @@ final class ServerCommandServiceTest {
 		runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
 		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
 		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.privateReplyCommand = "/r";
 		template.parsers = ParserSettings.vanillaBoxDefaults();
 		runtime.switchTo(template);
 		commands = new ServerCommandService(runtime, outgoing);

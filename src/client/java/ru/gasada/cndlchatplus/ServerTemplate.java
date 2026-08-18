@@ -37,16 +37,7 @@ public final class ServerTemplate {
 	}
 
 	public void sanitize() {
-		if (rules == null) rules = new ArrayList<>();
-		rules.removeIf(rule -> rule == null);
-		for (ReplyRule rule : rules) {
-			if (rule.trigger == null) rule.trigger = "";
-			if (rule.response == null) rule.response = "";
-			if (rule.channel == null) rule.channel = ChatChannel.AUTO;
-		}
 		globalPrefix = safe(globalPrefix);
-		clanReplyPrefix = safe(clanReplyPrefix);
-		privateReplyCommand = safe(privateReplyCommand);
 		globalMarkers = safe(globalMarkers);
 		clanMarkers = safe(clanMarkers);
 		privateMarkers = safe(privateMarkers);
@@ -56,15 +47,6 @@ public final class ServerTemplate {
 		friends = sanitizeStrings(friends);
 		if (friendLastSeen == null) friendLastSeen = new LinkedHashMap<>();
 		friendLastSeen.entrySet().removeIf(entry -> entry.getKey() == null || entry.getValue() == null);
-		if (periodicMessages == null) periodicMessages = new ArrayList<>();
-		periodicMessages.removeIf(value -> value == null);
-		if (periodicMessages.size() > PeriodicMessageConfig.MAX_PERIODIC_MESSAGES) {
-			periodicMessages = new ArrayList<>(periodicMessages.subList(
-					0, PeriodicMessageConfig.MAX_PERIODIC_MESSAGES));
-		}
-		for (PeriodicMessageConfig value : periodicMessages) {
-			if (value.message == null) value.message = "";
-		}
 		if (commands == null) commands = new ServerCommandSettings();
 		if (parsers == null) parsers = new ParserSettings();
 		if (playerInfo == null) playerInfo = new PlayerInfoSettings();
@@ -106,7 +88,7 @@ public final class ServerTemplate {
 		copy.friendLastSeen = new LinkedHashMap<>(friendLastSeen == null ? Map.of() : friendLastSeen);
 		copy.friendHudEnabled = friendHudEnabled;
 		copy.friendSoundEnabled = friendSoundEnabled;
-		copy.periodicMessages = copyPeriodic(periodicMessages);
+		copy.periodicMessages = copyPeriodicMessages(periodicMessages);
 		copy.commands = commands == null ? new ServerCommandSettings() : commands.copy();
 		copy.parsers = parsers == null ? new ParserSettings() : parsers.copy();
 		copy.playerInfo = playerInfo == null ? new PlayerInfoSettings() : playerInfo.copy();
@@ -118,29 +100,29 @@ public final class ServerTemplate {
 	}
 
 	static List<ReplyRule> copyRules(List<ReplyRule> source) {
-		List<ReplyRule> result = new ArrayList<>();
 		if (source == null) {
-			return result;
+			return null;
 		}
+		List<ReplyRule> result = new ArrayList<>();
 		for (ReplyRule rule : source) {
-			if (rule != null) {
-				ReplyRule copiedRule = new ReplyRule(rule.trigger, rule.response, rule.channel);
-				copiedRule.enabled = rule.enabled;
-				result.add(copiedRule);
+			if (rule == null) {
+				result.add(null);
+				continue;
 			}
+			ReplyRule copiedRule = new ReplyRule(rule.trigger, rule.response, rule.channel);
+			copiedRule.enabled = rule.enabled;
+			result.add(copiedRule);
 		}
 		return result;
 	}
 
-	private static List<PeriodicMessageConfig> copyPeriodic(List<PeriodicMessageConfig> source) {
-		List<PeriodicMessageConfig> result = new ArrayList<>();
+	static List<PeriodicMessageConfig> copyPeriodicMessages(List<PeriodicMessageConfig> source) {
 		if (source == null) {
-			return result;
+			return null;
 		}
+		List<PeriodicMessageConfig> result = new ArrayList<>();
 		for (PeriodicMessageConfig entry : source) {
-			if (entry != null) {
-				result.add(new PeriodicMessageConfig(entry.enabled, entry.message, entry.intervalMinutes));
-			}
+			result.add(entry == null ? null : entry.copy());
 		}
 		return result;
 	}

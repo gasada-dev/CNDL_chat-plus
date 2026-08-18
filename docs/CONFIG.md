@@ -27,15 +27,15 @@
 
 ## ServerTemplate
 
-Каждый template изолирует:
+Каждый template изолирует рабочие настройки CNDL_chat+ и inert migration bridge:
 
-- `responderEnabled`, ordered `rules`;
-- `globalPrefix`, `clanReplyPrefix`, `privateReplyCommand`;
+- inert `responderEnabled`, ordered `rules`, `clanReplyPrefix`, `privateReplyCommand`;
+- `globalPrefix` для классификации вкладок;
 - global/clan/private markers;
 - `mutedWords`, `mutedMinecraftPlayers`;
 - `discordChatEnabled`, `discordMutedPlayers`;
 - `friends`, `friendLastSeen`, `friendHudEnabled`, `friendSoundEnabled`;
-- до трёх `periodicMessages`;
+- inert `periodicMessages`;
 - `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}` и `acceptTeleport` без placeholders;
 - `parsers` (`ParserSettings`), включая `playerInfoPatterns`: имя видимого поля →
   regex с capture group 1 для server lookup.
@@ -46,7 +46,14 @@
 - `teleportRequestPattern`: regex запроса телепорта с ником в capture group 1;
   `teleportRequestConfigured` защищает пользовательское отключение от повторной установки bundled default.
 
-`ActiveTemplateSnapshot` является deep immutable copy. Runtime state (guards, lookup queue, presence/notices, timers и compiled data) в JSON не сохраняется.
+`ActiveTemplateSnapshot` является deep immutable copy только runtime-настроек CNDL_chat+ и не содержит automation bridge. Runtime state (lookup queue, presence/notices и compiled data) в JSON не сохраняется.
+
+`ServerTemplate.sanitize()` восстанавливает только runtime fields CNDL_chat+. Он не меняет
+`responderEnabled`, nullable `rules` и nested/null entries/order, `clanReplyPrefix`,
+`privateReplyCommand` или nullable `periodicMessages` с любым count/null/message/interval.
+`deepCopy()` сохраняет эти значения точно и копирует non-null DTO независимо. Repository
+использует Gson `serializeNulls`, поэтому explicit null survives save/load; runtime snapshot
+не dereferences automation fields.
 
 Bundled templates находятся внутри JAR в
 `assets/cndl_chat_plus/server_templates/`; `catalog.json` связывает JSON-файлы
@@ -59,10 +66,12 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 провайдер информации об игроке, но не содержит
 персональных друзей или last seen. Уже существующий пользовательский template с тем
 же ID не перезаписывается при обновлении JAR.
+Automation-поля в обоих bundled JSON намеренно сохранены как inert migration bridge;
+их читает и мигрирует CNDL_toolkit, CNDL_chat+ их не исполняет.
 
 ## Legacy ResponderConfig
 
-Сохранены поля `enabled`, Discord toggle/mutes, `mutedWords`, `friends`, `friendLastSeen`, `friendHudEnabled`, `periodicMessages`, `rules`, prefixes и markers, а также старые одиночные `periodicEnabled`, `periodicMessage`, `periodicIntervalMinutes` для чтения миграции.
+Сохранены поля `enabled`, Discord toggle/mutes, `mutedWords`, `friends`, `friendLastSeen`, `friendHudEnabled`, `periodicMessages`, `rules`, prefixes и markers, а также старые одиночные `periodicEnabled`, `periodicMessage`, `periodicIntervalMinutes` для чтения миграции. Automation-поля не исполняются и не показываются CNDL_chat+ 0.8.0; их владелец и потребитель миграции — CNDL_toolkit.
 
 Глобальные настройки истории чата (не template-specific):
 
@@ -77,21 +86,21 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 
 `ResponderConfig.sanitize()`:
 
-1. восстанавливает null wrappers/collections/strings;
-2. удаляет blank/null entries и dedup строковых списков без учёта регистра;
+1. восстанавливает null wrappers/collections только для видимых Discord/filter/friends полей;
+2. удаляет blank/null entries и dedup этих строковых списков без учёта регистра;
 3. чистит неполный `friendLastSeen`;
-4. мигрирует старую одиночную рассылку, затем очищает legacy fields;
-5. гарантирует один slot при пустом списке и максимум `MAX_PERIODIC_MESSAGES` (3);
-6. исправляет interval `<1` на 5;
-7. восстанавливает обязательный global marker `(!)`;
-8. восстанавливает rule fields/channel;
-9. мигрирует точную старую пару стандартных rules в текущий default rule;
-10. восстанавливает null `chatHistoryEnabled`/`chatHistoryPersist`/`chatHistoryLimit` и clamps
+4. восстанавливает `globalPrefix`, channel markers и обязательный global marker `(!)`;
+5. восстанавливает null `chatHistoryEnabled`/`chatHistoryPersist`/`chatHistoryLimit` и clamps
     limit к `[MIN_CHAT_HISTORY_LIMIT, MAX_CHAT_HISTORY_LIMIT]` (100–16384);
-11. восстанавливает null `chatTabsEnabled`/`chatTimestampsEnabled`/`chatSearchEnabled`/
+6. восстанавливает null `chatTabsEnabled`/`chatTimestampsEnabled`/`chatSearchEnabled`/
     `chatContextMenuEnabled`.
 
-При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. Для `Vanilla-box` старый JSON сохраняется и те же server-specific fields синхронизируются в template, не заменяя commands/parsers.
+`sanitize()` не изменяет inert bridge: `enabled`, `rules` и nested values/order,
+`periodicMessages` и entries/order/count/intervals, legacy periodic singleton,
+`clanReplyPrefix` и `privateReplyCommand`. Null automation collections и explicit null nested
+values сохраняются. Старые default-rule и singleton-periodic migrations из общего sanitize удалены.
+
+При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. Обычный save применяет к target только visible global channel/filter/Discord/friends/HUD fields; automation bridge, commands/parsers и friend sound не заменяются. Для `Vanilla-box` compatible JSON сохраняет explicit null через Gson `serializeNulls`, а template обновляется тем же visible-only helper. До save template selection заполняет compatible view, поэтому скрытые automation-поля сохраняются вместе с изменением каналов, фильтров или друзей.
 
 ## Безопасная миграция
 
@@ -99,8 +108,9 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 
 1. проверяет, что migration ещё не завершена;
 2. создаёт и побайтово проверяет backup старого config;
-3. читает/sanitize старый JSON;
-4. переносит все server-specific поля в `vanilla-box`;
+3. читает JSON и sanitizes только visible fields, не меняя automation source;
+4. переносит все server-specific поля в `vanilla-box`: non-empty periodic list имеет приоритет,
+   иначе legacy singleton создаёт одну запись при заданном `periodicEnabled`;
 5. атомарно сохраняет template и перечитывает его для equality check;
 6. последним сохраняет root с registered/default `vanilla-box`;
 7. перечитывает root и только после проверки считает migration завершённой.
@@ -109,7 +119,7 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 
 ## Defaults Vanilla-box
 
-Сохранены прежние `!`, `/.`, `/r`, markers, `ChatChannel` values, first-rule-wins, wildcard semantics, три periodic slots и команды из `ServerCommandSettings.vanillaBoxDefaults()`. Parser hardcode Vanilla-box хранится в `ParserSettings.vanillaBoxDefaults()`, а общий runtime fallback не используется.
+Сохранены прежние `!`, `/.`, `/r`, markers, `ChatChannel` values, rules и три periodic slots как persisted migration data, а также команды из `ServerCommandSettings.vanillaBoxDefaults()`. CNDL_chat+ использует только global prefix/markers для классификации чата и не исполняет rules/periodic data. Parser hardcode Vanilla-box хранится в `ParserSettings.vanillaBoxDefaults()`, а общий runtime fallback не используется.
 
 `playerInfoPatterns` Vanilla-box извлекают клан, ранг, статус, КПД/KDR, убийства,
 нейтральных, смерти, дату вступления, прошлые кланы и тип убийства. У существующего
@@ -127,5 +137,5 @@ Bundled `vanilla-game.json` содержит серверные команды, 
 
 - Повреждённый legacy JSON приводит к logged migration/load error и defaults, но byte-for-byte backup создаётся до parse и сохраняет исходный файл. Последующий UI save может заменить основной legacy JSON defaults, поэтому восстановление выполняется из backup вручную.
 - Repository schema version равна 3 и не имеет downgrade path.
-- Template editor редактирует identity/address metadata, все именованные серверные команды и Discord marker/name regex. Остальные категории редактируются существующими вкладками active view или импортируются.
+- Template editor редактирует identity/address metadata, именованные серверные команды CNDL_chat+ и Discord marker/name regex. Automation categories не редактируются и не импортируются, но сохраняются при load/save/deep copy.
 - Ручное редактирование JSON может создать значения, которые UI не предлагает; commands/parsers повторно валидируются перед send/save/import, но не все display-only строки имеют общий length limit.

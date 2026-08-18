@@ -1,5 +1,16 @@
 # История изменений
 
+## 0.8.0 — 2026-08-18
+
+- автоматические ответы и периодические отправки вынесены из CNDL_chat+ в приватный
+  [CNDL_toolkit 0.1.0](https://github.com/gasada-dev/CNDL_toolkit/releases/tag/v0.1.0);
+- F8 теперь открывает менеджер чата с тремя разделами: каналы, чёрный список и друзья;
+- legacy-поля automation остаются в config и server templates как неактивный migration bridge:
+  CNDL_chat+ сохраняет их, но не показывает и не исполняет;
+- выборочный import больше не предлагает rules/periodic categories и сохраняет automation-данные target;
+- версия содержит breaking extraction: сначала установите CNDL_chat+ 0.8.0, затем
+  CNDL_toolkit 0.1.0; toolkit открывается по F9.
+
 ## 0.7.2 — 2026-08-18
 
 - добавлена HUD-кнопка принятия входящего запроса телепорта с таймером 60 секунд;

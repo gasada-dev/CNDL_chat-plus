@@ -36,10 +36,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		CONFIG = ConfigManager.load();
-		ChatResponderEngine engine = new ChatResponderEngine(CONFIG);
 		UpdateChecker updateChecker = new UpdateChecker();
 		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
-		switchCoordinator.register(engine::resetRuntimeState);
 		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
 		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
 		ServerTemplateRepository templateRepository = ConfigManager.templateRepository();
@@ -61,14 +59,11 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		if (!initialTemplate.success()) {
 			LOGGER.warn("Не удалось выбрать начальный шаблон: {}", initialTemplate.errorMessage());
 		}
-		engine.setTemplateRuntime(TEMPLATE_RUNTIME);
-		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, engine.outgoingChatService());
+		OutgoingChatService outgoingChatService = OutgoingChatService.forMinecraft(ignored -> { });
+		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, outgoingChatService);
 		TELEPORT_REQUEST = new TeleportRequestButton(TEMPLATE_RUNTIME, SERVER_COMMANDS);
 		switchCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
 		TELEPORT_REQUEST.register();
-		PeriodicMessageScheduler periodicScheduler = new PeriodicMessageScheduler(
-				TEMPLATE_RUNTIME, engine.outgoingChatService());
-		switchCoordinator.register(periodicScheduler::resetRuntimeState);
 		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
 		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
 		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
@@ -109,7 +104,6 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			while (openScreen.consumeClick()) {
 				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
 			}
-			periodicScheduler.tick(minecraft);
 			MARRIAGE_LOOKUP.tick(minecraft);
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
@@ -128,14 +122,12 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
 			recordIncoming(chatMessageStore, chatHistoryCodec, message, false);
-			engine.handlePlayerMessage(message, signedMessage, sender);
 		});
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
 			if (!overlay) {
 				recordIncoming(chatMessageStore, chatHistoryCodec, message, true);
 				TELEPORT_REQUEST.handleMessage(message.getString());
 			}
-			engine.handleSystemMessage(message, overlay);
 		});
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) ->

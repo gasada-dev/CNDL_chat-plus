@@ -7,7 +7,6 @@ import java.util.Set;
 
 public final class TemplateImportOptions {
 	public enum Category {
-		REPLY_RULES,
 		CHANNELS_AND_MARKERS,
 		MUTED_WORDS,
 		MUTED_MINECRAFT_PLAYERS,
@@ -16,7 +15,6 @@ public final class TemplateImportOptions {
 		FRIENDS,
 		LAST_SEEN,
 		HUD_AND_SOUND,
-		PERIODIC_MESSAGES,
 		COMMANDS,
 		PARSER_PATTERNS,
 		PLAYER_INFO

@@ -33,10 +33,16 @@ git diff --check
 - JAR `mc1.21.11` требует Java 21, а JAR `mc26.2` требует Java 25;
 - JUnit отсутствует в runtimeClasspath и внутри JAR;
 - старый `gasada-chat-responder.json` копируется в `cndl-chat-plus.json` и мигрирует с backup в `Vanilla-box`;
+- legacy rules/periodic/reply fields сохраняются после load/save/copy и остаются inert для миграции CNDL_toolkit;
 - bundled template JSON находится внутри JAR, пользовательские config/log/tmp не попали;
 - при недоступности player-profile API server lookup сохраняет named fields из active template;
 - при `marry: null` проверяется только настроенный в active template постраничный marriage lookup;
 - tag будет иметь точное имя `v<mod_version>`.
+
+Для версии 0.8.0 публикация CNDL_chat+ не меняет workflow: push main выполняется позже без
+release/tag. Пользовательский порядок migration: CNDL_chat+ 0.8.0 запускается первым,
+затем устанавливается приватный [CNDL_toolkit 0.1.0](https://github.com/gasada-dev/CNDL_toolkit/releases/tag/v0.1.0).
+F8 открывает chat manager, F9 — toolkit.
 
 ## Публикация
 

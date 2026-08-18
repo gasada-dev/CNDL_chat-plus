@@ -3,10 +3,8 @@ package ru.gasada.cndlchatplus;
 import java.util.Objects;
 
 public final class MessageValidator {
-	public static final int MAX_AUTOREPLY_LENGTH = 256;
 	public static final int MAX_PRIVATE_MESSAGE_LENGTH = 220;
 	public static final int MAX_MAIL_LENGTH = 220;
-	public static final int MAX_PERIODIC_MESSAGE_LENGTH = 256;
 
 	private MessageValidator() {
 	}
@@ -44,10 +42,8 @@ public final class MessageValidator {
 	}
 
 	public enum MessageType {
-		AUTOREPLY(MAX_AUTOREPLY_LENGTH),
 		PRIVATE_MESSAGE(MAX_PRIVATE_MESSAGE_LENGTH),
-		MAIL(MAX_MAIL_LENGTH),
-		PERIODIC(MAX_PERIODIC_MESSAGE_LENGTH);
+		MAIL(MAX_MAIL_LENGTH);
 
 		private final int maxLength;
 

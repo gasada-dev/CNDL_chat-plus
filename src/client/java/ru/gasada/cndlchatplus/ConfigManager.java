@@ -12,7 +12,7 @@ import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class ConfigManager {
-	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 	private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir()
 			.resolve("cndl-chat-plus.json");
 
@@ -56,7 +56,7 @@ public final class ConfigManager {
 			config.sanitize();
 			return config;
 		} catch (Exception exception) {
-			CndlChatPlusClient.LOGGER.error("Не удалось прочитать настройки автоответчика", exception);
+			CndlChatPlusClient.LOGGER.error("Не удалось прочитать настройки CNDL_chat+", exception);
 			return ResponderConfig.defaults();
 		}
 	}
@@ -95,7 +95,7 @@ public final class ConfigManager {
 				return false;
 			}
 			ServerTemplate vanilla = loadedVanilla.value();
-			LegacyConfigToVanillaBoxMigration.applyLegacyFields(vanilla, config);
+			LegacyConfigToVanillaBoxMigration.applyVisibleFields(vanilla, config);
 			if (!templateRepository().saveTemplate(vanilla).success()) {
 				return false;
 			}
@@ -109,7 +109,7 @@ public final class ConfigManager {
 			} catch (IOException cleanupError) {
 				exception.addSuppressed(cleanupError);
 			}
-			CndlChatPlusClient.LOGGER.error("Не удалось сохранить настройки автоответчика", exception);
+			CndlChatPlusClient.LOGGER.error("Не удалось сохранить настройки CNDL_chat+", exception);
 			return false;
 		}
 	}
@@ -122,7 +122,7 @@ public final class ConfigManager {
 			return false;
 		}
 		ServerTemplate template = loaded.value();
-		LegacyConfigToVanillaBoxMigration.applyLegacyFields(template, config);
+		LegacyConfigToVanillaBoxMigration.applyVisibleFields(template, config);
 		TemplateOperationResult<Void> saved = repository.saveTemplate(template);
 		if (!saved.success()) {
 			CndlChatPlusClient.LOGGER.error("Не удалось сохранить активный шаблон: {}", activeId,

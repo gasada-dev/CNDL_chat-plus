@@ -8,41 +8,23 @@ import org.junit.jupiter.api.Test;
 final class MessageValidatorTest {
 	@Test
 	void acceptsUnicodeAndPunctuation() {
-		assertValid("Привет, 世界!", MessageValidator.MessageType.AUTOREPLY);
-	}
-
-	@Test
-	void acceptsLeadingSlashWithoutInterpretingMessageType() {
-		assertValid("/команда аргумент", MessageValidator.MessageType.PERIODIC);
-		assertValid("обычное сообщение", MessageValidator.MessageType.PERIODIC);
+		assertValid("Привет, 世界!", MessageValidator.MessageType.PRIVATE_MESSAGE);
 	}
 
 	@Test
 	void rejectsNullEmptyAndTrimmedEmptyValues() {
-		assertInvalid(null, MessageValidator.MessageType.AUTOREPLY);
+		assertInvalid(null, MessageValidator.MessageType.PRIVATE_MESSAGE);
 		assertInvalid("", MessageValidator.MessageType.PRIVATE_MESSAGE);
 		assertInvalid("   ", MessageValidator.MessageType.MAIL);
 	}
 
 	@Test
 	void rejectsCrLfNulAndDangerousControls() {
-		assertInvalid("строка\rвторая", MessageValidator.MessageType.AUTOREPLY);
+		assertInvalid("строка\rвторая", MessageValidator.MessageType.PRIVATE_MESSAGE);
 		assertInvalid("строка\nвторая", MessageValidator.MessageType.PRIVATE_MESSAGE);
 		assertInvalid("текст\0хвост", MessageValidator.MessageType.MAIL);
-		assertInvalid("текст\u0001", MessageValidator.MessageType.PERIODIC);
-		assertInvalid("текст\u202E", MessageValidator.MessageType.PERIODIC);
-	}
-
-	@Test
-	void autoReplyUsesCurrentTwoHundredFiftySixCharacterLimit() {
-		assertValid("a".repeat(256), MessageValidator.MessageType.AUTOREPLY);
-		assertInvalid("a".repeat(257), MessageValidator.MessageType.AUTOREPLY);
-	}
-
-	@Test
-	void periodicMessageUsesCurrentTwoHundredFiftySixCharacterLimit() {
-		assertValid("a".repeat(256), MessageValidator.MessageType.PERIODIC);
-		assertInvalid("a".repeat(257), MessageValidator.MessageType.PERIODIC);
+		assertInvalid("текст\u0001", MessageValidator.MessageType.PRIVATE_MESSAGE);
+		assertInvalid("текст\u202E", MessageValidator.MessageType.MAIL);
 	}
 
 	@Test

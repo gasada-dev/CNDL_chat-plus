@@ -12,7 +12,7 @@ public final class ChatTextNormalizer {
 
 	/**
 	 * Preserves the matching normalization previously implemented by
-	 * {@link ChatResponderEngine}: root-locale lowercase, trim and collapsed
+	 * Shared matching semantics: root-locale lowercase, trim and collapsed
 	 * Java {@code \s} whitespace.
 	 */
 	public static String normalizeForMatching(String value) {

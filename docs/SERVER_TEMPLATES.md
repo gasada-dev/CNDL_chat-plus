@@ -1,6 +1,6 @@
 # Серверные шаблоны
 
-Server templates предотвращают смешивание rules, commands, parsers, filters, friends и timers серверов с разными форматами/командами. Runtime всегда работает с одним immutable active snapshot и не угадывает настройки по display name сервера.
+Server templates предотвращают смешивание commands, parsers, filters и friends серверов с разными форматами/командами. Runtime всегда работает с одним immutable active snapshot и не угадывает настройки по display name сервера. Legacy rules/periodic data хранятся только для миграции CNDL_toolkit.
 
 ## Модель и хранение
 
@@ -13,24 +13,28 @@ Server templates предотвращают смешивание rules, commands
 
 Между templates изолированы:
 
-- ordered reply rules и responder enabled;
-- channel prefixes/markers и reply command;
+- inert ordered reply rules, responder enabled, reply prefixes и periodic messages;
+- channel global prefix и markers;
 - muted words и Minecraft/Discord mute lists;
 - Discord toggle/settings;
 - friends и last seen;
 - friend HUD/sound;
-- periodic messages;
 - server command templates;
 - Discord/channel/friend lookup parser patterns и separators.
 - provider информации об игроке.
 
-Глобальными остаются MOD ID, F8 key mapping (Minecraft controls), update-check runtime, UI theme, root schema/default/bindings и transient application services. Guards/queues/presence/timers/compiled objects не являются config и сбрасываются на switch.
+Automation bridge имеет exact preservation semantics во всех repository/deep-copy/import
+paths: nullable collections, null elements/nested fields, order, count, messages и intervals
+не sanitizes. Repository сериализует explicit nulls. Эти поля отсутствуют в
+`ActiveTemplateSnapshot`, поэтому nullable values не попадают в runtime hot paths.
+
+Глобальными остаются MOD ID, F8 key mapping (Minecraft controls), update-check runtime, UI theme, root schema/default/bindings и transient application services. F9 принадлежит CNDL_toolkit. Queues/presence/compiled objects не являются config и сбрасываются на switch.
 
 ## Vanilla-box migration
 
 Первый успешный migration совместимого `cndl-chat-plus.json` создаёт template ID `vanilla-box`, name `Vanilla-box`. При обновлении старый `gasada-chat-responder.json` сначала безопасно копируется в этот путь. Переносятся все server-specific legacy fields без потери rules/friends/blacklists/last seen/periodic data. Команды и parsers получают `ServerCommandSettings.vanillaBoxDefaults()` и `ParserSettings.vanillaBoxDefaults()`.
 
-Порядок безопасности: byte-for-byte backup → read/sanitize → atomic template save → reread/equality check → root save → root reread. Старый config не удаляется и повторная migration не создаёт duplicates.
+Порядок безопасности: byte-for-byte backup → read/visible-only sanitize → null-safe legacy copy → atomic template save → reread/equality check → root save → root reread. Старый config и его automation values не изменяются; повторная migration не создаёт duplicates.
 
 ## Выбор по адресу
 
@@ -55,13 +59,13 @@ exact permanent binding
 - deep copy выбранного template.
 
 `TemplateEditorScreen` редактирует display name/address patterns, provider информации об
-игроке, lookup command, все шесть именованных команд, private reply prefix, Discord regex и
+игроке, lookup command, именованные команды CNDL_chat+, Discord regex и
 именованные player-info regex через deep-copy draft. Каждая player-info regex имеет capture
 group 1 и становится отдельной строкой экрана. Placeholders и regex проверяются до save. До
 успешного repository save runtime не меняется. Можно выбрать default, временно активировать
 или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
 
-Основные server settings выбранного active template продолжают редактироваться четырьмя вкладками `ResponderScreen`; compatible `ResponderConfig` служит view и при save маршрутизируется в active template. Non-Vanilla save не перезаписывает legacy Vanilla data.
+Основные server settings выбранного active template редактируются тремя вкладками `ResponderScreen`: каналы, чёрный список и друзья. Compatible `ResponderConfig` служит view и при save маршрутизируется в active template. Non-Vanilla save не перезаписывает legacy Vanilla data; automation bridge остаётся скрытым и неизменным.
 
 ## Каталог и обмен готовыми шаблонами
 
@@ -72,6 +76,8 @@ group 1 и становится отдельной строкой экрана. 
 - Текущий каталог содержит `vanilla-box.json` и `vanilla-game.json`. Их домены:
   `mc.vanilla-box.ru` и `mc.vanilla-game.ru`. Персональные категории `friends` и
   `friendLastSeen` во встроенном `vanilla-game` намеренно пусты.
+- Bundled automation fields и legacy fixture не удаляются: это inert migration bridge,
+  владельцем и потребителем которого является CNDL_toolkit.
 
 Старый `vanilla-game` без явно сохранённого выбора provider один раз получает
 `VANILLA_GAME_PUBLIC_API`; ручной выбор в editor помечается как явный и не заменяется.
@@ -86,23 +92,21 @@ group 1 и становится отдельной строкой экрана. 
 
 `TemplateImportOptions` выбирает категории:
 
-- reply rules;
 - channels/markers;
 - muted words/Minecraft/Discord lists;
 - Discord settings;
 - friends/last seen/HUD/sound;
-- periodic messages;
 - commands;
 - parser patterns.
 - provider информации об игроке и named lookup fields.
 
-Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Merge строковых lists выполняет case-insensitive dedup, где это допустимо; rules учитывают trigger/response/channel/enabled. Periodic result обрезается до трёх. Existing target last seen не заменяется source value без explicit overwrite. Commands и regex parsers валидируются до записи.
+Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Merge строковых lists выполняет case-insensitive dedup, где это допустимо. Existing target last seen не заменяется source value без explicit overwrite. Commands и regex parsers валидируются до записи. Reply/periodic categories отсутствуют; preview строится из deep copy target и сохраняет его inert automation fields.
 
 `TemplateImportPreview` содержит proposed target и summary, но не пишет файлы. `TemplateImportScreen` требует preview и отдельное подтверждение. `TemplateImportService.apply` сохраняет только target; source не изменяется. Если target active, runtime перепубликуется после успешной записи.
 
 ## Runtime reset и hot path
 
-При connect/manual switch сбрасываются duplicate/own guards, lookup/pending queue, presence/HUD notices, periodic timers, compiled reply rules/filters/parsers и temporary overrides. Новый periodic schedule начинает полный interval; старые накопленные сообщения не отправляются. Snapshot deep immutable; JSON в incoming message/render не читается.
+При connect/manual switch сбрасываются lookup/pending queue, presence/HUD notices, compiled filters/parsers и temporary overrides. Snapshot deep immutable и не содержит automation bridge; JSON в incoming message/render не читается.
 
 ## Hardcode Vanilla-box
 
@@ -111,7 +115,7 @@ Vanilla-only strings локализованы в двух factories:
 - `ServerCommandSettings.vanillaBoxDefaults()` — `/ignoreplayer`, `/clan lookup`, `/w`, `/pay`, `/call`, `/mail send`;
 - `ParserSettings.vanillaBoxDefaults()` — Discord marker/name, channel separators, last seen/inactive/end/output/timestamp patterns.
 
-Общий command/parser/filter/responder runtime не содержит fallback на эти defaults. Статический legacy parser helper остаётся только для characterization compatibility tests.
+Общий command/parser/filter runtime не содержит fallback на эти defaults. Статический legacy parser helper остаётся только для characterization compatibility tests.
 
 ## Ограничения
 
@@ -120,6 +124,6 @@ Vanilla-only strings локализованы в двух factories:
 - Встроенный `vanilla-game` задаёт `marry list {page}` и regex MarriageMaster. При
   обновлении они заполняют только отсутствующие поля. Runtime и editor разрешают marriage
   lookup только для точного ID `vanilla-game`; старые marriage-поля `vanilla-box` очищаются.
-- UI metadata editor использует comma-separated address patterns; command templates хранятся без начального `/`, кроме отдельного private reply prefix.
+- UI metadata editor использует comma-separated address patterns; command templates хранятся без начального `/`. Legacy private reply prefix остаётся только в JSON bridge.
 - Удаление после успешного root update удаляет отдельный template file; active/default protections предотвращают loss текущего selection.
 - Minecraft client и реальные серверные formats требуют ручной проверки после изменения patterns/commands.

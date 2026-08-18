@@ -7,11 +7,7 @@ public record ActiveTemplateSnapshot(
 		long generation,
 		String id,
 		String name,
-		boolean responderEnabled,
-		List<RuleSnapshot> rules,
 		String globalPrefix,
-		String clanReplyPrefix,
-		String privateReplyCommand,
 		String globalMarkers,
 		String clanMarkers,
 		String privateMarkers,
@@ -23,7 +19,6 @@ public record ActiveTemplateSnapshot(
 		Map<String, String> friendLastSeen,
 		boolean friendHudEnabled,
 		boolean friendSoundEnabled,
-		List<PeriodicSnapshot> periodicMessages,
 		CommandSnapshot commands,
 		ParserSnapshot parsers,
 		PlayerInfoSnapshot playerInfo) {
@@ -34,11 +29,7 @@ public record ActiveTemplateSnapshot(
 				generation,
 				safe.id,
 				safe.name,
-				safe.responderEnabled,
-				safe.rules.stream().map(RuleSnapshot::from).toList(),
 				safe.globalPrefix,
-				safe.clanReplyPrefix,
-				safe.privateReplyCommand,
 				safe.globalMarkers,
 				safe.clanMarkers,
 				safe.privateMarkers,
@@ -50,22 +41,9 @@ public record ActiveTemplateSnapshot(
 				Map.copyOf(safe.friendLastSeen),
 				safe.friendHudEnabled,
 				safe.friendSoundEnabled,
-				safe.periodicMessages.stream().map(PeriodicSnapshot::from).toList(),
 				CommandSnapshot.from(safe.commands),
 				ParserSnapshot.from(safe.parsers),
 				PlayerInfoSnapshot.from(safe.playerInfo));
-	}
-
-	public record RuleSnapshot(boolean enabled, String trigger, String response, ChatChannel channel) {
-		private static RuleSnapshot from(ReplyRule rule) {
-			return new RuleSnapshot(rule.enabled, rule.trigger, rule.response, rule.channel);
-		}
-	}
-
-	public record PeriodicSnapshot(boolean enabled, String message, int intervalMinutes) {
-		private static PeriodicSnapshot from(PeriodicMessageConfig config) {
-			return new PeriodicSnapshot(config.enabled, config.message, config.intervalMinutes);
-		}
 	}
 
 	public record CommandSnapshot(String ignorePlayer, String lookupFriend, String privateMessage,

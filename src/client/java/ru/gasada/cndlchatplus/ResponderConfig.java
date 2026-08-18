@@ -70,44 +70,8 @@ public final class ResponderConfig {
 		friends = distinctIgnoringCase(friends);
 		friendLastSeen.entrySet().removeIf(entry -> entry.getKey() == null || entry.getKey().isBlank()
 				|| entry.getValue() == null || entry.getValue().isBlank());
-		if (rules == null) {
-			rules = new ArrayList<>();
-		}
-		if (periodicMessages == null) {
-			periodicMessages = new ArrayList<>();
-		}
-		if (periodicMessages.isEmpty() && periodicEnabled != null) {
-			periodicMessages.add(new PeriodicMessageConfig(Boolean.TRUE.equals(periodicEnabled),
-					periodicMessage == null ? "" : periodicMessage,
-					periodicIntervalMinutes == null ? 5 : periodicIntervalMinutes));
-		}
-		periodicEnabled = null;
-		periodicMessage = null;
-		periodicIntervalMinutes = null;
-		periodicMessages.removeIf(message -> message == null);
-		if (periodicMessages.isEmpty()) {
-			periodicMessages.add(new PeriodicMessageConfig());
-		}
-		if (periodicMessages.size() > PeriodicMessageConfig.MAX_PERIODIC_MESSAGES) {
-			periodicMessages = new ArrayList<>(periodicMessages.subList(
-					0, PeriodicMessageConfig.MAX_PERIODIC_MESSAGES));
-		}
-		for (PeriodicMessageConfig message : periodicMessages) {
-			if (message.message == null) {
-				message.message = "";
-			}
-			if (message.intervalMinutes < 1) {
-				message.intervalMinutes = 5;
-			}
-		}
 		if (globalPrefix == null) {
 			globalPrefix = "!";
-		}
-		if (clanReplyPrefix == null) {
-			clanReplyPrefix = "/.";
-		}
-		if (privateReplyCommand == null) {
-			privateReplyCommand = "/r";
 		}
 		if (globalMarkers == null) {
 			globalMarkers = "";
@@ -143,24 +107,6 @@ public final class ResponderConfig {
 		if (chatContextMenuEnabled == null) {
 			chatContextMenuEnabled = true;
 		}
-
-		rules.removeIf(rule -> rule == null);
-		for (ReplyRule rule : rules) {
-			if (rule.trigger == null) {
-				rule.trigger = "";
-			}
-			if (rule.response == null) {
-				rule.response = "";
-			}
-			if (rule.channel == null) {
-				rule.channel = ChatChannel.AUTO;
-			}
-		}
-
-		if (hasOldDefaultRules()) {
-			rules.clear();
-			rules.add(new ReplyRule("Всем привет", "привет", ChatChannel.AUTO));
-		}
 	}
 
 	private static boolean containsMarker(String markers, String expected) {
@@ -170,18 +116,6 @@ public final class ResponderConfig {
 			}
 		}
 		return false;
-	}
-
-	private boolean hasOldDefaultRules() {
-		if (rules.size() != 2) {
-			return false;
-		}
-		ReplyRule first = rules.get(0);
-		ReplyRule second = rules.get(1);
-		return first.trigger.equalsIgnoreCase("амадо где гасада")
-				&& second.trigger.equalsIgnoreCase("гасада где амадо")
-				&& first.response.equalsIgnoreCase("тих тих")
-				&& second.response.equalsIgnoreCase("тих тих");
 	}
 
 	private static List<String> distinctIgnoringCase(List<String> values) {

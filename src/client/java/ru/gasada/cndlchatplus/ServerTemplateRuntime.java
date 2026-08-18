@@ -8,7 +8,6 @@ public final class ServerTemplateRuntime {
 	private volatile ActiveTemplateSnapshot activeSnapshot;
 	private volatile CompiledParserSettings compiledParsers;
 	private volatile CompiledFilterSet compiledFilters;
-	private volatile ReplyRuleMatcher compiledReplyRules;
 	private ServerTemplate activeTemplate;
 	private long generation;
 
@@ -45,10 +44,8 @@ public final class ServerTemplateRuntime {
 		ActiveTemplateSnapshot nextSnapshot = ActiveTemplateSnapshot.from(activeTemplate, ++generation);
 		CompiledParserSettings nextParsers = CompiledParserSettings.compile(nextSnapshot.parsers());
 		CompiledFilterSet nextFilters = CompiledFilterSet.compile(nextSnapshot);
-		ReplyRuleMatcher nextRules = ReplyRuleMatcher.compile(nextSnapshot.rules());
 		compiledParsers = nextParsers;
 		compiledFilters = nextFilters;
-		compiledReplyRules = nextRules;
 		activeSnapshot = nextSnapshot;
 	}
 
@@ -58,7 +55,6 @@ public final class ServerTemplateRuntime {
 		activeTemplate = null;
 		compiledParsers = null;
 		compiledFilters = null;
-		compiledReplyRules = null;
 		generation++;
 	}
 
@@ -72,9 +68,5 @@ public final class ServerTemplateRuntime {
 
 	public Optional<CompiledFilterSet> compiledFilters() {
 		return Optional.ofNullable(compiledFilters);
-	}
-
-	public Optional<ReplyRuleMatcher> compiledReplyRules() {
-		return Optional.ofNullable(compiledReplyRules);
 	}
 }

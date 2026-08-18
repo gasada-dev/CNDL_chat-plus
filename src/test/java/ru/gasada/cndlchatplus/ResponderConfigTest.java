@@ -4,17 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.Test;
 
 final class ResponderConfigTest {
 	@Test
-	void defaultsCreateCurrentOperationalConfiguration() {
+	void defaultsPreserveLegacyCompatibilityConfiguration() {
 		ResponderConfig config = ResponderConfig.defaults();
 
 		assertTrue(config.enabled);
@@ -59,11 +62,11 @@ final class ResponderConfigTest {
 		assertNotNull(config.mutedWords);
 		assertNotNull(config.friends);
 		assertNotNull(config.friendLastSeen);
-		assertNotNull(config.rules);
-		assertEquals(1, config.periodicMessages.size());
+		assertNull(config.rules);
+		assertNull(config.periodicMessages);
 		assertEquals("!", config.globalPrefix);
-		assertEquals("/.", config.clanReplyPrefix);
-		assertEquals("/r", config.privateReplyCommand);
+		assertNull(config.clanReplyPrefix);
+		assertNull(config.privateReplyCommand);
 		assertEquals("(!)", config.globalMarkers);
 		assertEquals("", config.clanMarkers);
 		assertEquals("", config.privateMarkers);
@@ -137,102 +140,63 @@ final class ResponderConfigTest {
 	}
 
 	@Test
-	void sanitizeMigratesExactOldDefaultRules() {
+	void sanitizePreservesUnusualInertAutomationByteForByte() {
 		ResponderConfig config = new ResponderConfig();
-		config.rules.add(new ReplyRule("Амадо где Гасада", "ТИХ ТИХ", ChatChannel.LOCAL));
+		config.enabled = false;
+		config.rules.clear();
+		ReplyRule first = new ReplyRule(null, "ТИХ ТИХ", null);
+		first.enabled = false;
+		config.rules.add(first);
+		config.rules.add(new ReplyRule("Амадо где Гасада", null, ChatChannel.LOCAL));
 		config.rules.add(new ReplyRule("Гасада где Амадо", "тих тих", ChatChannel.GLOBAL));
-
-		config.sanitize();
-
-		assertEquals(1, config.rules.size());
-		ReplyRule migrated = config.rules.getFirst();
-		assertEquals("Всем привет", migrated.trigger);
-		assertEquals("привет", migrated.response);
-		assertEquals(ChatChannel.AUTO, migrated.channel);
-		assertTrue(migrated.enabled);
-	}
-
-	@Test
-	void sanitizeMigratesLegacyPeriodicFieldsWhenNewListIsEmpty() {
-		ResponderConfig config = new ResponderConfig();
 		config.periodicMessages.clear();
+		config.periodicMessages.add(new PeriodicMessageConfig(false, null, 0));
+		config.periodicMessages.add(new PeriodicMessageConfig(true, "second", -5));
+		config.periodicMessages.add(new PeriodicMessageConfig(false, "third", 3));
+		config.periodicMessages.add(new PeriodicMessageConfig(true, "fourth", Integer.MAX_VALUE));
+		config.periodicMessages.add(new PeriodicMessageConfig(false, "fifth", Integer.MIN_VALUE));
 		config.periodicEnabled = true;
-		config.periodicMessage = "сообщение";
-		config.periodicIntervalMinutes = 17;
+		config.periodicMessage = null;
+		config.periodicIntervalMinutes = -17;
+		config.clanReplyPrefix = null;
+		config.privateReplyCommand = "/odd reply";
+		List<ReplyRule> rules = config.rules;
+		List<PeriodicMessageConfig> periodic = config.periodicMessages;
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		String before = gson.toJson(config);
 
 		config.sanitize();
 
-		assertEquals(1, config.periodicMessages.size());
-		PeriodicMessageConfig migrated = config.periodicMessages.getFirst();
-		assertTrue(migrated.enabled);
-		assertEquals("сообщение", migrated.message);
-		assertEquals(17, migrated.intervalMinutes);
-		assertNull(config.periodicEnabled);
+		assertEquals(before, gson.toJson(config));
+		assertSame(rules, config.rules);
+		assertSame(periodic, config.periodicMessages);
+		assertEquals(3, config.rules.size());
+		assertNull(config.rules.getFirst().trigger);
+		assertNull(config.rules.getFirst().channel);
+		assertEquals("Амадо где Гасада", config.rules.get(1).trigger);
+		assertEquals(5, config.periodicMessages.size());
+		assertEquals(List.of(0, -5, 3, Integer.MAX_VALUE, Integer.MIN_VALUE),
+				config.periodicMessages.stream().map(message -> message.intervalMinutes).toList());
+		assertNull(config.periodicMessages.getFirst().message);
+		assertTrue(config.periodicEnabled);
 		assertNull(config.periodicMessage);
-		assertNull(config.periodicIntervalMinutes);
+		assertEquals(-17, config.periodicIntervalMinutes);
+		assertNull(config.clanReplyPrefix);
+		assertEquals("/odd reply", config.privateReplyCommand);
 	}
 
 	@Test
-	void existingPeriodicListTakesPriorityOverLegacyFields() {
-		ResponderConfig config = new ResponderConfig();
-		config.periodicMessages.add(new PeriodicMessageConfig(false, "новое", 9));
-		config.periodicEnabled = true;
-		config.periodicMessage = "старое";
-		config.periodicIntervalMinutes = 2;
-
-		config.sanitize();
-
-		assertEquals(1, config.periodicMessages.size());
-		assertEquals("новое", config.periodicMessages.getFirst().message);
-		assertNull(config.periodicEnabled);
-		assertNull(config.periodicMessage);
-		assertNull(config.periodicIntervalMinutes);
-	}
-
-	@Test
-	void sanitizeLimitsPeriodicMessagesToFirstThree() {
-		ResponderConfig config = new ResponderConfig();
-		for (int index = 1; index <= 5; index++) {
-			config.periodicMessages.add(new PeriodicMessageConfig(true, "message-" + index, index));
-		}
-
-		config.sanitize();
-
-		assertEquals(3, config.periodicMessages.size());
-		assertEquals(List.of("message-1", "message-2", "message-3"),
-				config.periodicMessages.stream().map(message -> message.message).toList());
-	}
-
-	@Test
-	void sanitizeRepairsIntervalsBelowOneButDoesNotClampLargeValues() {
-		ResponderConfig config = new ResponderConfig();
-		config.periodicMessages.add(new PeriodicMessageConfig(true, "zero", 0));
-		config.periodicMessages.add(new PeriodicMessageConfig(true, "negative", -5));
-		config.periodicMessages.add(new PeriodicMessageConfig(true, "large", Integer.MAX_VALUE));
-
-		config.sanitize();
-
-		assertEquals(5, config.periodicMessages.get(0).intervalMinutes);
-		assertEquals(5, config.periodicMessages.get(1).intervalMinutes);
-		assertEquals(Integer.MAX_VALUE, config.periodicMessages.get(2).intervalMinutes);
-	}
-
-	@Test
-	void sanitizeRestoresMandatoryMarkerAndNestedRuleValues() {
+	void sanitizeRestoresMandatoryVisibleGlobalMarkerWithoutTouchingNullAutomationCollections() {
 		ResponderConfig config = new ResponderConfig();
 		config.globalMarkers = "[custom]";
-		ReplyRule rule = new ReplyRule();
-		rule.trigger = null;
-		rule.response = null;
-		rule.channel = null;
-		config.rules.add(rule);
+		config.rules = null;
+		config.periodicMessages = null;
 
 		config.sanitize();
 
 		assertEquals("(!),[custom]", config.globalMarkers);
-		assertEquals("", rule.trigger);
-		assertEquals("", rule.response);
-		assertEquals(ChatChannel.AUTO, rule.channel);
+		assertNull(config.rules);
+		assertNull(config.periodicMessages);
 	}
 
 	@SafeVarargs
