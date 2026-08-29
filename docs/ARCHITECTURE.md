@@ -43,6 +43,12 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 
 Команды Vanilla-box находятся только в `ServerCommandSettings.vanillaBoxDefaults()`. При отсутствии command template fallback не применяется, отправка не выполняется. `FriendActionService` предоставляет UI/lookup friend actions, не собирая строки команд.
 
+`UseEntityCallback` перехватывает `Alt+ПКМ` по `Player` только при точном active ID
+`vanilla-box`, main hand и закрытом GUI. Обычное взаимодействие отменяется без server packet,
+после чего `NearbyPlayerMenuScreen` предлагает `/ps add`, `/ps remove`, `/vm trusted add`
+и `/vm trusted remove`.
+Ник повторно валидируется, а команды отправляются только через `ServerCommandService`.
+
 ## Friends, lookup и HUD
 
 `FriendLookupManager` ставит в периодическую очередь только друзей active snapshot; ручной
@@ -56,11 +62,12 @@ player-info fallback принимает любой валидный Minecraft-н
 ## Запрос телепорта
 
 `TeleportRequestButton` сопоставляет system message с заранее скомпилированным
-`teleportRequestPattern` active template. При совпадении HUD показывает кнопку на 60 секунд;
-клик доступен в открытом чате и вызывает `ServerCommandService.acceptTeleport`. Timeout,
-disconnect, template switch и успешный клик очищают запрос. Новый запрос один раз проигрывает
-custom sound event, ссылающийся на встроенный `minecraft:entity/shulker/ambient4`, из client tick.
-Без parser/command кнопка не появляется.
+`teleportRequestPattern` active template. Политика `teleportAutoAcceptMode` принимает запросы
+от всех, друзей или выбранных друзей через `ServerCommandService.acceptTeleport`. При успешном
+автоприёме HUD и звук не создаются; при несовпадении или ошибке отправки HUD показывает кнопку
+на 60 секунд. Клик доступен в открытом чате. Timeout, disconnect, template switch и успешный
+клик очищают запрос. Ручной запрос один раз проигрывает custom sound event, ссылающийся на
+встроенный `minecraft:entity/shulker/ambient4`, из client tick. Без parser/command кнопка не появляется.
 
 ## Templates, migration и import
 
@@ -86,8 +93,11 @@ custom sound event, ссылающийся на встроенный `minecraft:
 
 `ResponderScreen` содержит две равные вкладки: чёрный список и друзья. Часть mutations/save и UI helpers вынесена в tab
 controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`; layout
-и orchestration остаются в screen. Верхняя строка содержит cycle selector active template и
-кнопку настроек. Rules tab, periodic hotspot и password UI отсутствуют.
+и orchestration остаются в screen. Верхняя строка содержит cycle selector active template,
+кнопки настроек и многостраничной подсказки. Rules tab, periodic hotspot и password UI отсутствуют.
+
+Внизу вкладки друзей находится cycle автоприёма телепорта. Режим выбранных друзей показывает
+персональный переключатель только после выбора друга из списка. Настройки изолированы active template.
 
 Над вкладкой друзей находится кнопка `Информация об игроке`. `PlayerInfoScreen` получает
 online suggestions из текущего connection и загружает данные только по `Обновить`.

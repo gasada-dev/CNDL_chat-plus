@@ -35,8 +35,16 @@
 - `mutedWords`, `mutedMinecraftPlayers`;
 - `discordChatEnabled`, `discordMutedPlayers`;
 - `friends`, `friendLastSeen`, `friendHudEnabled`, `friendSoundEnabled`;
+- `teleportAutoAcceptMode`: `OFF`, `EVERYONE`, `FRIENDS` или `SELECTED_FRIENDS`, default `OFF`;
+- `teleportAutoAcceptFriends`: выбранное подмножество `friends` для `SELECTED_FRIENDS`;
 - inert `periodicMessages`;
-- `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}` и `acceptTeleport` без placeholders;
+- `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}`, `acceptTeleport`
+  без placeholders и Vanilla-box `protectionAdd`/`protectionRemove`/
+  `traderTrustedAdd`/`traderTrustedRemove` с `{player}`;
+- `commands.nearbyPlayerCommandsConfigured` защищает ручное отключение Alt+ПКМ-команд от
+  повторной установки bundled defaults;
+- `commands.traderTrustedRemoveConfigured` отдельно защищает добавленную позднее команду
+  удаления из торговца;
 - `parsers` (`ParserSettings`), включая `playerInfoPatterns`: имя видимого поля →
   regex с capture group 1 для server lookup.
 - `playerInfo.provider`: `NONE` или `VANILLA_GAME_PUBLIC_API`;
@@ -59,7 +67,7 @@ Bundled templates находятся внутри JAR в
 `assets/cndl_chat_plus/server_templates/`; `catalog.json` связывает JSON-файлы
 с официальными address patterns. При запуске отсутствующие ID регистрируются, а для
 существующих встроенных ID добавляются только отсутствующие официальные домены и
-ещё не настроенные новые marriage/teleport-поля без перезаписи пользовательских значений. Внешний import ограничен
+ещё не настроенные новые marriage/teleport/nearby-player поля без перезаписи пользовательских значений. Внешний import ограничен
 одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
 Текущий bundled catalog содержит `vanilla-box.json` и `vanilla-game.json`.
 Bundled `vanilla-game.json` содержит серверные команды, parser settings и публичный
@@ -86,9 +94,10 @@ Automation-поля в обоих bundled JSON намеренно сохране
 
 `ResponderConfig.sanitize()`:
 
-1. восстанавливает null wrappers/collections только для видимых Discord/filter/friends полей;
+1. восстанавливает null wrappers/collections только для видимых Discord/filter/friends полей и
+   default `OFF` для автоприёма телепорта;
 2. удаляет blank/null entries и dedup этих строковых списков без учёта регистра;
-3. чистит неполный `friendLastSeen`;
+3. чистит неполный `friendLastSeen` и удаляет из `teleportAutoAcceptFriends` отсутствующих друзей;
 4. восстанавливает `globalPrefix`, channel markers и обязательный global marker `(!)`;
 5. восстанавливает null `chatHistoryEnabled`/`chatHistoryPersist`/`chatHistoryLimit` и clamps
     limit к `[MIN_CHAT_HISTORY_LIMIT, MAX_CHAT_HISTORY_LIMIT]` (100–16384);
@@ -100,7 +109,7 @@ Automation-поля в обоих bundled JSON намеренно сохране
 `clanReplyPrefix` и `privateReplyCommand`. Null automation collections и explicit null nested
 values сохраняются. Старые default-rule и singleton-periodic migrations из общего sanitize удалены.
 
-При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. Обычный save применяет к target только visible global channel/filter/Discord/friends/HUD fields; automation bridge, commands/parsers и friend sound не заменяются. Для `Vanilla-box` compatible JSON сохраняет explicit null через Gson `serializeNulls`, а template обновляется тем же visible-only helper. До save template selection заполняет compatible view, поэтому скрытые automation-поля сохраняются вместе с изменением каналов, фильтров или друзей.
+При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. Обычный save применяет к target только visible global channel/filter/Discord/friends/HUD/teleport auto-accept fields; automation bridge, commands/parsers и friend sound не заменяются. Для `Vanilla-box` compatible JSON сохраняет explicit null через Gson `serializeNulls`, а template обновляется тем же visible-only helper. До save template selection заполняет compatible view, поэтому скрытые automation-поля сохраняются вместе с изменением каналов, фильтров или друзей.
 
 ## Безопасная миграция
 

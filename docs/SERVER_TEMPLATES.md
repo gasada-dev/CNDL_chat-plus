@@ -19,6 +19,7 @@ Server templates предотвращают смешивание commands, parse
 - Discord toggle/settings;
 - friends и last seen;
 - friend HUD/sound;
+- политика автоприёма телепорта и выбранные друзья;
 - server command templates;
 - Discord/channel/friend lookup parser patterns и separators.
 - provider информации об игроке.
@@ -95,12 +96,16 @@ group 1 и становится отдельной строкой экрана. 
 - channels/markers;
 - muted words/Minecraft/Discord lists;
 - Discord settings;
-- friends/last seen/HUD/sound;
+- friends/last seen/HUD/sound/teleport auto-accept;
 - commands;
 - parser patterns.
 - provider информации об игроке и named lookup fields.
 
-Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Merge строковых lists выполняет case-insensitive dedup, где это допустимо. Existing target last seen не заменяется source value без explicit overwrite. Commands и regex parsers валидируются до записи. Reply/periodic categories отсутствуют; preview строится из deep copy target и сохраняет его inert automation fields.
+Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Friend mode применяется вместе с категорией
+friends при `REPLACE`/`MERGE`, а список выбранных друзей использует тот же list mode. Merge строковых lists выполняет
+case-insensitive dedup, где это допустимо. Existing target last seen не заменяется source value
+без explicit overwrite. Commands и regex parsers валидируются до записи. Reply/periodic categories
+отсутствуют; preview строится из deep copy target и сохраняет его inert automation fields.
 
 `TemplateImportPreview` содержит proposed target и summary, но не пишет файлы. `TemplateImportScreen` требует preview и отдельное подтверждение. `TemplateImportService.apply` сохраняет только target; source не изменяется. Если target active, runtime перепубликуется после успешной записи.
 
@@ -112,10 +117,14 @@ group 1 и становится отдельной строкой экрана. 
 
 Vanilla-only strings локализованы в двух factories:
 
-- `ServerCommandSettings.vanillaBoxDefaults()` — `/ignoreplayer`, `/clan lookup`, `/w`, `/pay`, `/call`, `/mail send`;
+- `ServerCommandSettings.vanillaBoxDefaults()` — `/ignoreplayer`, `/clan lookup`, `/w`, `/pay`,
+  `/call`, `/mail send`, `/ps add`, `/ps remove`, `/vm trusted add`, `/vm trusted remove`;
 - `ParserSettings.vanillaBoxDefaults()` — Discord marker/name, channel separators, last seen/inactive/end/output/timestamp patterns.
 
 Общий command/parser/filter runtime не содержит fallback на эти defaults. Статический legacy parser helper остаётся только для characterization compatibility tests.
+Existing Vanilla-box получает отсутствующие nearby-player commands один раз; configured markers
+после этого сохраняют пользовательское изменение или очищение, включая позднее добавленное
+удаление из торговца.
 
 ## Ограничения
 
