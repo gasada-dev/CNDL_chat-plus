@@ -9,6 +9,12 @@ public final class ServerCommandSettings {
 	public String mail = "";
 	public String marriageList = "";
 	public String acceptTeleport = "";
+	public String protectionAdd = "";
+	public String protectionRemove = "";
+	public String traderTrustedAdd = "";
+	public String traderTrustedRemove = "";
+	public boolean nearbyPlayerCommandsConfigured;
+	public boolean traderTrustedRemoveConfigured;
 
 	public static ServerCommandSettings vanillaBoxDefaults() {
 		ServerCommandSettings settings = new ServerCommandSettings();
@@ -19,6 +25,12 @@ public final class ServerCommandSettings {
 		settings.call = "call {player}";
 		settings.mail = "mail send {player} {message}";
 		settings.acceptTeleport = "tpaccept";
+		settings.protectionAdd = "ps add {player}";
+		settings.protectionRemove = "ps remove {player}";
+		settings.traderTrustedAdd = "vm trusted add {player}";
+		settings.traderTrustedRemove = "vm trusted remove {player}";
+		settings.nearbyPlayerCommandsConfigured = true;
+		settings.traderTrustedRemoveConfigured = true;
 		return settings;
 	}
 
@@ -32,6 +44,12 @@ public final class ServerCommandSettings {
 		copy.mail = mail;
 		copy.marriageList = marriageList;
 		copy.acceptTeleport = acceptTeleport;
+		copy.protectionAdd = protectionAdd;
+		copy.protectionRemove = protectionRemove;
+		copy.traderTrustedAdd = traderTrustedAdd;
+		copy.traderTrustedRemove = traderTrustedRemove;
+		copy.nearbyPlayerCommandsConfigured = nearbyPlayerCommandsConfigured;
+		copy.traderTrustedRemoveConfigured = traderTrustedRemoveConfigured;
 		return copy;
 	}
 }

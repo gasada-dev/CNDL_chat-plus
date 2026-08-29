@@ -19,6 +19,8 @@ public record ActiveTemplateSnapshot(
 		Map<String, String> friendLastSeen,
 		boolean friendHudEnabled,
 		boolean friendSoundEnabled,
+		TeleportAutoAcceptMode teleportAutoAcceptMode,
+		List<String> teleportAutoAcceptFriends,
 		CommandSnapshot commands,
 		ParserSnapshot parsers,
 		PlayerInfoSnapshot playerInfo) {
@@ -41,16 +43,22 @@ public record ActiveTemplateSnapshot(
 				Map.copyOf(safe.friendLastSeen),
 				safe.friendHudEnabled,
 				safe.friendSoundEnabled,
+				safe.teleportAutoAcceptMode,
+				List.copyOf(safe.teleportAutoAcceptFriends),
 				CommandSnapshot.from(safe.commands),
 				ParserSnapshot.from(safe.parsers),
 				PlayerInfoSnapshot.from(safe.playerInfo));
 	}
 
 	public record CommandSnapshot(String ignorePlayer, String lookupFriend, String privateMessage,
-			String pay, String call, String mail, String marriageList, String acceptTeleport) {
+			String pay, String call, String mail, String marriageList, String acceptTeleport,
+			String protectionAdd, String protectionRemove, String traderTrustedAdd,
+			String traderTrustedRemove) {
 		private static CommandSnapshot from(ServerCommandSettings settings) {
 			return new CommandSnapshot(settings.ignorePlayer, settings.lookupFriend, settings.privateMessage,
-					settings.pay, settings.call, settings.mail, settings.marriageList, settings.acceptTeleport);
+					settings.pay, settings.call, settings.mail, settings.marriageList, settings.acceptTeleport,
+					settings.protectionAdd, settings.protectionRemove, settings.traderTrustedAdd,
+					settings.traderTrustedRemove);
 		}
 	}
 

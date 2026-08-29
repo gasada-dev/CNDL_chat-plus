@@ -23,6 +23,14 @@ public final class TemplateSettingsValidator {
 		validateCommand(errors, template.commands.mail, CommandTemplateValidator.CommandType.MAIL);
 		validateCommand(errors, template.commands.acceptTeleport,
 				CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);
+		validateCommand(errors, template.commands.protectionAdd,
+				CommandTemplateValidator.CommandType.PROTECTION_ADD);
+		validateCommand(errors, template.commands.protectionRemove,
+				CommandTemplateValidator.CommandType.PROTECTION_REMOVE);
+		validateCommand(errors, template.commands.traderTrustedAdd,
+				CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD);
+		validateCommand(errors, template.commands.traderTrustedRemove,
+				CommandTemplateValidator.CommandType.TRADER_TRUSTED_REMOVE);
 		if ("vanilla-game".equals(template.id)) {
 			validateCommand(errors, template.commands.marriageList,
 					CommandTemplateValidator.CommandType.MARRIAGE_LIST);

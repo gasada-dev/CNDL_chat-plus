@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
@@ -73,6 +75,62 @@ final class TeleportRequestButtonTest {
 	}
 
 	@Test
+	void automaticallyAcceptsRequestsAllowedByEachModeWithoutShowingButton() {
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		template.commands = ServerCommandSettings.vanillaBoxDefaults();
+		template.parsers = ParserSettings.vanillaBoxDefaults();
+		template.friends.addAll(List.of("Alice", "Bob"));
+		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
+		template.teleportAutoAcceptFriends.add("Alice");
+		runtime.switchTo(template);
+		ConnectedTransport transport = new ConnectedTransport();
+		ServerCommandService commands = new ServerCommandService(runtime,
+				new OutgoingChatService(transport, ignored -> { }));
+		TeleportRequestButton button = new TeleportRequestButton(runtime, commands, () -> 1_000L);
+
+		button.handleMessage("Bob просит телепортироваться к вам.");
+		assertTrue(button.visible());
+		assertTrue(transport.commands.isEmpty());
+
+		button.handleMessage("alice просит телепортироваться к вам.");
+		assertFalse(button.visible());
+		assertEquals(List.of("tpaccept"), transport.commands);
+
+		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.FRIENDS;
+		runtime.switchTo(template);
+		button.handleMessage("Bob просит телепортироваться к вам.");
+		assertFalse(button.visible());
+		assertEquals(2, transport.commands.size());
+
+		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
+		runtime.switchTo(template);
+		button.handleMessage("Stranger просит телепортироваться к вам.");
+		assertFalse(button.visible());
+		assertEquals(3, transport.commands.size());
+	}
+
+	@Test
+	void failedAutomaticAcceptFallsBackToManualButton() {
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		template.commands = ServerCommandSettings.vanillaBoxDefaults();
+		template.parsers = ParserSettings.vanillaBoxDefaults();
+		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
+		runtime.switchTo(template);
+		ConnectedTransport transport = new ConnectedTransport();
+		transport.connected = false;
+		ServerCommandService commands = new ServerCommandService(runtime,
+				new OutgoingChatService(transport, ignored -> { }));
+		TeleportRequestButton button = new TeleportRequestButton(runtime, commands, () -> 1_000L);
+
+		button.handleMessage("Player просит телепортироваться к вам.");
+
+		assertTrue(button.visible());
+		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
 	void soundEventReferencesExistingVanillaAsset() throws IOException {
 		try (var stream = getClass().getResourceAsStream("/assets/cndl_chat_plus/sounds.json")) {
 			assertTrue(stream != null);
@@ -82,9 +140,11 @@ final class TeleportRequestButtonTest {
 	}
 
 	private static final class ConnectedTransport implements OutgoingChatService.Transport {
-		@Override public boolean connected() { return true; }
+		private final List<String> commands = new ArrayList<>();
+		private boolean connected = true;
+		@Override public boolean connected() { return connected; }
 		@Override public void execute(Runnable action) { action.run(); }
 		@Override public void sendChat(String message) { }
-		@Override public void sendCommand(String command) { }
+		@Override public void sendCommand(String command) { commands.add(command); }
 	}
 }

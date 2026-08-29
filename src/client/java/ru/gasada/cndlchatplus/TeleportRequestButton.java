@@ -55,8 +55,26 @@ public final class TeleportRequestButton {
 		if (!PlayerNameValidator.validate(requester).valid()) {
 			return;
 		}
+		if (shouldAutoAccept(snapshot, requester) && commands.acceptTeleport().success()) {
+			pending = null;
+			playSound = false;
+			return;
+		}
 		pending = new PendingRequest(requester, snapshot.generation(), clock.getAsLong() + TIMEOUT_MILLIS);
 		playSound = true;
+	}
+
+	private static boolean shouldAutoAccept(ActiveTemplateSnapshot snapshot, String requester) {
+		return switch (snapshot.teleportAutoAcceptMode()) {
+			case OFF -> false;
+			case EVERYONE -> true;
+			case FRIENDS -> containsIgnoringCase(snapshot.friends(), requester);
+			case SELECTED_FRIENDS -> containsIgnoringCase(snapshot.teleportAutoAcceptFriends(), requester);
+		};
+	}
+
+	private static boolean containsIgnoringCase(java.util.List<String> names, String requester) {
+		return names.stream().anyMatch(name -> name.equalsIgnoreCase(requester));
 	}
 
 	public void tick(Minecraft minecraft) {

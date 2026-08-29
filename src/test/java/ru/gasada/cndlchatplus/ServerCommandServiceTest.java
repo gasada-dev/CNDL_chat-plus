@@ -36,6 +36,10 @@ final class ServerCommandServiceTest {
 		assertTrue(commands.call("Player_1").success());
 		assertTrue(commands.mail("Player_1", "offline hello").success());
 		assertTrue(commands.acceptTeleport().success());
+		assertTrue(commands.addToProtection("Player_1").success());
+		assertTrue(commands.removeFromProtection("Player_1").success());
+		assertTrue(commands.addTraderTrusted("Player_1").success());
+		assertTrue(commands.removeTraderTrusted("Player_1").success());
 
 		assertEquals(List.of(
 				"ignoreplayer Player_1",
@@ -44,7 +48,11 @@ final class ServerCommandServiceTest {
 				"pay Player_1 10.25",
 				"call Player_1",
 				"mail send Player_1 offline hello",
-				"tpaccept"), transport.commands);
+				"tpaccept",
+				"ps add Player_1",
+				"ps remove Player_1",
+				"vm trusted add Player_1",
+				"vm trusted remove Player_1"), transport.commands);
 	}
 
 	@Test

@@ -60,8 +60,15 @@ public final class TemplateImportService {
 				case MUTED_DISCORD_USERS -> target.discordMutedPlayers = importStrings(
 						target.discordMutedPlayers, source.discordMutedPlayers, options.listMode(category));
 				case DISCORD_SETTINGS -> target.discordChatEnabled = source.discordChatEnabled;
-				case FRIENDS -> target.friends = importStrings(target.friends, source.friends,
-						options.listMode(category));
+				case FRIENDS -> {
+					TemplateImportOptions.ListMode mode = options.listMode(category);
+					target.friends = importStrings(target.friends, source.friends, mode);
+					if (mode != TemplateImportOptions.ListMode.SKIP) {
+						target.teleportAutoAcceptMode = source.teleportAutoAcceptMode;
+					}
+					target.teleportAutoAcceptFriends = importStrings(target.teleportAutoAcceptFriends,
+							source.teleportAutoAcceptFriends, mode);
+				}
 				case LAST_SEEN -> importLastSeen(source, target, options);
 				case HUD_AND_SOUND -> {
 					target.friendHudEnabled = source.friendHudEnabled;
@@ -115,6 +122,14 @@ public final class TemplateImportService {
 			validateCommand(errors, draft.commands.pay, CommandTemplateValidator.CommandType.PAY);
 			validateCommand(errors, draft.commands.call, CommandTemplateValidator.CommandType.CALL);
 			validateCommand(errors, draft.commands.mail, CommandTemplateValidator.CommandType.MAIL);
+			validateCommand(errors, draft.commands.protectionAdd,
+					CommandTemplateValidator.CommandType.PROTECTION_ADD);
+			validateCommand(errors, draft.commands.protectionRemove,
+					CommandTemplateValidator.CommandType.PROTECTION_REMOVE);
+			validateCommand(errors, draft.commands.traderTrustedAdd,
+					CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD);
+			validateCommand(errors, draft.commands.traderTrustedRemove,
+					CommandTemplateValidator.CommandType.TRADER_TRUSTED_REMOVE);
 			if (draft.commands.acceptTeleport != null && !draft.commands.acceptTeleport.isBlank()) {
 				validateCommand(errors, draft.commands.acceptTeleport,
 						CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);

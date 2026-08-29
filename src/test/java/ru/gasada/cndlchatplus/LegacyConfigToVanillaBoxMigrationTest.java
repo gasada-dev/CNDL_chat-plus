@@ -177,6 +177,8 @@ final class LegacyConfigToVanillaBoxMigrationTest {
 		visible.friends = new ArrayList<>(List.of("Friend"));
 		visible.friendLastSeen.put("Friend", "today");
 		visible.friendHudEnabled = false;
+		visible.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
+		visible.teleportAutoAcceptFriends.add("Friend");
 
 		LegacyConfigToVanillaBoxMigration.applyVisibleFields(template, visible);
 
@@ -203,6 +205,8 @@ final class LegacyConfigToVanillaBoxMigrationTest {
 		assertEquals(List.of("Friend"), template.friends);
 		assertEquals("today", template.friendLastSeen.get("Friend"));
 		assertFalse(template.friendHudEnabled);
+		assertEquals(TeleportAutoAcceptMode.SELECTED_FRIENDS, template.teleportAutoAcceptMode);
+		assertEquals(List.of("Friend"), template.teleportAutoAcceptFriends);
 	}
 
 	@Test

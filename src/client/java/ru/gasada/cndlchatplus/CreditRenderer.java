@@ -3,7 +3,7 @@ package ru.gasada.cndlchatplus;
 import net.minecraft.client.gui.Font;
 
 public final class CreditRenderer {
-	private static final String PREFIX = "create by ";
+	private static final String PREFIX = "created by ";
 	private static final String NAME = "CNDL";
 	private static final float[] STOPS = {8.333333F, 18.115942F, 66.666667F, 100.0F};
 	private static final int[] COLORS = {0xE0DCFF, 0xD5A6FD, 0xB76EF5, 0xA242F3};

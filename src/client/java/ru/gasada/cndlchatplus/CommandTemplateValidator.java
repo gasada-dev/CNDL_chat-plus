@@ -43,6 +43,10 @@ public final class CommandTemplateValidator {
 		PAY(Set.of("player", "amount")),
 		CALL(Set.of("player")),
 		MAIL(Set.of("player", "message")),
+		PROTECTION_ADD(Set.of("player")),
+		PROTECTION_REMOVE(Set.of("player")),
+		TRADER_TRUSTED_ADD(Set.of("player")),
+		TRADER_TRUSTED_REMOVE(Set.of("player")),
 		MARRIAGE_LIST(Set.of("page")),
 		ACCEPT_TELEPORT(Set.of());
 

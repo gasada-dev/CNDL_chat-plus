@@ -60,6 +60,26 @@ public final class ServerCommandService {
 				command("acceptTeleport"), Map.of());
 	}
 
+	public CommandResult addToProtection(String player) {
+		return playerCommand(CommandTemplateValidator.CommandType.PROTECTION_ADD,
+				command("protectionAdd"), player);
+	}
+
+	public CommandResult removeFromProtection(String player) {
+		return playerCommand(CommandTemplateValidator.CommandType.PROTECTION_REMOVE,
+				command("protectionRemove"), player);
+	}
+
+	public CommandResult addTraderTrusted(String player) {
+		return playerCommand(CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD,
+				command("traderTrustedAdd"), player);
+	}
+
+	public CommandResult removeTraderTrusted(String player) {
+		return playerCommand(CommandTemplateValidator.CommandType.TRADER_TRUSTED_REMOVE,
+				command("traderTrustedRemove"), player);
+	}
+
 	public Optional<String> privateMessageDraft(String player) {
 		return playerDraft(CommandTemplateValidator.CommandType.PRIVATE_MESSAGE,
 				command("privateMessage"), player, "message");
@@ -81,6 +101,10 @@ public final class ServerCommandService {
 			case PAY -> command("pay");
 			case CALL -> command("call");
 			case MAIL -> command("mail");
+			case PROTECTION_ADD -> command("protectionAdd");
+			case PROTECTION_REMOVE -> command("protectionRemove");
+			case TRADER_TRUSTED_ADD -> command("traderTrustedAdd");
+			case TRADER_TRUSTED_REMOVE -> command("traderTrustedRemove");
 			case MARRIAGE_LIST -> command("marriageList");
 			case ACCEPT_TELEPORT -> command("acceptTeleport");
 		};
@@ -173,6 +197,10 @@ public final class ServerCommandService {
 			case "mail" -> commands.mail();
 			case "marriageList" -> commands.marriageList();
 			case "acceptTeleport" -> commands.acceptTeleport();
+			case "protectionAdd" -> commands.protectionAdd();
+			case "protectionRemove" -> commands.protectionRemove();
+			case "traderTrustedAdd" -> commands.traderTrustedAdd();
+			case "traderTrustedRemove" -> commands.traderTrustedRemove();
 			default -> "";
 		});
 	}

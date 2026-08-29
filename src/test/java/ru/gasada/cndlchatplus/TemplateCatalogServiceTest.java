@@ -31,7 +31,15 @@ final class TemplateCatalogServiceTest {
 		ServerTemplate vanilla = repository.loadTemplate("vanilla-box").value();
 		assertEquals("w {player} {message}", vanilla.commands.privateMessage);
 		assertEquals("tpaccept", vanilla.commands.acceptTeleport);
+		assertEquals("ps add {player}", vanilla.commands.protectionAdd);
+		assertEquals("ps remove {player}", vanilla.commands.protectionRemove);
+		assertEquals("vm trusted add {player}", vanilla.commands.traderTrustedAdd);
+		assertEquals("vm trusted remove {player}", vanilla.commands.traderTrustedRemove);
+		assertTrue(vanilla.commands.nearbyPlayerCommandsConfigured);
+		assertTrue(vanilla.commands.traderTrustedRemoveConfigured);
 		assertFalse(vanilla.parsers.teleportRequestPattern.isBlank());
+		assertEquals(TeleportAutoAcceptMode.OFF, vanilla.teleportAutoAcceptMode);
+		assertTrue(vanilla.teleportAutoAcceptFriends.isEmpty());
 		ServerTemplate game = repository.loadTemplate("vanilla-game").value();
 		assertEquals("Vanilla-game", game.name);
 		assertEquals("ignore {player}", game.commands.ignorePlayer);
@@ -88,6 +96,12 @@ final class TemplateCatalogServiceTest {
 		assertEquals(2, result.skipped());
 		assertEquals("msg {player} {message}", repository.loadTemplate("vanilla-box").value().commands.privateMessage);
 		assertEquals("tpaccept", repository.loadTemplate("vanilla-box").value().commands.acceptTeleport);
+		assertEquals("ps add {player}", repository.loadTemplate("vanilla-box").value().commands.protectionAdd);
+		assertEquals("ps remove {player}", repository.loadTemplate("vanilla-box").value().commands.protectionRemove);
+		assertEquals("vm trusted add {player}",
+				repository.loadTemplate("vanilla-box").value().commands.traderTrustedAdd);
+		assertEquals("vm trusted remove {player}",
+				repository.loadTemplate("vanilla-box").value().commands.traderTrustedRemove);
 		assertFalse(repository.loadTemplate("vanilla-box").value().parsers.teleportRequestPattern.isBlank());
 		assertTrue(repository.loadTemplate("vanilla-box").value().commands.marriageList.isBlank());
 		assertTrue(repository.loadTemplate("vanilla-box").value().parsers.marriageEntryPattern.isBlank());
@@ -106,6 +120,34 @@ final class TemplateCatalogServiceTest {
 		RootConfig saved = repository.loadRoot().value();
 		assertEquals(java.util.List.of("mc.vanilla-box.ru:25565"), saved.templates.get(0).addressPatterns);
 		assertEquals(java.util.List.of("mc.vanilla-game.ru:25565"), saved.templates.get(1).addressPatterns);
+	}
+
+	@Test
+	void nearbyPlayerDefaultsUpgradeOnceWithoutOverwritingCustomOrClearedValues() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory.resolve("nearby-upgrade"));
+		ServerTemplate vanilla = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		vanilla.commands.protectionAdd = "custom add {player}";
+		assertTrue(repository.saveTemplate(vanilla).success());
+		RootConfig root = new RootConfig();
+		root.templates.add(new ServerTemplateInfo(vanilla.id, vanilla.name));
+		assertTrue(repository.saveRoot(root).success());
+		TemplateCatalogService service = new TemplateCatalogService(repository, directory.resolve("unused-imports"));
+
+		assertTrue(service.installBundledTemplates().success());
+		ServerTemplate upgraded = repository.loadTemplate("vanilla-box").value();
+		assertEquals("custom add {player}", upgraded.commands.protectionAdd);
+		assertEquals("ps remove {player}", upgraded.commands.protectionRemove);
+		assertEquals("vm trusted add {player}", upgraded.commands.traderTrustedAdd);
+		assertEquals("vm trusted remove {player}", upgraded.commands.traderTrustedRemove);
+		assertTrue(upgraded.commands.nearbyPlayerCommandsConfigured);
+		assertTrue(upgraded.commands.traderTrustedRemoveConfigured);
+
+		upgraded.commands.protectionRemove = "";
+		upgraded.commands.traderTrustedRemove = "";
+		assertTrue(repository.saveTemplate(upgraded).success());
+		assertTrue(service.installBundledTemplates().success());
+		assertTrue(repository.loadTemplate("vanilla-box").value().commands.protectionRemove.isBlank());
+		assertTrue(repository.loadTemplate("vanilla-box").value().commands.traderTrustedRemove.isBlank());
 	}
 
 	@Test

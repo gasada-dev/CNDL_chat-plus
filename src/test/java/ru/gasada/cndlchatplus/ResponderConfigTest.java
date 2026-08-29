@@ -23,6 +23,8 @@ final class ResponderConfigTest {
 		assertTrue(config.enabled);
 		assertTrue(config.discordChatEnabled);
 		assertTrue(config.friendHudEnabled);
+		assertEquals(TeleportAutoAcceptMode.OFF, config.teleportAutoAcceptMode);
+		assertTrue(config.teleportAutoAcceptFriends.isEmpty());
 		assertEquals("!", config.globalPrefix);
 		assertEquals("/.", config.clanReplyPrefix);
 		assertEquals("/r", config.privateReplyCommand);
@@ -45,6 +47,8 @@ final class ResponderConfigTest {
 		config.friends = null;
 		config.friendLastSeen = null;
 		config.friendHudEnabled = null;
+		config.teleportAutoAcceptMode = null;
+		config.teleportAutoAcceptFriends = null;
 		config.periodicMessages = null;
 		config.rules = null;
 		config.globalPrefix = null;
@@ -58,6 +62,8 @@ final class ResponderConfigTest {
 
 		assertTrue(config.discordChatEnabled);
 		assertTrue(config.friendHudEnabled);
+		assertEquals(TeleportAutoAcceptMode.OFF, config.teleportAutoAcceptMode);
+		assertNotNull(config.teleportAutoAcceptFriends);
 		assertNotNull(config.discordMutedPlayers);
 		assertNotNull(config.mutedWords);
 		assertNotNull(config.friends);
@@ -116,12 +122,14 @@ final class ResponderConfigTest {
 		config.discordMutedPlayers = mutableList(" User ", "user", "", null, "Other");
 		config.mutedWords = mutableList(" Реклама ", "реклама", "   ", null, "Другое");
 		config.friends = mutableList(" Steve ", "steve", "", null, "Alex");
+		config.teleportAutoAcceptFriends = mutableList(" steve ", "STEVE", "Missing", "", null);
 
 		config.sanitize();
 
 		assertEquals(List.of("User", "Other"), config.discordMutedPlayers);
 		assertEquals(List.of("Реклама", "Другое"), config.mutedWords);
 		assertEquals(List.of("Steve", "Alex"), config.friends);
+		assertEquals(List.of("steve"), config.teleportAutoAcceptFriends);
 	}
 
 	@Test

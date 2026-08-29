@@ -7,11 +7,15 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +68,20 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		TELEPORT_REQUEST = new TeleportRequestButton(TEMPLATE_RUNTIME, SERVER_COMMANDS);
 		switchCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
 		TELEPORT_REQUEST.register();
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
+			Minecraft minecraft = Minecraft.getInstance();
+			if (!level.isClientSide() || hand != InteractionHand.MAIN_HAND || !(entity instanceof Player target)
+					|| !altDown(minecraft) || ClientUi.currentScreen(minecraft) != null
+					|| !NearbyPlayerMenuScreen.available()) {
+				return InteractionResult.PASS;
+			}
+			String targetName = target.getName().getString();
+			if (!PlayerNameValidator.validate(targetName).valid()) {
+				return InteractionResult.PASS;
+			}
+			ClientUi.setScreen(minecraft, new NearbyPlayerMenuScreen(targetName));
+			return InteractionResult.FAIL;
+		});
 		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
 		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
 		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
@@ -137,6 +155,11 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			CHAT_TABS.resetRuntimeState();
 			CHAT_TIMESTAMPS.resetRuntimeState();
 		});
+	}
+
+	private static boolean altDown(Minecraft minecraft) {
+		return InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LALT)
+				|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RALT);
 	}
 
 	private static void recordIncoming(ChatMessageStore store, ChatHistoryCodec codec, Component message,

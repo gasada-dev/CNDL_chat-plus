@@ -61,6 +61,12 @@ public final class ResponderScreen extends CompatScreen {
 		initTemplateSelector();
 
 		int half = panelWidth / 2;
+		int infoX = panelX + half;
+		int titleX = infoX - font.width(title) - 4;
+		addRenderableWidget(StyledButton.create(Component.literal("Подсказка"), ignored ->
+				ClientUi.setScreen(minecraft, new HelpScreen(this)))
+				.bounds(titleX - 80, 2, 74, 18)
+				.tooltip(help("Показать возможности и управление CNDL_chat+")).build());
 		addRenderableWidget(StyledButton.create(Component.literal("Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
 				.bounds(panelX + half, 2, panelWidth - half, 18)
@@ -289,7 +295,7 @@ public final class ResponderScreen extends CompatScreen {
 			friendSuggestionButtons.add(addRenderableWidget(suggestion));
 		}
 
-		int visibleRows = Math.max(2, Math.min(5, (height - 218) / 22));
+		int visibleRows = Math.max(2, Math.min(8, (height - 218) / 22));
 		int maxPage = maxFriendPage(visibleRows);
 		friendPage = Math.max(0, Math.min(friendPage, maxPage));
 		int start = friendPage * visibleRows;
@@ -375,7 +381,40 @@ public final class ResponderScreen extends CompatScreen {
 		addRenderableWidget(hudToggle);
 		hudToggle.setTooltip(help("Показывать онлайн-друзей справа снизу во время игры"));
 
+		if (config.teleportAutoAcceptMode == TeleportAutoAcceptMode.SELECTED_FRIENDS
+				&& selectedFriend != null) {
+			boolean enabled = config.teleportAutoAcceptFriends.stream()
+					.anyMatch(friend -> friend.equalsIgnoreCase(selectedFriend));
+			StyledCycleButton<Boolean> selectedToggle = StyledCycleButton.onOff(
+					enabled, rightX, 178, columnWidth, FIELD_HEIGHT,
+					Component.literal("Автоматически принимать телепорт"),
+					(button, value) -> friendsController.setTeleportAutoAccept(selectedFriend, value));
+			addRenderableWidget(selectedToggle);
+			selectedToggle.setTooltip(help("Автоматически принимать запросы телепорта от выбранного друга"));
+		}
+
+		StyledCycleButton<TeleportAutoAcceptMode> autoAccept = StyledCycleButton.of(
+				ResponderScreen::teleportAutoAcceptLabel, config.teleportAutoAcceptMode,
+				List.of(TeleportAutoAcceptMode.OFF, TeleportAutoAcceptMode.EVERYONE,
+						TeleportAutoAcceptMode.FRIENDS, TeleportAutoAcceptMode.SELECTED_FRIENDS),
+				rightX, height - 38, columnWidth, FIELD_HEIGHT,
+				Component.literal("Автоматически принимать телепорт"), (button, mode) -> {
+					friendsController.setTeleportAutoAcceptMode(mode);
+					rebuildContents();
+				});
+		addRenderableWidget(autoAccept);
+		autoAccept.setTooltip(help("Выбрать, от кого автоматически принимать запросы телепорта"));
+
 		refreshFriendSuggestions(friendNameValue);
+	}
+
+	private static Component teleportAutoAcceptLabel(TeleportAutoAcceptMode mode) {
+		return Component.literal(switch (mode) {
+			case OFF -> "Выкл";
+			case EVERYONE -> "От всех";
+			case FRIENDS -> "От друзей";
+			case SELECTED_FRIENDS -> "От выбранных друзей";
+		});
 	}
 
 	private int maxFriendPage(int pageSize) {
@@ -665,7 +704,8 @@ public final class ResponderScreen extends CompatScreen {
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, 22, panelWidth, height - 26);
-		graphics.centeredText(font, title, width / 2, 8, TEXT_COLOR);
+		int infoX = panelX + panelWidth / 2;
+		graphics.text(font, title, infoX - font.width(title) - 4, 8, TEXT_COLOR);
 		int half = panelWidth / 2;
 		int tabIndex = tab.ordinal();
 		int tabX = panelX + half * tabIndex;

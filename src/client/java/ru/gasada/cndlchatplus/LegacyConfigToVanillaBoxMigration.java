@@ -126,6 +126,9 @@ public final class LegacyConfigToVanillaBoxMigration {
 		template.friendLastSeen = new LinkedHashMap<>(
 				config.friendLastSeen == null ? java.util.Map.of() : config.friendLastSeen);
 		template.friendHudEnabled = Boolean.TRUE.equals(config.friendHudEnabled);
+		template.teleportAutoAcceptMode = config.teleportAutoAcceptMode == null
+				? TeleportAutoAcceptMode.OFF : config.teleportAutoAcceptMode;
+		template.teleportAutoAcceptFriends = copyStrings(config.teleportAutoAcceptFriends);
 	}
 
 	static void populateLegacyView(ResponderConfig target, ServerTemplate template) {
@@ -143,6 +146,9 @@ public final class LegacyConfigToVanillaBoxMigration {
 		target.friends = new java.util.ArrayList<>(template.friends);
 		target.friendLastSeen = new java.util.LinkedHashMap<>(template.friendLastSeen);
 		target.friendHudEnabled = template.friendHudEnabled;
+		target.teleportAutoAcceptMode = template.teleportAutoAcceptMode == null
+				? TeleportAutoAcceptMode.OFF : template.teleportAutoAcceptMode;
+		target.teleportAutoAcceptFriends = new java.util.ArrayList<>(template.teleportAutoAcceptFriends);
 		target.periodicMessages = ServerTemplate.copyPeriodicMessages(template.periodicMessages);
 	}
 

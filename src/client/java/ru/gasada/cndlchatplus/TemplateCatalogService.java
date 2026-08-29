@@ -140,6 +140,29 @@ public final class TemplateCatalogService {
 		ServerTemplate template = loaded.value();
 		boolean changed = false;
 		if ("vanilla-box".equals(templateId)) {
+			if (!template.commands.nearbyPlayerCommandsConfigured) {
+				ServerCommandSettings defaults = ServerCommandSettings.vanillaBoxDefaults();
+				if (template.commands.protectionAdd == null || template.commands.protectionAdd.isBlank()) {
+					template.commands.protectionAdd = defaults.protectionAdd;
+				}
+				if (template.commands.protectionRemove == null || template.commands.protectionRemove.isBlank()) {
+					template.commands.protectionRemove = defaults.protectionRemove;
+				}
+				if (template.commands.traderTrustedAdd == null || template.commands.traderTrustedAdd.isBlank()) {
+					template.commands.traderTrustedAdd = defaults.traderTrustedAdd;
+				}
+				template.commands.nearbyPlayerCommandsConfigured = true;
+				changed = true;
+			}
+			if (!template.commands.traderTrustedRemoveConfigured) {
+				if (template.commands.traderTrustedRemove == null
+						|| template.commands.traderTrustedRemove.isBlank()) {
+					template.commands.traderTrustedRemove = ServerCommandSettings.vanillaBoxDefaults()
+							.traderTrustedRemove;
+				}
+				template.commands.traderTrustedRemoveConfigured = true;
+				changed = true;
+			}
 			if (template.commands.marriageList != null && !template.commands.marriageList.isBlank()
 					|| template.parsers.marriageEntryPattern != null && !template.parsers.marriageEntryPattern.isBlank()
 					|| template.parsers.marriagePagePattern != null && !template.parsers.marriagePagePattern.isBlank()

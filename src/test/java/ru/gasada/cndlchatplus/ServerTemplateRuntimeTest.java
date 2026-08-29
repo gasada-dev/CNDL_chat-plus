@@ -19,11 +19,18 @@ final class ServerTemplateRuntimeTest {
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(coordinator);
 
 		ServerTemplate first = template("first", "Alice", "one");
+		first.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
+		first.teleportAutoAcceptFriends.add("Alice");
 		ActiveTemplateSnapshot snapshot = runtime.switchTo(first);
+		first.teleportAutoAcceptFriends.add("MutatedAfterSwitch");
 		first.friends.add("MutatedAfterSwitch");
 		assertEquals(2, resets.get());
 		assertEquals("Alice", snapshot.friends().getFirst());
 		assertThrows(UnsupportedOperationException.class, () -> snapshot.friends().add("bad"));
+		assertEquals(TeleportAutoAcceptMode.SELECTED_FRIENDS, snapshot.teleportAutoAcceptMode());
+		assertEquals(java.util.List.of("Alice"), snapshot.teleportAutoAcceptFriends());
+		assertThrows(UnsupportedOperationException.class,
+				() -> snapshot.teleportAutoAcceptFriends().add("bad"));
 	}
 
 	@Test
@@ -61,11 +68,15 @@ final class ServerTemplateRuntimeTest {
 		template.periodicMessages = null;
 		template.clanReplyPrefix = null;
 		template.privateReplyCommand = null;
+		template.teleportAutoAcceptMode = null;
+		template.teleportAutoAcceptFriends = null;
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
 
 		ActiveTemplateSnapshot snapshot = runtime.switchTo(template);
 
 		assertEquals("nullable", snapshot.id());
+		assertEquals(TeleportAutoAcceptMode.OFF, snapshot.teleportAutoAcceptMode());
+		assertTrue(snapshot.teleportAutoAcceptFriends().isEmpty());
 		assertTrue(runtime.compiledParsers().isPresent());
 		assertTrue(runtime.compiledFilters().isPresent());
 	}

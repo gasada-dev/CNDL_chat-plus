@@ -28,6 +28,8 @@ final class TemplateImportServiceTest {
 	void previewDoesNotMutateEitherTemplateAndApplyRequiresConfirmation() {
 		ServerTemplate source = template("source");
 		source.friends.addAll(List.of("Alice", "Bob"));
+		source.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
+		source.teleportAutoAcceptFriends.add("Bob");
 		source.mutedWords.add("SourceWord");
 		ServerTemplate target = template("target");
 		target.friends.add("alice");
@@ -47,6 +49,8 @@ final class TemplateImportServiceTest {
 		assertTrue(service.apply(preview, true).success());
 		ServerTemplate imported = repository.loadTemplate("target").value();
 		assertEquals(List.of("alice", "Bob"), imported.friends);
+		assertEquals(TeleportAutoAcceptMode.SELECTED_FRIENDS, imported.teleportAutoAcceptMode);
+		assertEquals(List.of("Bob"), imported.teleportAutoAcceptFriends);
 		assertEquals(List.of("TargetWord", "SourceWord"), imported.mutedWords);
 	}
 
@@ -54,10 +58,12 @@ final class TemplateImportServiceTest {
 	void listModesReplaceMergeAndSkipAreIndependentPerCategory() {
 		ServerTemplate source = template("source");
 		source.friends.add("SourceFriend");
+		source.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
 		source.mutedWords.add("SourceWord");
 		source.discordMutedPlayers.add("SourceDiscord");
 		ServerTemplate target = template("target");
 		target.friends.add("TargetFriend");
+		target.teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
 		target.mutedWords.add("TargetWord");
 		target.discordMutedPlayers.add("TargetDiscord");
 		save(source, target);
@@ -75,6 +81,28 @@ final class TemplateImportServiceTest {
 		assertEquals(List.of("SourceFriend"), imported.friends);
 		assertEquals(List.of("TargetWord", "SourceWord"), imported.mutedWords);
 		assertEquals(List.of("TargetDiscord"), imported.discordMutedPlayers);
+		assertEquals(TeleportAutoAcceptMode.EVERYONE, imported.teleportAutoAcceptMode);
+	}
+
+	@Test
+	void skippedFriendsPreserveTeleportAutoAcceptSettings() {
+		ServerTemplate source = template("source");
+		source.friends.add("SourceFriend");
+		source.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
+		ServerTemplate target = template("target");
+		target.friends.add("TargetFriend");
+		target.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
+		target.teleportAutoAcceptFriends.add("TargetFriend");
+		save(source, target);
+		TemplateImportOptions options = new TemplateImportOptions()
+				.select(TemplateImportOptions.Category.FRIENDS, true)
+				.listMode(TemplateImportOptions.Category.FRIENDS, TemplateImportOptions.ListMode.SKIP);
+
+		ServerTemplate imported = service.preview("source", "target", options).value().proposedTargetCopy();
+
+		assertEquals(List.of("TargetFriend"), imported.friends);
+		assertEquals(TeleportAutoAcceptMode.SELECTED_FRIENDS, imported.teleportAutoAcceptMode);
+		assertEquals(List.of("TargetFriend"), imported.teleportAutoAcceptFriends);
 	}
 
 	@Test

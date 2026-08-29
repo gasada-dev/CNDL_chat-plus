@@ -38,7 +38,13 @@
     "pay": "pay {player} {amount}",
     "call": "call {player}",
     "mail": "mail send {player} {message}",
-    "acceptTeleport": "tpaccept"
+    "acceptTeleport": "tpaccept",
+    "protectionAdd": "ps add {player}",
+    "protectionRemove": "ps remove {player}",
+    "traderTrustedAdd": "vm trusted add {player}",
+    "traderTrustedRemove": "vm trusted remove {player}",
+    "nearbyPlayerCommandsConfigured": true,
+    "traderTrustedRemoveConfigured": true
   },
   "parsers": {
     "discordMarkerPattern": "(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)",

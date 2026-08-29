@@ -17,6 +17,8 @@ public final class ResponderConfig {
 	public List<String> friends = new ArrayList<>();
 	public Map<String, String> friendLastSeen = new LinkedHashMap<>();
 	public Boolean friendHudEnabled = true;
+	public TeleportAutoAcceptMode teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
+	public List<String> teleportAutoAcceptFriends = new ArrayList<>();
 	public List<PeriodicMessageConfig> periodicMessages = new ArrayList<>();
 	public Boolean periodicEnabled;
 	public String periodicMessage;
@@ -62,12 +64,22 @@ public final class ResponderConfig {
 		if (friendHudEnabled == null) {
 			friendHudEnabled = true;
 		}
+		if (teleportAutoAcceptMode == null) {
+			teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
+		}
+		if (teleportAutoAcceptFriends == null) {
+			teleportAutoAcceptFriends = new ArrayList<>();
+		}
 		discordMutedPlayers.removeIf(value -> value == null || value.isBlank());
 		mutedWords.removeIf(value -> value == null || value.isBlank());
 		discordMutedPlayers = distinctIgnoringCase(discordMutedPlayers);
 		mutedWords = distinctIgnoringCase(mutedWords);
 		friends.removeIf(value -> value == null || value.isBlank());
 		friends = distinctIgnoringCase(friends);
+		teleportAutoAcceptFriends.removeIf(value -> value == null || value.isBlank());
+		teleportAutoAcceptFriends = distinctIgnoringCase(teleportAutoAcceptFriends);
+		teleportAutoAcceptFriends.removeIf(selected -> friends.stream()
+				.noneMatch(friend -> friend.equalsIgnoreCase(selected)));
 		friendLastSeen.entrySet().removeIf(entry -> entry.getKey() == null || entry.getKey().isBlank()
 				|| entry.getValue() == null || entry.getValue().isBlank());
 		if (globalPrefix == null) {

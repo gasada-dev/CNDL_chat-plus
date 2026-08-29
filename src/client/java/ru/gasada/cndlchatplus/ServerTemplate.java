@@ -24,6 +24,8 @@ public final class ServerTemplate {
 	public Map<String, String> friendLastSeen = new LinkedHashMap<>();
 	public boolean friendHudEnabled = true;
 	public boolean friendSoundEnabled = true;
+	public TeleportAutoAcceptMode teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
+	public List<String> teleportAutoAcceptFriends = new ArrayList<>();
 	public List<PeriodicMessageConfig> periodicMessages = new ArrayList<>();
 	public ServerCommandSettings commands = new ServerCommandSettings();
 	public ParserSettings parsers = new ParserSettings();
@@ -47,6 +49,10 @@ public final class ServerTemplate {
 		friends = sanitizeStrings(friends);
 		if (friendLastSeen == null) friendLastSeen = new LinkedHashMap<>();
 		friendLastSeen.entrySet().removeIf(entry -> entry.getKey() == null || entry.getValue() == null);
+		if (teleportAutoAcceptMode == null) teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
+		teleportAutoAcceptFriends = sanitizeStrings(teleportAutoAcceptFriends);
+		teleportAutoAcceptFriends.removeIf(selected -> friends.stream()
+				.noneMatch(friend -> friend.equalsIgnoreCase(selected)));
 		if (commands == null) commands = new ServerCommandSettings();
 		if (parsers == null) parsers = new ParserSettings();
 		if (playerInfo == null) playerInfo = new PlayerInfoSettings();
@@ -88,6 +94,9 @@ public final class ServerTemplate {
 		copy.friendLastSeen = new LinkedHashMap<>(friendLastSeen == null ? Map.of() : friendLastSeen);
 		copy.friendHudEnabled = friendHudEnabled;
 		copy.friendSoundEnabled = friendSoundEnabled;
+		copy.teleportAutoAcceptMode = teleportAutoAcceptMode == null
+				? TeleportAutoAcceptMode.OFF : teleportAutoAcceptMode;
+		copy.teleportAutoAcceptFriends = copyStrings(teleportAutoAcceptFriends);
 		copy.periodicMessages = copyPeriodicMessages(periodicMessages);
 		copy.commands = commands == null ? new ServerCommandSettings() : commands.copy();
 		copy.parsers = parsers == null ? new ParserSettings() : parsers.copy();
