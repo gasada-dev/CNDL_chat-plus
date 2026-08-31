@@ -68,4 +68,26 @@ final class ChatTimestampsTest {
 		assertTrue(timestamps.apply(notTimestamped).getString()
 				.matches("\\[\\d{2}:\\d{2}] \\[лс] Player » привет"));
 	}
+
+	@Test
+	void explicitTimestampSupportsDuplicateReplacementWithoutSkipState() {
+		ChatTimestamps timestamps = new ChatTimestamps(() -> true);
+		Component counted = Component.literal("Player » hello x3");
+
+		Component result = timestamps.at(counted, 0L);
+
+		assertTrue(result.getString().matches("\\[\\d{2}:\\d{2}] Player » hello x3"));
+		assertSame(result, timestamps.apply(result));
+	}
+
+	@Test
+	void countedMessagePreservesDisplayModificationsAndReplacesOwnTimestamp() {
+		ChatTimestamps timestamps = new ChatTimestamps(() -> true);
+		Component displayed = timestamps.at(Component.literal("[head] Player » hello"), 0L);
+
+		Component result = timestamps.counted(displayed, 3, 60_000L);
+
+		assertTrue(result.getString().matches("\\[\\d{2}:\\d{2}] \\[head] Player » hello x3"));
+		assertEquals(1, result.getString().split("\\[head]", -1).length - 1);
+	}
 }

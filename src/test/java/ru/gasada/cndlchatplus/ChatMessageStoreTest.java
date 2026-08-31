@@ -1,6 +1,7 @@
 package ru.gasada.cndlchatplus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -53,5 +54,19 @@ final class ChatMessageStoreTest {
 		assertEquals(2, snapshot.size());
 		assertEquals(5L, snapshot.get(0).timestamp());
 		assertEquals(6L, snapshot.get(1).timestamp());
+	}
+
+	@Test
+	void replacesLatestEntryWithoutChangingItsTabOrSize() {
+		ChatMessageStore store = new ChatMessageStore(() -> 10);
+		store.add(new ChatHistoryEntry(1L, "first", ChatTab.LOCAL));
+		store.add(new ChatHistoryEntry(2L, "duplicate", ChatTab.GLOBAL));
+
+		assertTrue(store.replaceLast("duplicate", 3L, "counted"));
+		assertEquals(List.of(
+				new ChatHistoryEntry(1L, "first", ChatTab.LOCAL),
+				new ChatHistoryEntry(3L, "counted", ChatTab.GLOBAL)), store.snapshot());
+		assertFalse(store.replaceLast("wrong", 4L, "lost"));
+		assertEquals("counted", store.snapshot().getLast().json());
 	}
 }

@@ -22,7 +22,8 @@
 ```text
 MarriageLookupManager / FriendLookupManager interception
 → ChatVisibilityFilter
-→ history/tabs/teleport handling
+→ ChatDuplicateCollapser / teleport handling
+→ history/tabs
 → отображение сообщения
 ```
 
@@ -32,6 +33,15 @@ mute, explicit Minecraft sender mute и compiled muted words активного 
 сообщение не записывается в историю и вкладки. При отсутствии active template или compiled
 settings фильтр работает fail-open и показывает сообщение. CNDL_chat+ не запускает
 auto-reply callback и не отправляет сообщения по legacy rules.
+
+`ChatDuplicateCollapser` после фильтра сравнивает отображаемый текст, видимое форматирование и source type только
+с непосредственно предыдущей отображённой строкой. Последовательные duplicates отменяются
+через Fabric `ALLOW_CHAT`/`ALLOW_GAME`; target-specific `ChatDuplicateAccess` заменяет первый
+`GuiMessage`, сохраняя signature/source/tag. Счётчик `xN`, timestamp последнего повтора и
+последняя persisted history entry обновляются без нового unread. Любая другая player/system
+или client-side строка сбрасывает серию. GAME side effects, включая TP request, выполняются и
+для отменённого duplicate; overlay messages не участвуют. При disconnect/template switch
+runtime state очищается.
 
 `ChatChannelDetector` проверяет Discord, private markers, clan markers, global prefix, `(!)`,
 global markers и fallback `LOCAL` именно в этом порядке. Его используют вкладки и context UI.
@@ -51,11 +61,14 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 
 ## Friends, lookup и HUD
 
-`FriendLookupManager` ставит в периодическую очередь только друзей active snapshot; ручной
-player-info fallback принимает любой валидный Minecraft-ник. Manager выдерживает delay 2,5
-секунды и timeout 7 секунд, использует `FriendLookupParser`/compiled template patterns и
-отправляет lookup через command service. Очередь очищается при disconnect/switch. `last seen`
-обновляется в target template scope.
+`FriendLookupManager` ставит в FIFO-очередь только друзей active snapshot; обход автоматически
+начинается через 30 секунд после подключения или раньше при открытии friends tab. Manager
+проверяет по пять игроков с delay 10 секунд между завершёнными ответами и паузой 60 секунд
+между группами. Timeout равен 7 секундам; background lookup без данных один раз повторяется
+после 60-секундной паузы. Ручной player-info fallback принимает любой валидный Minecraft-ник,
+идёт перед оставшейся background-очередью, но соблюдает общий cooldown. Parser использует
+compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
+автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.
 
 `FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд и notice 4 секунды. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
 

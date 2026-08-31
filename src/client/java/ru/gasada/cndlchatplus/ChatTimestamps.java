@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.PlainTextContents;
 
 public final class ChatTimestamps {
 	private static final DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern("HH:mm");
@@ -32,7 +33,7 @@ public final class ChatTimestamps {
 				|| PREFIX_PATTERN.matcher(message.getString()).find()) {
 			return message;
 		}
-		Component prefixed = withPrefix(message, System.currentTimeMillis());
+		Component prefixed = at(message, System.currentTimeMillis());
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
 		if (tabs != null) {
 			tabs.remapComponent(message, prefixed);
@@ -41,13 +42,22 @@ public final class ChatTimestamps {
 	}
 
 	public Component restored(Component message, long timestamp) {
-		if (!enabled()) {
-			return message;
-		}
-		Component prefixed = withPrefix(message, timestamp);
+		Component prefixed = at(message, timestamp);
+		if (prefixed == message) return message;
 		// ponytail: skip-set чистится при disconnect через resetRuntimeState
 		skipNext.add(prefixed);
 		return prefixed;
+	}
+
+	public Component at(Component message, long timestamp) {
+		return enabled() && !PREFIX_PATTERN.matcher(message.getString()).find()
+				? withPrefix(message, timestamp) : message;
+	}
+
+	public Component counted(Component displayedBase, int count, long timestamp) {
+		Component base = withoutOwnPrefix(displayedBase).copy().append(
+				Component.literal(" x" + count).withStyle(ChatFormatting.GRAY));
+		return enabled() ? withPrefix(base, timestamp) : base;
 	}
 
 	public void resetRuntimeState() {
@@ -57,5 +67,14 @@ public final class ChatTimestamps {
 	private static Component withPrefix(Component message, long timestamp) {
 		String time = FORMAT.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()));
 		return Component.literal("[" + time + "] ").withStyle(ChatFormatting.GRAY).append(message);
+	}
+
+	private static Component withoutOwnPrefix(Component message) {
+		if (message.getContents() instanceof PlainTextContents.LiteralContents literal
+				&& PREFIX_PATTERN.matcher(literal.text()).matches()
+				&& message.getSiblings().size() == 1) {
+			return message.getSiblings().getFirst();
+		}
+		return message;
 	}
 }

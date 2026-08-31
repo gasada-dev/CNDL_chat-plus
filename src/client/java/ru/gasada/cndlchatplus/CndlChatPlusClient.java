@@ -33,6 +33,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	public static MarriageLookupManager MARRIAGE_LOOKUP;
 	public static ChatTabController CHAT_TABS;
 	public static ChatTimestamps CHAT_TIMESTAMPS;
+	public static ChatDuplicateCollapser CHAT_DUPLICATES;
 	public static ChatSearchState CHAT_SEARCH;
 	public static TeleportRequestButton TELEPORT_REQUEST;
 	private ChatVisibilityFilter visibilityFilter;
@@ -102,11 +103,13 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		ChatHistoryStore chatHistoryStore = new ChatHistoryStore(ConfigManager.chatHistoryDirectory());
 		ChatHistoryCodec chatHistoryCodec = new ChatHistoryCodec();
 		CHAT_TIMESTAMPS = new ChatTimestamps(() -> Boolean.TRUE.equals(CONFIG.chatTimestampsEnabled));
+		CHAT_DUPLICATES = new ChatDuplicateCollapser();
 		CHAT_TABS = new ChatTabController(new ChatTabClassifier(TEMPLATE_RUNTIME),
 				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled));
 		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));
 		switchCoordinator.register(CHAT_TABS::resetRuntimeState);
 		switchCoordinator.register(CHAT_TIMESTAMPS::resetRuntimeState);
+		switchCoordinator.register(CHAT_DUPLICATES::reset);
 
 		KeyMapping.Category category = KeyMapping.Category.register(
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
@@ -129,14 +132,23 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			TELEPORT_REQUEST.tick(minecraft);
 		});
 
-		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) ->
-				MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
-						&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
-						&& visibilityFilter.decide(message.getString(), sender == null ? null : sender.name()).visible());
-		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) ->
-				overlay || MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
-						&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
-						&& visibilityFilter.decide(message.getString()).visible());
+		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
+			boolean visible = MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
+					&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+					&& visibilityFilter.decide(message.getString(),
+							sender == null ? null : sender.name()).visible();
+			return visible && allowIncoming(chatMessageStore, chatHistoryCodec, message,
+					ChatDuplicateCollapser.Source.CHAT);
+		});
+		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
+			if (overlay) return true;
+			boolean visible = MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
+					&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+					&& visibilityFilter.decide(message.getString()).visible();
+			if (!visible) return false;
+			return allowIncoming(chatMessageStore, chatHistoryCodec, message,
+					ChatDuplicateCollapser.Source.GAME);
+		});
 
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
 			recordIncoming(chatMessageStore, chatHistoryCodec, message, false);
@@ -148,18 +160,48 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			}
 		});
 
-		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) ->
-				restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec, minecraft));
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
+			CHAT_DUPLICATES.reset();
+			restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec, minecraft);
+		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
 			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
 			CHAT_TABS.resetRuntimeState();
 			CHAT_TIMESTAMPS.resetRuntimeState();
+			CHAT_DUPLICATES.reset();
 		});
 	}
 
 	private static boolean altDown(Minecraft minecraft) {
 		return InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LALT)
 				|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RALT);
+	}
+
+	private static boolean allowIncoming(ChatMessageStore store, ChatHistoryCodec codec,
+			Component message, ChatDuplicateCollapser.Source source) {
+		ChatDuplicateCollapser.Decision decision = CHAT_DUPLICATES.incoming(message, source);
+		if (!decision.duplicate()) return true;
+
+		long now = System.currentTimeMillis();
+		Component replacement = CHAT_TIMESTAMPS.counted(decision.displayedBase(), decision.count(), now);
+		Object chat = ChatAccess.chat(Minecraft.getInstance());
+		if (!((ChatDuplicateAccess) chat).gasada$replaceLatest(decision.expectedDisplayed(), replacement)) {
+			CHAT_DUPLICATES.replacementFailed(message, source);
+			return true;
+		}
+		CHAT_TABS.remapComponent(decision.expectedDisplayed(), replacement);
+		CHAT_DUPLICATES.replacementSucceeded(decision.replacementRaw(), replacement, decision.count());
+		((ChatTabFilterAccess) chat).gasada$refreshTrimmed();
+		if (source == ChatDuplicateCollapser.Source.GAME) {
+			TELEPORT_REQUEST.handleMessage(message.getString());
+		}
+
+		if (Boolean.TRUE.equals(CONFIG.chatHistoryEnabled)) {
+			String expectedJson = codec.toJson(decision.expectedRaw());
+			String json = codec.toJson(decision.replacementRaw());
+			if (expectedJson != null && json != null) store.replaceLast(expectedJson, now, json);
+		}
+		return false;
 	}
 
 	private static void recordIncoming(ChatMessageStore store, ChatHistoryCodec codec, Component message,

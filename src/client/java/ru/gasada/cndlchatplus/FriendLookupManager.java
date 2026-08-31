@@ -14,19 +14,28 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 public final class FriendLookupManager {
-	private static final long COMMAND_DELAY_MS = 2_500;
+	private static final long COMMAND_DELAY_MS = 10_000;
 	private static final long RESPONSE_TIMEOUT_MS = 7_000;
+	private static final int BACKGROUND_BATCH_SIZE = 5;
+	private static final long BACKGROUND_BATCH_PAUSE_MS = 60_000;
+	private static final long AUTOMATIC_START_DELAY_MS = 30_000;
+	private static final int MAX_BACKGROUND_RETRIES = 1;
 	private final ServerTemplateRuntime templateRuntime;
 	private final FriendActionService actions;
 	private final LongSupplier clock;
 	private final ServerLookupCoordinator coordinator;
 	private final Deque<LookupRequest> queue = new ArrayDeque<>();
+	private final Deque<LookupRequest> manualQueue = new ArrayDeque<>();
 	private LookupRequest pendingRequest;
 	private String pendingLastSeen;
 	private final Map<String, String> pendingPlayerInfo = new LinkedHashMap<>();
 	private long pendingSince;
 	private long nextCommandAt;
 	private boolean suppressTrailingWhitespace;
+	private boolean connectedLastTick;
+	private boolean activeFriendsQueued;
+	private long automaticQueueAt;
+	private int commandsInBatch;
 
 	public FriendLookupManager(ResponderConfig config) {
 		this(config, null, ServerTemplateRuntime.fromLegacyConfig(config));
@@ -64,7 +73,7 @@ public final class FriendLookupManager {
 					|| template.friends().stream().noneMatch(value -> value.equalsIgnoreCase(friend))) {
 				continue;
 			}
-			queue.addLast(new LookupRequest(friend, null));
+			queue.addLast(new LookupRequest(friend, null, 0));
 		}
 	}
 
@@ -72,23 +81,34 @@ public final class FriendLookupManager {
 		if (!PlayerNameValidator.validate(player).valid() || completion == null || isAlreadyQueued(player)) {
 			return false;
 		}
-		queue.addLast(new LookupRequest(player, completion));
+		manualQueue.addLast(new LookupRequest(player, completion, 0));
 		return true;
 	}
 
 	public void queueActiveFriends() {
-		templateRuntime.activeSnapshot().ifPresent(template -> queueFriends(template.friends()));
+		if (activeFriendsQueued) {
+			return;
+		}
+		templateRuntime.activeSnapshot().ifPresent(template -> {
+			queueFriends(template.friends());
+			activeFriendsQueued = true;
+		});
 	}
 
 	public void resetRuntimeState() {
 		completePendingRequests();
 		queue.clear();
+		manualQueue.clear();
 		pendingRequest = null;
 		pendingLastSeen = null;
 		pendingPlayerInfo.clear();
 		pendingSince = 0L;
 		nextCommandAt = 0L;
 		suppressTrailingWhitespace = false;
+		connectedLastTick = false;
+		activeFriendsQueued = false;
+		automaticQueueAt = 0L;
+		commandsInBatch = 0;
 		coordinator.release(this);
 	}
 
@@ -98,28 +118,29 @@ public final class FriendLookupManager {
 
 	void tick(boolean connected) {
 		if (!connected) {
-			completePendingRequests();
-			queue.clear();
-			pendingRequest = null;
-			pendingLastSeen = null;
-			pendingPlayerInfo.clear();
-			suppressTrailingWhitespace = false;
-			coordinator.release(this);
+			resetRuntimeState();
 			return;
 		}
 
 		long now = clock.getAsLong();
+		if (!connectedLastTick) {
+			connectedLastTick = true;
+			automaticQueueAt = now + AUTOMATIC_START_DELAY_MS;
+		}
+		if (!activeFriendsQueued && now >= automaticQueueAt) {
+			queueActiveFriends();
+		}
 		if (pendingRequest != null && now - pendingSince < RESPONSE_TIMEOUT_MS) {
 			return;
 		}
 		if (pendingRequest != null) {
-			finishLookup();
+			finishLookup(true);
 		}
-		if (queue.isEmpty() || now < nextCommandAt || !coordinator.tryAcquire(this)) {
+		if ((manualQueue.isEmpty() && queue.isEmpty()) || now < nextCommandAt || !coordinator.tryAcquire(this)) {
 			return;
 		}
 
-		pendingRequest = queue.removeFirst();
+		pendingRequest = manualQueue.isEmpty() ? queue.removeFirst() : manualQueue.removeFirst();
 		pendingLastSeen = null;
 		pendingPlayerInfo.clear();
 		suppressTrailingWhitespace = false;
@@ -131,6 +152,8 @@ public final class FriendLookupManager {
 			nextCommandAt = now + COMMAND_DELAY_MS;
 			coordinator.release(this);
 			if (failed.completion() != null) failed.completion().accept(new PlayerLookupData(null, Map.of()));
+		} else if (pendingRequest.completion() == null) {
+			commandsInBatch++;
 		}
 	}
 
@@ -171,7 +194,7 @@ public final class FriendLookupManager {
 					pendingPlayerInfo.put(parsed.fieldName(), parsed.value());
 					if (parser.isLookupEnd(text)) {
 						suppressTrailingWhitespace = true;
-						finishLookup();
+						finishLookup(false);
 					}
 				}
 				return false;
@@ -179,7 +202,7 @@ public final class FriendLookupManager {
 			case LOOKUP_END -> {
 				if (pendingRequest != null) {
 					suppressTrailingWhitespace = true;
-					finishLookup();
+					finishLookup(false);
 				}
 				return false;
 			}
@@ -206,19 +229,32 @@ public final class FriendLookupManager {
 				CompiledParserSettings.compile(new ParserSettings())));
 	}
 
-	private void finishLookup() {
+	private void finishLookup(boolean timedOut) {
 		LookupRequest finished = pendingRequest;
 		String finishedLastSeen = pendingLastSeen;
 		Map<String, String> finishedPlayerInfo = Map.copyOf(pendingPlayerInfo);
-		if (finished != null && finished.completion() == null && pendingLastSeen != null) {
+		boolean noDataTimeout = timedOut && finishedLastSeen == null && finishedPlayerInfo.isEmpty();
+		boolean backgroundNoDataTimeout = noDataTimeout && finished != null && finished.completion() == null;
+		boolean retry = backgroundNoDataTimeout
+				&& finished.retries() < MAX_BACKGROUND_RETRIES;
+		if (!retry && finished != null && finished.completion() == null && pendingLastSeen != null) {
 			actions.updateLastSeen(finished.player(), pendingLastSeen);
 		}
 		pendingRequest = null;
 		pendingLastSeen = null;
 		pendingPlayerInfo.clear();
-		nextCommandAt = clock.getAsLong() + COMMAND_DELAY_MS;
+		long now = clock.getAsLong();
+		if (retry) {
+			queue.addFirst(finished.retry());
+		}
+		if (backgroundNoDataTimeout || commandsInBatch >= BACKGROUND_BATCH_SIZE) {
+			commandsInBatch = 0;
+			nextCommandAt = now + BACKGROUND_BATCH_PAUSE_MS;
+		} else {
+			nextCommandAt = now + COMMAND_DELAY_MS;
+		}
 		coordinator.release(this);
-		if (finished != null && finished.completion() != null) {
+		if (!retry && finished != null && finished.completion() != null) {
 			finished.completion().accept(new PlayerLookupData(finishedLastSeen, finishedPlayerInfo));
 		}
 	}
@@ -230,16 +266,20 @@ public final class FriendLookupManager {
 		for (LookupRequest request : queue) {
 			if (request.completion() != null) request.completion().accept(new PlayerLookupData(null, Map.of()));
 		}
+		for (LookupRequest request : manualQueue) {
+			request.completion().accept(new PlayerLookupData(null, Map.of()));
+		}
 	}
 
 	private boolean isAlreadyQueued(String friend) {
 		String normalized = friend.toLowerCase(Locale.ROOT);
 		return pendingRequest != null && pendingRequest.player().equalsIgnoreCase(friend)
-				|| queue.stream().anyMatch(value -> value.player().toLowerCase(Locale.ROOT).equals(normalized));
+				|| queue.stream().anyMatch(value -> value.player().toLowerCase(Locale.ROOT).equals(normalized))
+				|| manualQueue.stream().anyMatch(value -> value.player().toLowerCase(Locale.ROOT).equals(normalized));
 	}
 
 	int queuedCount() {
-		return queue.size();
+		return queue.size() + manualQueue.size();
 	}
 
 	enum LookupMessageType {
@@ -255,5 +295,9 @@ public final class FriendLookupManager {
 	record LookupParseResult(LookupMessageType type, String value, String fieldName) {
 	}
 
-	private record LookupRequest(String player, Consumer<PlayerLookupData> completion) { }
+	private record LookupRequest(String player, Consumer<PlayerLookupData> completion, int retries) {
+		private LookupRequest retry() {
+			return new LookupRequest(player, completion, retries + 1);
+		}
+	}
 }

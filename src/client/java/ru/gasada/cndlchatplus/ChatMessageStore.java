@@ -21,6 +21,19 @@ public final class ChatMessageStore {
 		}
 	}
 
+	public boolean replaceLast(String expectedJson, long timestamp, String json) {
+		if (entries.isEmpty()) {
+			return false;
+		}
+		ChatHistoryEntry previous = entries.getLast();
+		if (!previous.json().equals(expectedJson)) {
+			return false;
+		}
+		entries.removeLast();
+		entries.addLast(new ChatHistoryEntry(timestamp, Objects.requireNonNull(json, "json"), previous.tab()));
+		return true;
+	}
+
 	public List<ChatHistoryEntry> snapshot() {
 		return List.copyOf(entries);
 	}
