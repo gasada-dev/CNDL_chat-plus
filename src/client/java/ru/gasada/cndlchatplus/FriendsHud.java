@@ -15,6 +15,7 @@ public final class FriendsHud {
 	private final ServerTemplateRuntime runtime;
 	private final FriendPresenceTracker tracker = new FriendPresenceTracker();
 	private volatile FriendHudSnapshot snapshot = FriendHudSnapshot.empty();
+	private int maxDisplayedOnlineFriends = 15;
 
 	public FriendsHud(ServerTemplateRuntime runtime) {
 		this.runtime = runtime;
@@ -47,14 +48,15 @@ public final class FriendsHud {
 				(graphics, deltaTracker) -> render(new CompatGraphics(graphics), snapshot));
 	}
 
-	private static void render(CompatGraphics graphics, FriendHudSnapshot snapshot) {
+	private void render(CompatGraphics graphics, FriendHudSnapshot snapshot) {
 		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) {
 			return;
 		}
 		Minecraft minecraft = Minecraft.getInstance();
 		Font font = minecraft.font;
-		List<String> online = snapshot.onlineFriends();
-		String title = "Друзья онлайн: " + online.size();
+		List<String> allOnline = snapshot.onlineFriends();
+		List<String> online = allOnline.subList(0, Math.min(maxDisplayedOnlineFriends, allOnline.size()));
+		String title = "Друзья онлайн: " + allOnline.size();
 		int contentWidth = font.width(title);
 		for (String friend : online) {
 			contentWidth = Math.max(contentWidth, font.width("● " + friend));

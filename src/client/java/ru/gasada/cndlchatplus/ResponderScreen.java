@@ -2,6 +2,7 @@ package ru.gasada.cndlchatplus;
 
 import static ru.gasada.cndlchatplus.UiConstants.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -299,7 +300,8 @@ public final class ResponderScreen extends CompatScreen {
 		int maxPage = maxFriendPage(visibleRows);
 		friendPage = Math.max(0, Math.min(friendPage, maxPage));
 		int start = friendPage * visibleRows;
-		List<String> activeFriends = activeFriends();
+		List<String> activeFriends = FriendListSorter.sort(activeFriends(), onlineFriends,
+				activeFriendLastSeen(), LocalDateTime.now());
 		int count = Math.min(visibleRows, activeFriends.size() - start);
 		for (int offset = 0; offset < count; offset++) {
 			String friend = activeFriends.get(start + offset);

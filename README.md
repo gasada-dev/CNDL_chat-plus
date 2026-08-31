@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер для Minecraft 1.21.11 и 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.8.2-B76EF5)
+![Version](https://img.shields.io/badge/version-0.8.3-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11%20%7C%2026.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
@@ -70,7 +70,8 @@ CNDL_chat+ помогает управлять чатом и серверным�
 ### Друзья
 
 - сохранённый список друзей и подсказки ников игроков онлайн;
-- статус, последнее посещение, HUD и уведомление о входе друга;
+- online-друзья идут первыми, offline-друзья сортируются по последнему посещению;
+- HUD показывает до 15 online-друзей и уведомляет об их входе;
 - личное сообщение, перевод денег, запрос телепорта и почта;
 - подсказки кнопок показывают фактическую команду активного сервера.
 - на Vanilla-box `Alt+ПКМ` по игроку открывает добавление и удаление из привата или торговца.
