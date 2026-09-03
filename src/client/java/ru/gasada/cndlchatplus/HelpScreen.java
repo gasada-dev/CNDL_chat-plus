@@ -22,8 +22,7 @@ public final class HelpScreen extends CompatScreen {
 					"ПКМ по строке чата открывает действия с сообщением или игроком.",
 					"Там доступны копирование, ЛС, друг, игнор, профиль, деньги, ТП и почта.")),
 			new Page("Каналы и фильтры", List.of(
-					"Маркеры локального, глобального, кланового, личного и Discord-чата",
-					"настраиваются отдельно для каждого серверного шаблона.",
+				"Маркеры локального, глобального, кланового, личного и Discord-чата настраиваются отдельно для каждого серверного шаблона.",
 					"Чат Discord можно глобально скрыть через экран настроек.",
 					"Отдельных Discord-пользователей можно добавить в локальный мут.",
 					"Чёрный список скрывает слова, фразы и маски со знаком *.",
@@ -108,15 +107,16 @@ public final class HelpScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		Page current = PAGES.get(page);
-		graphics.centeredText(font, current.title(), width / 2, panelY + 14, TEXT);
-		int y = panelY + 38;
+		graphics.centeredText(font, current.title(), width / 2, panelY + 14, ACCENT_SOFT);
+		graphics.fill(panelX + 18, panelY + 28, panelX + panelWidth - 18, panelY + 29, BORDER);
+		int y = panelY + 42;
 		for (String line : current.lines()) {
-			graphics.text(font, line, panelX + 18, y, MUTED);
+			graphics.text(font, "•", panelX + 18, y, ACCENT);
+			graphics.text(font, line, panelX + 32, y, TEXT);
 			y += 14;
 		}
 		graphics.centeredText(font, (page + 1) + " / " + PAGES.size(), width / 2,
-				panelY + panelHeight - 22, TEXT);
-		CreditRenderer.draw(graphics, font, panelX + 8, panelY + panelHeight - 12, MUTED);
+				panelY + panelHeight - 22, MUTED);
 	}
 
 	@Override
