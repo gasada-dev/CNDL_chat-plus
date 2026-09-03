@@ -1,5 +1,6 @@
 package ru.gasada.cndlchatplus;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
 
@@ -20,24 +21,32 @@ public final class TeleportRequestButton {
 	private final ServerCommandService commands;
 	private final LongSupplier clock;
 	private final Runnable soundPlayer;
+	private final BooleanSupplier soundEnabled;
 	private PendingRequest pending;
 	private boolean playSound;
 
 	public TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands) {
 		this(runtime, commands, System::currentTimeMillis, () -> Minecraft.getInstance().getSoundManager().play(
-				SimpleSoundInstance.forUI(REQUEST_SOUND, 1.0F)));
+				SimpleSoundInstance.forUI(REQUEST_SOUND, 1.0F)),
+				() -> Boolean.TRUE.equals(CndlChatPlusClient.CONFIG.teleportRequestSoundEnabled));
 	}
 
 	TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands, LongSupplier clock) {
-		this(runtime, commands, clock, () -> { });
+		this(runtime, commands, clock, () -> { }, () -> true);
 	}
 
 	TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands, LongSupplier clock,
 			Runnable soundPlayer) {
+		this(runtime, commands, clock, soundPlayer, () -> true);
+	}
+
+	TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands, LongSupplier clock,
+			Runnable soundPlayer, BooleanSupplier soundEnabled) {
 		this.runtime = runtime;
 		this.commands = commands;
 		this.clock = clock;
 		this.soundPlayer = soundPlayer;
+		this.soundEnabled = soundEnabled;
 	}
 
 	public void handleMessage(String message) {
@@ -125,7 +134,7 @@ public final class TeleportRequestButton {
 			return;
 		}
 		playSound = false;
-		soundPlayer.run();
+		if (soundEnabled.getAsBoolean()) soundPlayer.run();
 	}
 
 	private void render(CompatGraphics graphics) {

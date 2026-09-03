@@ -95,8 +95,10 @@ final class ChatTabControllerTest {
 	@Test
 	void resetClearsUnreadAndSources() {
 		controller.recordMessage(Component.literal("(!) Player » текст"), false);
+		controller.selectTab(ChatTab.GLOBAL, null);
 		controller.resetRuntimeState();
 
 		assertEquals(0, controller.unread(ChatTab.GLOBAL));
+		assertEquals(ChatTab.ALL, controller.active());
 	}
 }

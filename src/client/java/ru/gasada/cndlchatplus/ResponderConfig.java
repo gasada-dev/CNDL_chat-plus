@@ -17,6 +17,8 @@ public final class ResponderConfig {
 	public List<String> friends = new ArrayList<>();
 	public Map<String, String> friendLastSeen = new LinkedHashMap<>();
 	public Boolean friendHudEnabled = true;
+	public Boolean friendSoundEnabled = true;
+	public Boolean teleportRequestSoundEnabled = true;
 	public TeleportAutoAcceptMode teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
 	public List<String> teleportAutoAcceptFriends = new ArrayList<>();
 	public List<PeriodicMessageConfig> periodicMessages = new ArrayList<>();
@@ -37,12 +39,28 @@ public final class ResponderConfig {
 	public Boolean chatTimestampsEnabled = true;
 	public Boolean chatSearchEnabled = true;
 	public Boolean chatContextMenuEnabled = true;
+	public Boolean chatDuplicateCollapseEnabled = true;
 
 	public static ResponderConfig defaults() {
 		ResponderConfig config = new ResponderConfig();
 		config.rules.add(new ReplyRule("Всем привет", "привет", ChatChannel.AUTO));
 		config.periodicMessages.add(new PeriodicMessageConfig());
 		return config;
+	}
+
+	void applyGlobalSettingsFrom(ResponderConfig source) {
+		discordChatEnabled = source.discordChatEnabled;
+		friendHudEnabled = source.friendHudEnabled;
+		friendSoundEnabled = source.friendSoundEnabled;
+		teleportRequestSoundEnabled = source.teleportRequestSoundEnabled;
+		chatHistoryEnabled = source.chatHistoryEnabled;
+		chatHistoryPersist = source.chatHistoryPersist;
+		chatHistoryLimit = source.chatHistoryLimit;
+		chatTabsEnabled = source.chatTabsEnabled;
+		chatTimestampsEnabled = source.chatTimestampsEnabled;
+		chatSearchEnabled = source.chatSearchEnabled;
+		chatContextMenuEnabled = source.chatContextMenuEnabled;
+		chatDuplicateCollapseEnabled = source.chatDuplicateCollapseEnabled;
 	}
 
 	public void sanitize() {
@@ -63,6 +81,12 @@ public final class ResponderConfig {
 		}
 		if (friendHudEnabled == null) {
 			friendHudEnabled = true;
+		}
+		if (friendSoundEnabled == null) {
+			friendSoundEnabled = true;
+		}
+		if (teleportRequestSoundEnabled == null) {
+			teleportRequestSoundEnabled = true;
 		}
 		if (teleportAutoAcceptMode == null) {
 			teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
@@ -118,6 +142,9 @@ public final class ResponderConfig {
 		}
 		if (chatContextMenuEnabled == null) {
 			chatContextMenuEnabled = true;
+		}
+		if (chatDuplicateCollapseEnabled == null) {
+			chatDuplicateCollapseEnabled = true;
 		}
 	}
 

@@ -106,6 +106,23 @@ final class TemplateImportServiceTest {
 	}
 
 	@Test
+	void importingAllCategoriesPreservesLegacyTemplateFeatureFlags() {
+		ServerTemplate source = template("source");
+		source.discordChatEnabled = false;
+		source.friendHudEnabled = false;
+		source.friendSoundEnabled = false;
+		ServerTemplate target = template("target");
+		save(source, target);
+
+		ServerTemplate imported = service.preview("source", "target", TemplateImportOptions.all())
+				.value().proposedTargetCopy();
+
+		assertTrue(imported.discordChatEnabled);
+		assertTrue(imported.friendHudEnabled);
+		assertTrue(imported.friendSoundEnabled);
+	}
+
+	@Test
 	void importingOtherCategoriesPreservesInertAutomationBridge() {
 		ServerTemplate source = template("source");
 		source.rules.add(new ReplyRule("source-rule", "source-reply", ChatChannel.AUTO));

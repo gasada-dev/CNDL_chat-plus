@@ -16,20 +16,24 @@ Server templates предотвращают смешивание commands, parse
 - inert ordered reply rules, responder enabled, reply prefixes и periodic messages;
 - channel global prefix и markers;
 - muted words и Minecraft/Discord mute lists;
-- Discord toggle/settings;
+- Discord parser settings и mute list;
 - friends и last seen;
-- friend HUD/sound;
 - политика автоприёма телепорта и выбранные друзья;
 - server command templates;
 - Discord/channel/friend lookup parser patterns и separators.
 - provider информации об игроке.
+
+Старые JSON-поля `discordChatEnabled`, `friendHudEnabled` и `friendSoundEnabled` сохраняются
+при load/save/copy как compatibility data, но больше не входят в active snapshot.
 
 Automation bridge имеет exact preservation semantics во всех repository/deep-copy/import
 paths: nullable collections, null elements/nested fields, order, count, messages и intervals
 не sanitizes. Repository сериализует explicit nulls. Эти поля отсутствуют в
 `ActiveTemplateSnapshot`, поэтому nullable values не попадают в runtime hot paths.
 
-Глобальными остаются MOD ID, F8 key mapping (Minecraft controls), update-check runtime, UI theme, root schema/default/bindings и transient application services. F9 принадлежит CNDL_toolkit. Queues/presence/compiled objects не являются config и сбрасываются на switch.
+Глобальными остаются feature toggles чата, Discord-чата, HUD и звуков, MOD ID, F8 key mapping
+(Minecraft controls), update-check runtime, UI theme, root schema/default/bindings и transient
+application services. F9 принадлежит CNDL_toolkit. Queues/presence/compiled objects не являются config и сбрасываются на switch.
 
 ## Vanilla-box migration
 
@@ -66,7 +70,10 @@ group 1 и становится отдельной строкой экрана. 
 успешного repository save runtime не меняется. Можно выбрать default, временно активировать
 или постоянно привязать текущий address. Delete требует повторного нажатия и запрещён для active, only и default template.
 
-Основные server settings выбранного active template редактируются тремя вкладками `ResponderScreen`: каналы, чёрный список и друзья. Compatible `ResponderConfig` служит view и при save маршрутизируется в active template. Non-Vanilla save не перезаписывает legacy Vanilla data; automation bridge остаётся скрытым и неизменным.
+Server-specific списки выбранного active template редактируются вкладками `ResponderScreen`,
+а команды и форматы открываются через `Настройка команд для сервера` в глобальном экране
+настроек. Compatible `ResponderConfig` служит view и при save маршрутизируется в active template.
+Non-Vanilla save не перезаписывает legacy Vanilla data; automation bridge остаётся скрытым и неизменным.
 
 ## Каталог и обмен готовыми шаблонами
 
@@ -95,8 +102,7 @@ group 1 и становится отдельной строкой экрана. 
 
 - channels/markers;
 - muted words/Minecraft/Discord lists;
-- Discord settings;
-- friends/last seen/HUD/sound/teleport auto-accept;
+- friends/last seen/teleport auto-accept;
 - commands;
 - parser patterns.
 - provider информации об игроке и named lookup fields.
@@ -111,7 +117,7 @@ case-insensitive dedup, где это допустимо. Existing target last s
 
 ## Runtime reset и hot path
 
-При connect/manual switch сбрасываются lookup/pending queue, presence/HUD notices, compiled filters/parsers и temporary overrides. Snapshot deep immutable и не содержит automation bridge; JSON в incoming message/render не читается.
+При connect/manual switch сбрасываются lookup/pending queue, presence/HUD notices, compiled filters/parsers и temporary overrides. Изменение глобального feature toggle не переключает template и не сбрасывает другие сервисы. Snapshot deep immutable и не содержит automation bridge; JSON в incoming message/render не читается.
 
 ## Hardcode Vanilla-box
 

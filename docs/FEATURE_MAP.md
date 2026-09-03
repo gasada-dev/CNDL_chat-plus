@@ -11,21 +11,21 @@
 | Wildcard filters | `WildcardMatcher` | compiled muted words | все позиции `*`/regex literals/case handling |
 | Каналы чата | `ChatChannelDetector` | active global prefix/markers/parsers | Discord → private → clan → global → LOCAL |
 | Normalization | `ChatTextNormalizer` | chat text | Unicode whitespace и lowercase matching |
-| Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | active Discord/mutes/words | hidden message не попадает в history/tabs |
+| Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | global Discord toggle + active mutes/words | hidden message не попадает в history/tabs |
 | Исходящий chat/command | `OutgoingChatService` | connection | единственные Minecraft API send calls |
 | Именованные команды | `ServerCommandService` | active command templates | validators, missing command → no send |
 | Friend actions | `FriendActionService`, `CommandTemplateDisplay` | active friends/commands | send validators + подсказки фактических templates |
 | Friend lookup | `FriendLookupManager`, `FriendLookupParser`, `ServerLookupCoordinator` | active friends/patterns/last seen | delay/timeout/block interception/named fields/switch reset |
 | Информация об игроке | `PlayerInfoScreen`, `PlayerInfoService`, `VanillaGameProfileClient`, `MarriageLookupManager` | active provider + commands/parsers + session cache | suggestions/manual refresh/API validation/lookup fields/marriage pages/stale reset |
-| Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends/HUD/sound | warmup/offline confirm/notice/reconnect |
-| Main UI | `ResponderScreen`, `HelpScreen` + tab controllers | compatible active view | две равные вкладки, template selector/settings/help, player info над друзьями |
+| Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends + global HUD/sound | warmup/offline confirm/notice/reconnect |
+| Main UI | `ResponderScreen`, `SettingsScreen`, `HelpScreen` + tab controllers | global toggles + compatible active view | две равные вкладки, settings/help, server commands button, player info |
 | Legacy config/migration | `ConfigManager`, `BrandPathMigration`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | brand paths, backup, inert automation bridge, schema/ID migration, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
 | Update check | `UpdateChecker`, `UpdateVersion`, `UpdateAvailableScreen` | GitHub latest release + `UPDATE_NOTES.md` | async/status/type/size/UTF-8/tag/asset/notes URL/client tick/window preview |
 | История чата | `ChatMessageStore`, `ChatHistoryStore`, `ChatHistoryCodec`, `ChatComponentMixin`, `ChatAccess` | `ResponderConfig` chatHistory*, per-server JSON | ring buffer/limit, atomic save/load, corrupt file, fileKey, mixin limit |
 | Вкладки чата | `ChatTabController`, `ChatTabClassifier`, `ChatTabBar`, `ChatComponentFilterMixin`, `ChatScreenMixin` | `ResponderConfig` chatTabsEnabled, runtime identity map | classifier priority, unread counters, filter, remap |
 | Timestamps | `ChatTimestamps`, `ChatTimestampMixin` | `ResponderConfig` chatTimestampsEnabled | prefix format, restored skip, disabled passthrough |
-| Повторы сообщений | `ChatDuplicateCollapser`, `ChatDuplicateAccess`, target `ChatComponentFilterMixin` | transient previous Component/count | consecutive-only/source/style/reset/history/timestamp/unread |
+| Повторы сообщений | `ChatDuplicateCollapser`, `ChatDuplicateAccess`, target `ChatComponentFilterMixin` | global enable + transient previous Component/count | consecutive-only/source/style/reset/history/timestamp/unread |
 | Поиск по чату | `ChatSearchState`, `ChatScreenMixin`, `ChatComponentFilterMixin` | `ResponderConfig` chatSearchEnabled | trim/case-insensitive/filter AND active tab/reset |
 | Контекстное меню чата | `ChatContextMenuController`, `ContextMenuBuilder`, `ChatMessageSenderExtractor`, `ChatMessageUnderMouseAccess` | active commands/parsers + `ResponderConfig` chatContextMenuEnabled | hit test/sender/actions/no-template fail-safe/drafts |
 | Alt+ПКМ по игроку | `NearbyPlayerMenuScreen`, `ServerCommandService` | exact Vanilla-box + protection/trader commands | modifier/player hit/gating/validation/send |

@@ -10,11 +10,20 @@ final class ChatVisibilityFilterTest {
 	@Test
 	void disabledDiscordIsHiddenBeforeMutedWordEvaluation() {
 		ServerTemplate template = vanillaTemplate();
-		template.discordChatEnabled = false;
 		template.mutedWords.add("");
-		VisibilityDecision decision = filterFor(template).decide("[Discord] User » реклама");
+		VisibilityDecision decision = new ChatVisibilityFilter(runtimeFor(template), () -> false)
+				.decide("[Discord] User » реклама");
 		assertFalse(decision.visible());
 		assertEquals(FilterReason.DISCORD_DISABLED, decision.reason());
+	}
+
+	@Test
+	void discordToggleDoesNotDependOnActiveTemplate() {
+		ServerTemplate template = vanillaTemplate();
+		template.discordChatEnabled = false;
+
+		assertTrue(new ChatVisibilityFilter(runtimeFor(template), () -> true)
+				.decide("[Discord] User » hello").visible());
 	}
 
 	@Test

@@ -21,7 +21,7 @@ public final class FriendPresenceTracker {
 	private long notificationsEnabledAt;
 
 	public FriendHudSnapshot update(ActiveTemplateSnapshot template, Set<String> onlinePlayerNames,
-			Object connection, long now) {
+			Object connection, long now, boolean hudEnabled, boolean soundEnabled) {
 		if (template == null || connection == null) {
 			reset();
 			return FriendHudSnapshot.empty();
@@ -72,12 +72,13 @@ public final class FriendPresenceTracker {
 		previousOnline.clear();
 		previousOnline.addAll(currentOnline);
 		onlineNotices.entrySet().removeIf(entry -> entry.getValue() <= now);
-		if (!template.friendHudEnabled()) {
+		boolean playSound = friendCameOnline && soundEnabled;
+		if (!hudEnabled) {
 			onlineNotices.clear();
-			return new FriendHudSnapshot(List.of(), List.of(), false, false);
+			return new FriendHudSnapshot(List.of(), List.of(), false, playSound);
 		}
 		return new FriendHudSnapshot(online, new ArrayList<>(onlineNotices.keySet()), true,
-				friendCameOnline && template.friendSoundEnabled());
+				playSound);
 	}
 
 	public void reset() {

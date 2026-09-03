@@ -148,10 +148,8 @@ public final class TemplateImportScreen extends CompatScreen {
 			case MUTED_WORDS -> "Muted words";
 			case MUTED_MINECRAFT_PLAYERS -> "Muted Minecraft";
 			case MUTED_DISCORD_USERS -> "Muted Discord";
-			case DISCORD_SETTINGS -> "Discord settings";
 			case FRIENDS -> "Друзья";
 			case LAST_SEEN -> "Last seen";
-			case HUD_AND_SOUND -> "HUD и звук";
 			case COMMANDS -> "Команды";
 			case PARSER_PATTERNS -> "Parser patterns";
 			case PLAYER_INFO -> "Информация об игроке";

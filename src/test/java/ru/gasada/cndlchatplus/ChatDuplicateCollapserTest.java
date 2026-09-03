@@ -5,12 +5,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.junit.jupiter.api.Test;
 
 final class ChatDuplicateCollapserTest {
+	@Test
+	void disabledCollapserClearsPreviousSeries() {
+		AtomicBoolean enabled = new AtomicBoolean(true);
+		ChatDuplicateCollapser collapser = new ChatDuplicateCollapser(enabled::get);
+		Component message = Component.literal("same");
+		collapser.incoming(message, ChatDuplicateCollapser.Source.CHAT);
+		collapser.observeDisplayed(message);
+
+		enabled.set(false);
+		assertFalse(collapser.incoming(Component.literal("same"), ChatDuplicateCollapser.Source.CHAT).duplicate());
+		enabled.set(true);
+		assertFalse(collapser.incoming(Component.literal("same"), ChatDuplicateCollapser.Source.CHAT).duplicate());
+	}
+
 	@Test
 	void countsOnlyConsecutiveStructurallyEqualMessages() {
 		ChatDuplicateCollapser collapser = new ChatDuplicateCollapser();

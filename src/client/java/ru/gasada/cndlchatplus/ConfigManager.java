@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class ConfigManager {
@@ -49,9 +50,17 @@ public final class ConfigManager {
 		}
 
 		try {
-			ResponderConfig config = GSON.fromJson(Files.readString(CONFIG_PATH, StandardCharsets.UTF_8), ResponderConfig.class);
+			String serialized = Files.readString(CONFIG_PATH, StandardCharsets.UTF_8);
+			ResponderConfig config = GSON.fromJson(serialized, ResponderConfig.class);
 			if (config == null) {
 				return ResponderConfig.defaults();
+			}
+			JsonObject source = GSON.fromJson(serialized, JsonObject.class);
+			if (source != null && !source.has("friendSoundEnabled")) {
+				config.friendSoundEnabled = defaultTemplateFriendSound();
+				if (!writeConfig(config)) {
+					CndlChatPlusClient.LOGGER.warn("Не удалось сохранить перенос глобальной настройки звука друзей");
+				}
 			}
 			config.sanitize();
 			return config;
@@ -61,8 +70,36 @@ public final class ConfigManager {
 		}
 	}
 
+	private static boolean defaultTemplateFriendSound() {
+		ServerTemplateRepository repository = templateRepository();
+		TemplateOperationResult<RootConfig> root = repository.loadRoot();
+		if (!root.success() || root.value().defaultTemplateId == null) return true;
+		TemplateOperationResult<ServerTemplate> template = repository.loadTemplate(root.value().defaultTemplateId);
+		return !template.success() || template.value().friendSoundEnabled;
+	}
+
 	public static boolean save(ResponderConfig config) {
 		return save(config, true);
+	}
+
+	public static boolean saveGlobalSettings(ResponderConfig config) {
+		config.sanitize();
+		ResponderConfig persisted;
+		try {
+			persisted = Files.exists(CONFIG_PATH)
+					? GSON.fromJson(Files.readString(CONFIG_PATH, StandardCharsets.UTF_8), ResponderConfig.class)
+					: ResponderConfig.defaults();
+			if (persisted == null) {
+				CndlChatPlusClient.LOGGER.error("Не удалось сохранить глобальные настройки: пустой config");
+				return false;
+			}
+		} catch (Exception exception) {
+			CndlChatPlusClient.LOGGER.error("Не удалось прочитать config перед сохранением глобальных настроек",
+					exception);
+			return false;
+		}
+		persisted.applyGlobalSettingsFrom(config);
+		return writeConfig(persisted);
 	}
 
 	static boolean saveVanillaBoxLastSeen(ResponderConfig config) {
@@ -77,16 +114,11 @@ public final class ConfigManager {
 		if (activeId != null && !LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID.equals(activeId)) {
 			return saveActiveTemplateView(config, activeId);
 		}
-		Path temporaryPath = CONFIG_PATH.resolveSibling(CONFIG_PATH.getFileName() + ".tmp");
+		if (!writeConfig(config)) {
+			return false;
+		}
 
 		try {
-			Files.createDirectories(CONFIG_PATH.getParent());
-			Files.writeString(temporaryPath, GSON.toJson(config), StandardCharsets.UTF_8);
-			try {
-				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-			} catch (AtomicMoveNotSupportedException unsupported) {
-				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
-			}
 			TemplateOperationResult<ServerTemplate> loadedVanilla = templateRepository().loadTemplate(
 					LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID);
 			if (!loadedVanilla.success()) {
@@ -103,13 +135,31 @@ public final class ConfigManager {
 				CndlChatPlusClient.TEMPLATE_RUNTIME.switchTo(vanilla);
 			}
 			return true;
+		} catch (RuntimeException exception) {
+			CndlChatPlusClient.LOGGER.error("Не удалось сохранить настройки CNDL_chat+", exception);
+			return false;
+		}
+	}
+
+	private static boolean writeConfig(ResponderConfig config) {
+		Path temporaryPath = CONFIG_PATH.resolveSibling(CONFIG_PATH.getFileName() + ".tmp");
+		try {
+			Files.createDirectories(CONFIG_PATH.getParent());
+			Files.writeString(temporaryPath, GSON.toJson(config), StandardCharsets.UTF_8);
+			try {
+				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING,
+						StandardCopyOption.ATOMIC_MOVE);
+			} catch (AtomicMoveNotSupportedException unsupported) {
+				Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
+			}
+			return true;
 		} catch (IOException exception) {
 			try {
 				Files.deleteIfExists(temporaryPath);
 			} catch (IOException cleanupError) {
 				exception.addSuppressed(cleanupError);
 			}
-			CndlChatPlusClient.LOGGER.error("Не удалось сохранить настройки CNDL_chat+", exception);
+			CndlChatPlusClient.LOGGER.error("Не удалось записать настройки CNDL_chat+", exception);
 			return false;
 		}
 	}

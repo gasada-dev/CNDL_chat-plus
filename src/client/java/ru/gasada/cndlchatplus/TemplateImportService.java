@@ -59,7 +59,6 @@ public final class TemplateImportService {
 						target.mutedMinecraftPlayers, source.mutedMinecraftPlayers, options.listMode(category));
 				case MUTED_DISCORD_USERS -> target.discordMutedPlayers = importStrings(
 						target.discordMutedPlayers, source.discordMutedPlayers, options.listMode(category));
-				case DISCORD_SETTINGS -> target.discordChatEnabled = source.discordChatEnabled;
 				case FRIENDS -> {
 					TemplateImportOptions.ListMode mode = options.listMode(category);
 					target.friends = importStrings(target.friends, source.friends, mode);
@@ -70,10 +69,6 @@ public final class TemplateImportService {
 							source.teleportAutoAcceptFriends, mode);
 				}
 				case LAST_SEEN -> importLastSeen(source, target, options);
-				case HUD_AND_SOUND -> {
-					target.friendHudEnabled = source.friendHudEnabled;
-					target.friendSoundEnabled = source.friendSoundEnabled;
-				}
 				case COMMANDS -> target.commands = source.commands.copy();
 				case PARSER_PATTERNS -> target.parsers = source.parsers.copy();
 				case PLAYER_INFO -> target.playerInfo = source.playerInfo.copy();

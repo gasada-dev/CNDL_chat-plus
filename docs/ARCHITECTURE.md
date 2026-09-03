@@ -28,7 +28,7 @@ MarriageLookupManager / FriendLookupManager interception
 ```
 
 `ALLOW_CHAT`/`ALLOW_GAME` сначала дают marriage/friend managers извлечь данные и скрыть
-служебные lookup blocks. Затем `ChatVisibilityFilter` применяет Discord toggle, Discord
+служебные lookup blocks. Затем `ChatVisibilityFilter` применяет глобальный Discord toggle, Discord
 mute, explicit Minecraft sender mute и compiled muted words активного шаблона. Скрытое
 сообщение не записывается в историю и вкладки. При отсутствии active template или compiled
 settings фильтр работает fail-open и показывает сообщение. CNDL_chat+ не запускает
@@ -41,7 +41,8 @@ auto-reply callback и не отправляет сообщения по legacy 
 последняя persisted history entry обновляются без нового unread. Любая другая player/system
 или client-side строка сбрасывает серию. GAME side effects, включая TP request, выполняются и
 для отменённого duplicate; overlay messages не участвуют. При disconnect/template switch
-runtime state очищается.
+runtime state очищается. Глобальное отключение функции также очищает текущую серию, не влияя
+на timestamps, вкладки, поиск или history.
 
 `ChatChannelDetector` проверяет Discord, private markers, clan markers, global prefix, `(!)`,
 global markers и fallback `LOCAL` именно в этом порядке. Его используют вкладки и context UI.
@@ -70,7 +71,7 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
 автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.
 
-`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд и notice 4 секунды. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
+`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд и notice 4 секунды. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
 
 ## Запрос телепорта
 
@@ -79,7 +80,7 @@ compiled template patterns, отправка идёт через command service
 от всех, друзей или выбранных друзей через `ServerCommandService.acceptTeleport`. При успешном
 автоприёме HUD и звук не создаются; при несовпадении или ошибке отправки HUD показывает кнопку
 на 60 секунд. Клик доступен в открытом чате. Timeout, disconnect, template switch и успешный
-клик очищают запрос. Ручной запрос один раз проигрывает custom sound event, ссылающийся на
+клик очищают запрос. Ручной запрос при включённом глобальном переключателе один раз проигрывает custom sound event, ссылающийся на
 встроенный `minecraft:entity/shulker/ambient4`, из client tick. Без parser/command кнопка не появляется.
 
 ## Templates, migration и import
@@ -107,7 +108,9 @@ compiled template patterns, отправка идёт через command service
 `ResponderScreen` содержит две равные вкладки: чёрный список и друзья. Часть mutations/save и UI helpers вынесена в tab
 controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`; layout
 и orchestration остаются в screen. Верхняя строка содержит cycle selector active template,
-кнопки настроек и многостраничной подсказки. Rules tab, periodic hotspot и password UI отсутствуют.
+кнопки глобальных настроек и многостраничной подсказки. `SettingsScreen` независимо переключает
+вкладки, поиск, timestamps, повторы, context menu, Discord, HUD и два звука; серверные шаблоны
+открываются из него кнопкой `Настройка команд для сервера`. Rules tab, periodic hotspot и password UI отсутствуют.
 
 Внизу вкладки друзей находится cycle автоприёма телепорта. Режим выбранных друзей показывает
 персональный переключатель только после выбора друга из списка. Настройки изолированы active template.

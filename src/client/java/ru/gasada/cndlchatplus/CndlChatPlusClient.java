@@ -85,7 +85,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			return InteractionResult.FAIL;
 		});
 		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
-		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME);
+		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME,
+				() -> Boolean.TRUE.equals(CONFIG.discordChatEnabled));
 		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
 		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis,
 				lookupCoordinator);
@@ -104,7 +105,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		ChatHistoryStore chatHistoryStore = new ChatHistoryStore(ConfigManager.chatHistoryDirectory());
 		ChatHistoryCodec chatHistoryCodec = new ChatHistoryCodec();
 		CHAT_TIMESTAMPS = new ChatTimestamps(() -> Boolean.TRUE.equals(CONFIG.chatTimestampsEnabled));
-		CHAT_DUPLICATES = new ChatDuplicateCollapser();
+		CHAT_DUPLICATES = new ChatDuplicateCollapser(
+				() -> Boolean.TRUE.equals(CONFIG.chatDuplicateCollapseEnabled));
 		CHAT_TABS = new ChatTabController(new ChatTabClassifier(TEMPLATE_RUNTIME),
 				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled));
 		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));

@@ -3,12 +3,14 @@ package ru.gasada.cndlchatplus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 
 public final class ChatDuplicateCollapser {
+	private final BooleanSupplier enabled;
 	private Component original;
 	private List<VisiblePart> originalVisible;
 	private Component currentRaw;
@@ -18,7 +20,19 @@ public final class ChatDuplicateCollapser {
 	private int count;
 	private boolean awaitingDisplay;
 
+	public ChatDuplicateCollapser() {
+		this(() -> true);
+	}
+
+	public ChatDuplicateCollapser(BooleanSupplier enabled) {
+		this.enabled = enabled;
+	}
+
 	public Decision incoming(Component message, Source messageSource) {
+		if (!enabled.getAsBoolean()) {
+			reset();
+			return Decision.unique();
+		}
 		if (displayed != null && source == messageSource
 				&& originalVisible.equals(visibleParts(message))) {
 			int nextCount = count == Integer.MAX_VALUE ? count : count + 1;
@@ -31,6 +45,10 @@ public final class ChatDuplicateCollapser {
 	}
 
 	public void observeDisplayed(Component displayedMessage) {
+		if (!enabled.getAsBoolean()) {
+			reset();
+			return;
+		}
 		if (awaitingDisplay && count == 1) {
 			displayedBase = displayedMessage;
 			displayed = displayedMessage;

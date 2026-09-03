@@ -75,6 +75,26 @@ final class TeleportRequestButtonTest {
 	}
 
 	@Test
+	void disabledRequestSoundKeepsManualButton() {
+		AtomicInteger sounds = new AtomicInteger();
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		template.commands = ServerCommandSettings.vanillaBoxDefaults();
+		template.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.switchTo(template);
+		ServerCommandService commands = new ServerCommandService(runtime,
+				new OutgoingChatService(new ConnectedTransport(), ignored -> { }));
+		TeleportRequestButton button = new TeleportRequestButton(
+				runtime, commands, () -> 1_000L, sounds::incrementAndGet, () -> false);
+
+		button.handleMessage("Player просит телепортироваться к вам.");
+		button.playPendingSound();
+
+		assertTrue(button.visible());
+		assertEquals(0, sounds.get());
+	}
+
+	@Test
 	void automaticallyAcceptsRequestsAllowedByEachModeWithoutShowingButton() {
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
 		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");

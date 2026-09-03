@@ -1,10 +1,18 @@
 package ru.gasada.cndlchatplus;
 
+import java.util.function.BooleanSupplier;
+
 public final class ChatVisibilityFilter {
 	private final ServerTemplateRuntime templateRuntime;
+	private final BooleanSupplier discordChatEnabled;
 
 	public ChatVisibilityFilter(ServerTemplateRuntime templateRuntime) {
+		this(templateRuntime, () -> true);
+	}
+
+	public ChatVisibilityFilter(ServerTemplateRuntime templateRuntime, BooleanSupplier discordChatEnabled) {
 		this.templateRuntime = templateRuntime;
+		this.discordChatEnabled = discordChatEnabled;
 	}
 
 	public VisibilityDecision decide(String text) {
@@ -24,7 +32,7 @@ public final class ChatVisibilityFilter {
 		}
 
 		DiscordMessageParser.DiscordMessageInfo discord = new DiscordMessageParser(parsers).parse(text);
-		if (discord.discordMessage() && !template.discordChatEnabled()) {
+		if (discord.discordMessage() && !discordChatEnabled.getAsBoolean()) {
 			return VisibilityDecision.hidden(FilterReason.DISCORD_DISABLED, null);
 		}
 		if (discord.discordMessage() && discord.sender() != null

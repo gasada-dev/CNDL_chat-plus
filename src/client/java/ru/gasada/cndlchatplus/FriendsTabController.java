@@ -10,7 +10,6 @@ public final class FriendsTabController {
 		config.teleportAutoAcceptFriends.removeIf(v -> v.equalsIgnoreCase(name));
 		save();
 	}
-	public void setHudEnabled(boolean enabled) { config.friendHudEnabled = enabled; save(); }
 	public void setTeleportAutoAcceptMode(TeleportAutoAcceptMode mode) {
 		config.teleportAutoAcceptMode = mode;
 		save();

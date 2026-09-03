@@ -35,7 +35,9 @@ public final class FriendsHud {
 		minecraft.getConnection().getListedOnlinePlayers().forEach(info ->
 				onlinePlayers.add(info.getProfile().name()));
 		snapshot = tracker.update(runtime.activeSnapshot().orElse(null), onlinePlayers,
-				minecraft.getConnection(), System.currentTimeMillis());
+				minecraft.getConnection(), System.currentTimeMillis(),
+				Boolean.TRUE.equals(CndlChatPlusClient.CONFIG.friendHudEnabled),
+				Boolean.TRUE.equals(CndlChatPlusClient.CONFIG.friendSoundEnabled));
 		if (snapshot.playSound()) {
 			minecraft.getSoundManager().play(SimpleSoundInstance.forUI(
 					SoundEvents.PLAYER_LEVELUP, 1.0F, 0.75F));

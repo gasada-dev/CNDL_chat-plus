@@ -33,8 +33,8 @@
 - `globalPrefix` для классификации вкладок;
 - global/clan/private markers;
 - `mutedWords`, `mutedMinecraftPlayers`;
-- `discordChatEnabled`, `discordMutedPlayers`;
-- `friends`, `friendLastSeen`, `friendHudEnabled`, `friendSoundEnabled`;
+- `discordMutedPlayers`;
+- `friends`, `friendLastSeen`;
 - `teleportAutoAcceptMode`: `OFF`, `EVERYONE`, `FRIENDS` или `SELECTED_FRIENDS`, default `OFF`;
 - `teleportAutoAcceptFriends`: выбранное подмножество `friends` для `SELECTED_FRIENDS`;
 - inert `periodicMessages`;
@@ -55,6 +55,10 @@
   `teleportRequestConfigured` защищает пользовательское отключение от повторной установки bundled default.
 
 `ActiveTemplateSnapshot` является deep immutable copy только runtime-настроек CNDL_chat+ и не содержит automation bridge. Runtime state (lookup queue, presence/notices и compiled data) в JSON не сохраняется.
+
+Поля template `discordChatEnabled`, `friendHudEnabled` и `friendSoundEnabled` сохраняются для
+совместимости старых JSON, но runtime и import категорий их не используют. Соответствующие
+переключатели теперь глобальны.
 
 `ServerTemplate.sanitize()` восстанавливает только runtime fields CNDL_chat+. Он не меняет
 `responderEnabled`, nullable `rules` и nested/null entries/order, `clanReplyPrefix`,
@@ -91,6 +95,15 @@ Automation-поля в обоих bundled JSON намеренно сохране
 - `chatTimestampsEnabled` (default `true`) — серый префикс `[HH:mm]` у каждого сообщения.
 - `chatSearchEnabled` (default `true`) — фильтр открытого чата по Ctrl+F без учёта регистра.
 - `chatContextMenuEnabled` (default `true`) — interaction menu по ПКМ на видимой строке чата.
+- `chatDuplicateCollapseEnabled` (default `true`) — объединение последовательных одинаковых сообщений.
+- `discordChatEnabled` (default `true`) — показ распознанных сообщений Discord на всех серверах.
+- `friendHudEnabled` (default `true`) — HUD online-друзей на всех серверах.
+- `friendSoundEnabled` (default `true`) — звук появления друга независимо от HUD.
+- `teleportRequestSoundEnabled` (default `true`) — звук входящего запроса ТП без отключения кнопки.
+
+При первом чтении config без `friendSoundEnabled` значение переносится из default server
+template; если template недоступен, используется `true`. После этого глобальное значение
+атомарно сохраняется и больше не зависит от выбора сервера.
 
 `ResponderConfig.sanitize()`:
 
@@ -101,15 +114,14 @@ Automation-поля в обоих bundled JSON намеренно сохране
 4. восстанавливает `globalPrefix`, channel markers и обязательный global marker `(!)`;
 5. восстанавливает null `chatHistoryEnabled`/`chatHistoryPersist`/`chatHistoryLimit` и clamps
     limit к `[MIN_CHAT_HISTORY_LIMIT, MAX_CHAT_HISTORY_LIMIT]` (100–16384);
-6. восстанавливает null `chatTabsEnabled`/`chatTimestampsEnabled`/`chatSearchEnabled`/
-    `chatContextMenuEnabled`.
+6. восстанавливает null global feature toggles для чата, Discord, HUD и звуков.
 
 `sanitize()` не изменяет inert bridge: `enabled`, `rules` и nested values/order,
 `periodicMessages` и entries/order/count/intervals, legacy periodic singleton,
 `clanReplyPrefix` и `privateReplyCommand`. Null automation collections и explicit null nested
 values сохраняются. Старые default-rule и singleton-periodic migrations из общего sanitize удалены.
 
-При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. Обычный save применяет к target только visible global channel/filter/Discord/friends/HUD/teleport auto-accept fields; automation bridge, commands/parsers и friend sound не заменяются. Для `Vanilla-box` compatible JSON сохраняет explicit null через Gson `serializeNulls`, а template обновляется тем же visible-only helper. До save template selection заполняет compatible view, поэтому скрытые automation-поля сохраняются вместе с изменением каналов, фильтров или друзей.
+При выбранном не-`Vanilla-box` template `ConfigManager.save` маршрутизирует compatible UI view только в файл active template и не перезаписывает legacy Vanilla-box. `saveGlobalSettings` атомарно объединяет только global feature fields с persisted compatible config, не меняя server-specific view и automation bridge. Обычный save применяет к target только channel/filter/mute/friends/teleport auto-accept fields; automation bridge и commands/parsers не заменяются. До save template selection заполняет compatible server view, но не меняет глобальные переключатели.
 
 ## Безопасная миграция
 

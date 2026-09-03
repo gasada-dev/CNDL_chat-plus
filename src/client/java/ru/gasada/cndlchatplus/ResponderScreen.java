@@ -28,6 +28,7 @@ public final class ResponderScreen extends CompatScreen {
 	private Tab tab = Tab.BLACKLIST;
 	private int panelX;
 	private int panelWidth;
+	private boolean compactHeader;
 	private EditBox nicknameBox;
 	private EditBox wordBox;
 	private EditBox friendNameBox;
@@ -59,18 +60,25 @@ public final class ResponderScreen extends CompatScreen {
 	protected void init() {
 		panelWidth = Math.min(820, width - 20);
 		panelX = (width - panelWidth) / 2;
+		compactHeader = panelWidth < 520;
 		initTemplateSelector();
 
 		int half = panelWidth / 2;
 		int infoX = panelX + half;
 		int titleX = infoX - font.width(title) - 4;
-		addRenderableWidget(StyledButton.create(Component.literal("Подсказка"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal(compactHeader ? "?" : "Подсказка"), ignored ->
 				ClientUi.setScreen(minecraft, new HelpScreen(this)))
-				.bounds(titleX - 80, 2, 74, 18)
+				.bounds(compactHeader ? infoX - 28 : titleX - 80, 2, compactHeader ? 24 : 74, 18)
 				.tooltip(help("Показать возможности и управление CNDL_chat+")).build());
-		addRenderableWidget(StyledButton.create(Component.literal("Информация об игроке"), ignored ->
+		int settingsWidth = Math.min(compactHeader ? 72 : 104, panelWidth - half);
+		addRenderableWidget(StyledButton.create(Component.literal("Настройки"), ignored ->
+				ClientUi.setScreen(minecraft, new SettingsScreen(this, config)))
+				.bounds(panelX + half, 2, settingsWidth, 18)
+				.tooltip(help("Настроить функции CNDL_chat+ для всех серверов")).build());
+		addRenderableWidget(StyledButton.create(Component.literal(compactHeader ? "Игрок" : "Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
-				.bounds(panelX + half, 2, panelWidth - half, 18)
+				.bounds(panelX + half + settingsWidth + 4, 2,
+						panelWidth - half - settingsWidth - 4, 18)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
 		addTabButton(Tab.BLACKLIST, panelX, 27, half);
 		addTabButton(Tab.FRIENDS, panelX + half, 27, panelWidth - half);
@@ -93,7 +101,7 @@ public final class ResponderScreen extends CompatScreen {
 
 	private void initTemplateSelector() {
 		int infoX = panelX + panelWidth / 2;
-		int settingsX = Math.min(panelX + 198, infoX - 30);
+		int selectorRight = Math.min(panelX + 198, infoX - (compactHeader ? 32 : 30));
 		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
 		String activeId = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
 				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
@@ -103,15 +111,11 @@ public final class ResponderScreen extends CompatScreen {
 			String initial = activeId != null && ids.contains(activeId) ? activeId : ids.getFirst();
 			StyledCycleButton<String> selector = StyledCycleButton.of(
 					id -> Component.literal(templateName(loaded.value(), id)), initial, ids,
-					panelX + 6, 2, Math.max(60, settingsX - panelX - 10), 18, Component.empty(),
+					panelX + 6, 2, Math.max(60, selectorRight - panelX - 10), 18, Component.empty(),
 					(button, id) -> selectTemplate(id));
 			addRenderableWidget(selector);
 			selector.setTooltip(help("Активный серверный шаблон"));
 		}
-		addRenderableWidget(StyledButton.create(Component.literal("⚙"), ignored ->
-				ClientUi.setScreen(minecraft, new TemplatesScreen(this)))
-				.bounds(settingsX, 2, 28, 18)
-				.tooltip(help("Настройки серверных шаблонов")).build());
 	}
 
 	private String templateName(RootConfig root, String id) {
@@ -165,15 +169,6 @@ public final class ResponderScreen extends CompatScreen {
 		} else {
 			initWordBlacklist();
 		}
-
-		int bottomButtonWidth = Math.min(180, panelWidth - 36);
-		StyledCycleButton<Boolean> discordChat = StyledCycleButton.of(
-				value -> Component.literal(value ? "Включён" : "Выключен"), config.discordChatEnabled,
-				List.of(false, true), panelX + 18, height - 38, bottomButtonWidth, FIELD_HEIGHT,
-				Component.literal("Чат Discord"),
-				(button, value) -> config.discordChatEnabled = value);
-		addRenderableWidget(discordChat);
-		discordChat.setTooltip(help("Показывать или полностью скрывать все сообщения из Discord"));
 
 	}
 
@@ -370,18 +365,9 @@ public final class ResponderScreen extends CompatScreen {
 				.bounds(rightX + columnWidth - actionWidth, 128, actionWidth, FIELD_HEIGHT)
 				.tooltip(help(commandHelp("Перевод", ActiveTemplateSnapshot.CommandSnapshot::pay))).build());
 
-		int halfActionWidth = (columnWidth - 4) / 2;
 		addRenderableWidget(StyledButton.create(Component.literal("Отправить ТП"), ignored -> callFriend())
-				.bounds(rightX, 153, halfActionWidth, FIELD_HEIGHT)
+				.bounds(rightX, 153, columnWidth, FIELD_HEIGHT)
 				.tooltip(help(commandHelp("Телепорт", ActiveTemplateSnapshot.CommandSnapshot::call))).build());
-
-		StyledCycleButton<Boolean> hudToggle = StyledCycleButton.onOff(
-				Boolean.TRUE.equals(config.friendHudEnabled),
-				rightX + halfActionWidth + 4, 153, columnWidth - halfActionWidth - 4,
-				FIELD_HEIGHT, Component.literal("HUD друзей"),
-				(button, enabled) -> friendsController.setHudEnabled(enabled));
-		addRenderableWidget(hudToggle);
-		hudToggle.setTooltip(help("Показывать онлайн-друзей справа снизу во время игры"));
 
 		if (config.teleportAutoAcceptMode == TeleportAutoAcceptMode.SELECTED_FRIENDS
 				&& selectedFriend != null) {
@@ -707,7 +693,7 @@ public final class ResponderScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, 22, panelWidth, height - 26);
 		int infoX = panelX + panelWidth / 2;
-		graphics.text(font, title, infoX - font.width(title) - 4, 8, TEXT_COLOR);
+		if (!compactHeader) graphics.text(font, title, infoX - font.width(title) - 4, 8, TEXT_COLOR);
 		int half = panelWidth / 2;
 		int tabIndex = tab.ordinal();
 		int tabX = panelX + half * tabIndex;

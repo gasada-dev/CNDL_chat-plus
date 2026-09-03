@@ -112,6 +112,8 @@ public final class LegacyConfigToVanillaBoxMigration {
 			}
 		}
 		applyVisibleFields(template, legacy);
+		template.discordChatEnabled = Boolean.TRUE.equals(legacy.discordChatEnabled);
+		template.friendHudEnabled = Boolean.TRUE.equals(legacy.friendHudEnabled);
 	}
 
 	static void applyVisibleFields(ServerTemplate template, ResponderConfig config) {
@@ -120,12 +122,10 @@ public final class LegacyConfigToVanillaBoxMigration {
 		template.clanMarkers = config.clanMarkers;
 		template.privateMarkers = config.privateMarkers;
 		template.mutedWords = copyStrings(config.mutedWords);
-		template.discordChatEnabled = Boolean.TRUE.equals(config.discordChatEnabled);
 		template.discordMutedPlayers = copyStrings(config.discordMutedPlayers);
 		template.friends = copyStrings(config.friends);
 		template.friendLastSeen = new LinkedHashMap<>(
 				config.friendLastSeen == null ? java.util.Map.of() : config.friendLastSeen);
-		template.friendHudEnabled = Boolean.TRUE.equals(config.friendHudEnabled);
 		template.teleportAutoAcceptMode = config.teleportAutoAcceptMode == null
 				? TeleportAutoAcceptMode.OFF : config.teleportAutoAcceptMode;
 		template.teleportAutoAcceptFriends = copyStrings(config.teleportAutoAcceptFriends);
@@ -141,11 +141,9 @@ public final class LegacyConfigToVanillaBoxMigration {
 		target.clanMarkers = template.clanMarkers;
 		target.privateMarkers = template.privateMarkers;
 		target.mutedWords = new java.util.ArrayList<>(template.mutedWords);
-		target.discordChatEnabled = template.discordChatEnabled;
 		target.discordMutedPlayers = new java.util.ArrayList<>(template.discordMutedPlayers);
 		target.friends = new java.util.ArrayList<>(template.friends);
 		target.friendLastSeen = new java.util.LinkedHashMap<>(template.friendLastSeen);
-		target.friendHudEnabled = template.friendHudEnabled;
 		target.teleportAutoAcceptMode = template.teleportAutoAcceptMode == null
 				? TeleportAutoAcceptMode.OFF : template.teleportAutoAcceptMode;
 		target.teleportAutoAcceptFriends = new java.util.ArrayList<>(template.teleportAutoAcceptFriends);

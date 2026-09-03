@@ -102,6 +102,8 @@ public final class ChatTabController {
 	public void resetRuntimeState() {
 		gameMessages.clear();
 		unread.clear();
+		active = ChatTab.ALL;
+		chatOpen = false;
 	}
 
 }

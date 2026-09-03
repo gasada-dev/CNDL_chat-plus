@@ -200,11 +200,11 @@ final class LegacyConfigToVanillaBoxMigrationTest {
 		assertEquals("[clan]", template.clanMarkers);
 		assertEquals("[private]", template.privateMarkers);
 		assertEquals(List.of("muted"), template.mutedWords);
-		assertFalse(template.discordChatEnabled);
+		assertTrue(template.discordChatEnabled);
 		assertEquals(List.of("DiscordUser"), template.discordMutedPlayers);
 		assertEquals(List.of("Friend"), template.friends);
 		assertEquals("today", template.friendLastSeen.get("Friend"));
-		assertFalse(template.friendHudEnabled);
+		assertTrue(template.friendHudEnabled);
 		assertEquals(TeleportAutoAcceptMode.SELECTED_FRIENDS, template.teleportAutoAcceptMode);
 		assertEquals(List.of("Friend"), template.teleportAutoAcceptFriends);
 	}
@@ -213,6 +213,8 @@ final class LegacyConfigToVanillaBoxMigrationTest {
 	void populateLegacyViewPreservesNullableAutomationWithoutMutatingTemplate() {
 		ServerTemplate template = ServerTemplate.empty("target", "Target");
 		template.responderEnabled = false;
+		template.discordChatEnabled = false;
+		template.friendHudEnabled = false;
 		template.rules = null;
 		template.periodicMessages = null;
 		template.clanReplyPrefix = null;
@@ -229,6 +231,8 @@ final class LegacyConfigToVanillaBoxMigrationTest {
 		assertNull(view.periodicMessages);
 		assertNull(view.clanReplyPrefix);
 		assertNull(view.privateReplyCommand);
+		assertTrue(view.discordChatEnabled);
+		assertTrue(view.friendHudEnabled);
 	}
 
 	private Path copyFixture() throws IOException {

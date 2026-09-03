@@ -23,6 +23,9 @@ final class ResponderConfigTest {
 		assertTrue(config.enabled);
 		assertTrue(config.discordChatEnabled);
 		assertTrue(config.friendHudEnabled);
+		assertTrue(config.friendSoundEnabled);
+		assertTrue(config.teleportRequestSoundEnabled);
+		assertTrue(config.chatDuplicateCollapseEnabled);
 		assertEquals(TeleportAutoAcceptMode.OFF, config.teleportAutoAcceptMode);
 		assertTrue(config.teleportAutoAcceptFriends.isEmpty());
 		assertEquals("!", config.globalPrefix);
@@ -47,6 +50,8 @@ final class ResponderConfigTest {
 		config.friends = null;
 		config.friendLastSeen = null;
 		config.friendHudEnabled = null;
+		config.friendSoundEnabled = null;
+		config.teleportRequestSoundEnabled = null;
 		config.teleportAutoAcceptMode = null;
 		config.teleportAutoAcceptFriends = null;
 		config.periodicMessages = null;
@@ -62,6 +67,8 @@ final class ResponderConfigTest {
 
 		assertTrue(config.discordChatEnabled);
 		assertTrue(config.friendHudEnabled);
+		assertTrue(config.friendSoundEnabled);
+		assertTrue(config.teleportRequestSoundEnabled);
 		assertEquals(TeleportAutoAcceptMode.OFF, config.teleportAutoAcceptMode);
 		assertNotNull(config.teleportAutoAcceptFriends);
 		assertNotNull(config.discordMutedPlayers);
@@ -107,6 +114,7 @@ final class ResponderConfigTest {
 		config.chatTimestampsEnabled = null;
 		config.chatSearchEnabled = null;
 		config.chatContextMenuEnabled = null;
+		config.chatDuplicateCollapseEnabled = null;
 
 		config.sanitize();
 
@@ -114,6 +122,7 @@ final class ResponderConfigTest {
 		assertTrue(config.chatTimestampsEnabled);
 		assertTrue(config.chatSearchEnabled);
 		assertTrue(config.chatContextMenuEnabled);
+		assertTrue(config.chatDuplicateCollapseEnabled);
 	}
 
 	@Test
@@ -205,6 +214,34 @@ final class ResponderConfigTest {
 		assertEquals("(!),[custom]", config.globalMarkers);
 		assertNull(config.rules);
 		assertNull(config.periodicMessages);
+	}
+
+	@Test
+	void globalSettingsCopyDoesNotReplaceServerViewOrAutomationBridge() {
+		ResponderConfig persisted = new ResponderConfig();
+		persisted.friends.add("ServerFriend");
+		persisted.mutedWords.add("server-word");
+		persisted.rules = List.of(new ReplyRule("trigger", "reply", ChatChannel.AUTO));
+		ResponderConfig source = new ResponderConfig();
+		source.discordChatEnabled = false;
+		source.friendHudEnabled = false;
+		source.friendSoundEnabled = false;
+		source.teleportRequestSoundEnabled = false;
+		source.chatTabsEnabled = false;
+		source.chatDuplicateCollapseEnabled = false;
+
+		persisted.applyGlobalSettingsFrom(source);
+
+		assertFalse(persisted.discordChatEnabled);
+		assertFalse(persisted.friendHudEnabled);
+		assertFalse(persisted.friendSoundEnabled);
+		assertFalse(persisted.teleportRequestSoundEnabled);
+		assertFalse(persisted.chatTabsEnabled);
+		assertFalse(persisted.chatDuplicateCollapseEnabled);
+		assertEquals(List.of("ServerFriend"), persisted.friends);
+		assertEquals(List.of("server-word"), persisted.mutedWords);
+		assertEquals("trigger", persisted.rules.getFirst().trigger);
+		assertTrue(persisted.chatSearchEnabled);
 	}
 
 	@SafeVarargs
