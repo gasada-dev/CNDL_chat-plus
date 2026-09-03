@@ -61,14 +61,12 @@ public final class ResponderScreen extends CompatScreen {
 		panelWidth = Math.min(820, width - 20);
 		panelX = (width - panelWidth) / 2;
 		compactHeader = panelWidth < 520;
-		initTemplateSelector();
 
 		int half = panelWidth / 2;
 		int infoX = panelX + half;
-		int titleX = infoX - font.width(title) - 4;
-		addRenderableWidget(StyledButton.create(Component.literal(compactHeader ? "?" : "Подсказка"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("?"), ignored ->
 				ClientUi.setScreen(minecraft, new HelpScreen(this)))
-				.bounds(compactHeader ? infoX - 28 : titleX - 80, 2, compactHeader ? 24 : 74, 18)
+				.bounds(panelX + 6, 2, 24, 18)
 				.tooltip(help("Показать возможности и управление CNDL_chat+")).build());
 		int settingsWidth = Math.min(compactHeader ? 72 : 104, panelWidth - half);
 		addRenderableWidget(StyledButton.create(Component.literal("Настройки"), ignored ->
@@ -99,50 +97,9 @@ public final class ResponderScreen extends CompatScreen {
 		button.setTooltip(help(target.help));
 	}
 
-	private void initTemplateSelector() {
-		int infoX = panelX + panelWidth / 2;
-		int selectorRight = Math.min(panelX + 198, infoX - (compactHeader ? 32 : 30));
-		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
-		String activeId = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::id).orElse(null);
-		if (loaded.success() && !loaded.value().templates.isEmpty()) {
-			List<String> ids = loaded.value().templates.stream().map(info -> info.id).toList();
-			String initial = activeId != null && ids.contains(activeId) ? activeId : ids.getFirst();
-			StyledCycleButton<String> selector = StyledCycleButton.of(
-					id -> Component.literal(templateName(loaded.value(), id)), initial, ids,
-					panelX + 6, 2, Math.max(60, selectorRight - panelX - 10), 18, Component.empty(),
-					(button, id) -> selectTemplate(id));
-			addRenderableWidget(selector);
-			selector.setTooltip(help("Активный серверный шаблон"));
-		}
-	}
-
-	private String templateName(RootConfig root, String id) {
-		return root.templates.stream().filter(info -> id.equals(info.id))
-				.map(info -> info.name).findFirst().orElse(id);
-	}
-
-	private void selectTemplate(String id) {
-		String current = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::id).orElse(null);
-		if (id.equals(current)) return;
-		if (!saveCurrentTab()) {
-			setStatus("Не удалось сохранить текущий шаблон", ERROR);
-			rebuildContents();
-			return;
-		}
-		TemplateOperationResult<ServerTemplate> selected = CndlChatPlusClient.TEMPLATE_SELECTION.select(id);
-		if (!selected.success()) {
-			setStatus(selected.errorMessage(), ERROR);
-			rebuildContents();
-			return;
-		}
+	void activeTemplateChanged() {
 		selectedFriend = null;
 		friendLookupsQueued = false;
-		setStatus("Активный шаблон: " + selected.value().name, SUCCESS);
-		rebuildContents();
 	}
 
 	private void initBlacklistTab() {
