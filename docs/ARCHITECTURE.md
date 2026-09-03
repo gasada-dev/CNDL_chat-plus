@@ -64,7 +64,7 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 `FriendLookupManager` ставит в FIFO-очередь только друзей active snapshot; обход автоматически
 начинается через 30 секунд после подключения или раньше при открытии friends tab. Manager
 проверяет по пять игроков с delay 10 секунд между завершёнными ответами и паузой 60 секунд
-между группами. Timeout равен 7 секундам; background lookup без данных один раз повторяется
+между группами. Timeout равен 15 секундам; background lookup без данных один раз повторяется
 после 60-секундной паузы. Ручной player-info fallback принимает любой валидный Minecraft-ник,
 идёт перед оставшейся background-очередью, но соблюдает общий cooldown. Parser использует
 compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
@@ -134,7 +134,7 @@ lookup и marriage lookup. Оба состояния сбрасываются п
 
 ## Update checker
 
-`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; release обязан содержать точные assets `CNDL_chat+-<version>-mc1.21.11.jar` и `CNDL_chat+-<version>-mc26.2.jar` с HTTPS URL точного release path репозитория. `UpdateVersion` отдельно сохраняет comparison characterization. Экран с отдельной кнопкой для каждой версии открывается только из client tick; автоматической установки нет.
+`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; release обязан содержать точные assets `CNDL_chat+-<version>-mc1.21.11.jar` и `CNDL_chat+-<version>-mc26.2.jar` с HTTPS URL точного release path репозитория. Release body до 4 KiB формируется из `UPDATE_NOTES.md`; окно показывает помещающуюся часть и строит подтверждаемую ссылку на этот файл точного тега. `UpdateVersion` отдельно сохраняет comparison characterization. Экран с отдельной кнопкой для каждой версии открывается только из client tick; автоматической установки нет.
 
 ## История чата
 
@@ -194,6 +194,13 @@ Copy работает локально; ЛС/pay/mail
 подставляют draft в chat input, call/ignore идут через `ServerCommandService`, friend add сохраняет
 active template, player info открывает предзаполненный `PlayerInfoScreen`. Без active template
 командные действия отсутствуют.
+
+## VnbxBridge transport
+
+Minecraft 26.2 target регистрирует двунаправленный raw UTF-8 JSON payload `vnbx:bridge`.
+`PlatformBridgeNetworking` изолирует Fabric API, `VnbxBridgeClient` проверяет protocol/type/16 KiB limit
+и хранит последние сообщения только до disconnect. Transport не меняет UI, config или active template;
+server-specific adapters остаются на стороне VnbxBridge. Target 1.21.11 содержит только no-op facade.
 
 ## Threading и I/O invariants
 

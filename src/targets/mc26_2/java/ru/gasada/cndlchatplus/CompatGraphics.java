@@ -3,6 +3,7 @@ package ru.gasada.cndlchatplus;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 
 public final class CompatGraphics {
 	private final GuiGraphicsExtractor graphics;
@@ -14,6 +15,7 @@ public final class CompatGraphics {
 	void fill(int left, int top, int right, int bottom, int color) { graphics.fill(left, top, right, bottom, color); }
 	void text(Font font, String text, int x, int y, int color) { graphics.text(font, text, x, y, color); }
 	void text(Font font, Component text, int x, int y, int color) { graphics.text(font, text, x, y, color); }
+	void text(Font font, FormattedCharSequence text, int x, int y, int color) { graphics.text(font, text, x, y, color); }
 	void centeredText(Font font, String text, int x, int y, int color) { graphics.centeredText(font, text, x, y, color); }
 	void centeredText(Font font, Component text, int x, int y, int color) { graphics.centeredText(font, text, x, y, color); }
 	void textWithWordWrap(Font font, Component text, int x, int y, int width, int color) {

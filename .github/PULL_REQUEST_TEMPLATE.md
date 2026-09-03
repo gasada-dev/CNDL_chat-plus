@@ -4,7 +4,7 @@
 
 ## Проверка
 
-- [ ] `mod_version`, `README.md` и `CHANGELOG.md` обновлены
+- [ ] `mod_version`, `README.md`, `CHANGELOG.md` и `UPDATE_NOTES.md` обновлены
 - [ ] `./gradlew clean test build` проходит
 - [ ] `git diff --check` проходит
 - [ ] Добавлены или обновлены тесты

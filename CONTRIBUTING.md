@@ -17,7 +17,7 @@
 3. До изменения существующего алгоритма добавьте characterization tests.
 4. Не меняйте формат config без обратной совместимости, backup и миграционных тестов.
 5. Каждое изменение, включая документацию и CI, должно увеличивать `mod_version` и
-   обновлять `README.md` и `CHANGELOG.md`.
+   обновлять `README.md`, `CHANGELOG.md` и краткий `UPDATE_NOTES.md` текущей версии.
 6. Выполните `./gradlew clean test build` и `git diff --check`.
 7. Заполните checklist pull request и укажите, что проверялось вручную.
 

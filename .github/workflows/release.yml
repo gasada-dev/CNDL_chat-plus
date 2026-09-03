@@ -40,6 +40,8 @@ jobs:
         run: |
           test -f "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc1.21.11.jar"
           test -f "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc26.2.jar"
+          test -s UPDATE_NOTES.md
+          test "$(wc -c < UPDATE_NOTES.md)" -le 4096
 
       - name: Publish GitHub Release
         env:
@@ -50,6 +52,6 @@ jobs:
             "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc1.21.11.jar" \
             "build/release/CNDL_chat+-${{ steps.version.outputs.mod_version }}-mc26.2.jar" \
             --verify-tag \
-            --generate-notes \
+            --notes-file UPDATE_NOTES.md \
             --latest \
             --title "CNDL_chat+ ${{ steps.version.outputs.mod_version }}"

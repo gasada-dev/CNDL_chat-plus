@@ -2,7 +2,7 @@
 
 > Клиентский чат-менеджер для Minecraft 1.21.11 и 26.2 на Fabric.
 
-![Version](https://img.shields.io/badge/version-0.8.4-B76EF5)
+![Version](https://img.shields.io/badge/version-0.8.5-B76EF5)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11%20%7C%2026.2-62B47A)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4)
 ![Environment](https://img.shields.io/badge/environment-client-6E8CF5)
@@ -160,7 +160,8 @@ migration bridge. Загрузка, сохранение, копирование
 
 Один раз после подключения к серверу мод асинхронно проверяет последний выпуск на GitHub.
 Проверка не запускается в главном меню и не мешает работе при ошибке сети. Установка
-обновлений выполняется только пользователем.
+обновлений выполняется только пользователем. Окно показывает основные пункты из
+`UPDATE_NOTES.md`; полный файл конкретной версии открывается отдельной подтверждаемой ссылкой.
 
 Релизными файлами считаются JAR из
 **[GitHub Releases](https://github.com/gasada-dev/CNDL_chat-plus/releases/latest)** с именами:

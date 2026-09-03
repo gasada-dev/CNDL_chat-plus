@@ -75,19 +75,19 @@ final class FriendLookupManagerTest {
 		context.lookup.queueActiveFriends();
 		context.lookup.tick(true);
 
-		context.clock.set(7_000);
+		context.clock.set(15_000);
 		context.lookup.tick(true);
-		context.clock.set(66_999);
+		context.clock.set(74_999);
 		context.lookup.tick(true);
 		assertEquals(List.of("clan lookup Alice"), context.commands);
 
-		context.clock.set(67_000);
+		context.clock.set(75_000);
 		context.lookup.tick(true);
 		assertEquals(List.of("clan lookup Alice", "clan lookup Alice"), context.commands);
 
-		context.clock.set(74_000);
+		context.clock.set(90_000);
 		context.lookup.tick(true);
-		context.clock.set(134_000);
+		context.clock.set(150_000);
 		context.lookup.tick(true);
 		assertEquals(List.of("clan lookup Alice", "clan lookup Alice", "clan lookup Bob"),
 				context.commands);

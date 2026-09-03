@@ -18,6 +18,9 @@ final class UpdateCheckerSecurityTest {
 	void exactRepositoryJarsAndVersionAreAccepted() {
 		assertEquals("https://api.github.com/repos/gasada-dev/CNDL_chat-plus/releases/latest",
 				UpdateChecker.RELEASE_API_URL);
+		assertEquals("https://github.com/gasada-dev/CNDL_chat-plus/blob/v0.4.4/UPDATE_NOTES.md",
+				UpdateChecker.releaseNotesUrl(VERSION));
+		assertNull(UpdateChecker.releaseNotesUrl("release"));
 		assertTrue(UpdateChecker.validate(info(URL_12111, URL_262)).valid());
 	}
 
@@ -45,8 +48,12 @@ final class UpdateCheckerSecurityTest {
 				"1." + "1".repeat(40), URL_12111, URL_262, "x")).valid());
 		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(VERSION, null, URL_262, "x")).valid());
 		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(VERSION, URL_12111, null, "x")).valid());
+		assertTrue(UpdateChecker.validate(new UpdateChecker.UpdateInfo(
+				VERSION, URL_12111, URL_262, "x".repeat(UpdateChecker.MAX_RELEASE_NOTES_BYTES))).valid());
 		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(
-				VERSION, URL_12111, URL_262, "x".repeat(513))).valid());
+				VERSION, URL_12111, URL_262, "x".repeat(UpdateChecker.MAX_RELEASE_NOTES_BYTES + 1))).valid());
+		assertFalse(UpdateChecker.validate(new UpdateChecker.UpdateInfo(
+				VERSION, URL_12111, URL_262, "я".repeat(UpdateChecker.MAX_RELEASE_NOTES_BYTES / 2 + 1))).valid());
 	}
 
 	@Test

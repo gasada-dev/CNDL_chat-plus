@@ -15,7 +15,7 @@ import net.minecraft.network.chat.Component;
 
 public final class FriendLookupManager {
 	private static final long COMMAND_DELAY_MS = 10_000;
-	private static final long RESPONSE_TIMEOUT_MS = 7_000;
+	private static final long RESPONSE_TIMEOUT_MS = 15_000;
 	private static final int BACKGROUND_BATCH_SIZE = 5;
 	private static final long BACKGROUND_BATCH_PAUSE_MS = 60_000;
 	private static final long AUTOMATIC_START_DELAY_MS = 30_000;

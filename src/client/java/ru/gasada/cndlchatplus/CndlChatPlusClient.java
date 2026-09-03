@@ -40,6 +40,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		PlatformBridgeNetworking.register();
 		CONFIG = ConfigManager.load();
 		UpdateChecker updateChecker = new UpdateChecker();
 		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
@@ -163,8 +164,10 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
 			CHAT_DUPLICATES.reset();
 			restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec, minecraft);
+			PlatformBridgeNetworking.connected();
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
+			PlatformBridgeNetworking.disconnected();
 			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
 			CHAT_TABS.resetRuntimeState();
 			CHAT_TIMESTAMPS.resetRuntimeState();

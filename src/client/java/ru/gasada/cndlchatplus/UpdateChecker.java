@@ -24,9 +24,11 @@ public final class UpdateChecker {
 			"https://api.github.com/repos/gasada-dev/CNDL_chat-plus/releases/latest";
 	static final int MAX_BODY_BYTES = 65_536;
 	private static final int MAX_URL_LENGTH = 1_024;
-	private static final int MAX_MESSAGE_LENGTH = 512;
+	static final int MAX_RELEASE_NOTES_BYTES = 4_096;
 	private static final String ALLOWED_DOWNLOAD_HOST = "github.com";
 	private static final String ALLOWED_RELEASE_PATH = "/gasada-dev/CNDL_chat-plus/releases/download/";
+	private static final String RELEASE_NOTES_URL =
+			"https://github.com/gasada-dev/CNDL_chat-plus/blob/v%s/UPDATE_NOTES.md";
 	private static final String MINECRAFT_12111 = "1.21.11";
 	private static final String MINECRAFT_262 = "26.2";
 	private static final Gson GSON = new Gson();
@@ -156,7 +158,8 @@ public final class UpdateChecker {
 		if (info == null || !UpdateVersion.isStrictManifestVersion(info.version())) {
 			return ValidationResult.failure("Некорректная версия обновления");
 		}
-		if (info.message() != null && info.message().length() > MAX_MESSAGE_LENGTH) {
+		if (info.message() != null
+				&& info.message().getBytes(StandardCharsets.UTF_8).length > MAX_RELEASE_NOTES_BYTES) {
 			return ValidationResult.failure("Сообщение обновления слишком длинное");
 		}
 		ValidationResult first = validateDownloadUrl(info.version(), MINECRAFT_12111,
@@ -190,6 +193,10 @@ public final class UpdateChecker {
 
 	private static String assetName(String version, String minecraftVersion) {
 		return "CNDL_chat+-" + version + "-mc" + minecraftVersion + ".jar";
+	}
+
+	static String releaseNotesUrl(String version) {
+		return UpdateVersion.isStrictManifestVersion(version) ? RELEASE_NOTES_URL.formatted(version) : null;
 	}
 
 	static boolean isAllowedContentType(String contentType) {

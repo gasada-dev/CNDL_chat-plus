@@ -3,6 +3,7 @@
 | Функция | Основной владелец | Active/template data | Проверка |
 |---|---|---|---|
 | Bootstrap, F8, Fabric events | `CndlChatPlusClient` | active runtime | Запуск, F8, connect/disconnect |
+| VnbxBridge transport (только 26.2) | `VnbxBridgeClient`, target `PlatformBridgeNetworking` | transient payloads текущей сессии | protocol/type/size validation, handshake, disconnect reset |
 | Автовыбор template | `TemplateSelectionService`, `ServerTemplateResolver` | root bindings/patterns/default | exact, wildcard, default, unknown server |
 | Template CRUD/UI | `ServerTemplateManager`, `TemplatesScreen`, `TemplateEditorScreen` | root + template files | create/copy/rename/commands/Discord/delete/default/bind/temp select |
 | Bundled/external templates | `TemplateCatalogService` | JAR catalog + import folder | install once/no overwrite/validation/load button |
@@ -20,7 +21,7 @@
 | Main UI | `ResponderScreen`, `HelpScreen` + tab controllers | compatible active view | две равные вкладки, template selector/settings/help, player info над друзьями |
 | Legacy config/migration | `ConfigManager`, `BrandPathMigration`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | brand paths, backup, inert automation bridge, schema/ID migration, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |
-| Update check | `UpdateChecker`, `UpdateVersion` | GitHub latest release | async/status/type/size/UTF-8/tag/asset URL/client tick |
+| Update check | `UpdateChecker`, `UpdateVersion`, `UpdateAvailableScreen` | GitHub latest release + `UPDATE_NOTES.md` | async/status/type/size/UTF-8/tag/asset/notes URL/client tick/window preview |
 | История чата | `ChatMessageStore`, `ChatHistoryStore`, `ChatHistoryCodec`, `ChatComponentMixin`, `ChatAccess` | `ResponderConfig` chatHistory*, per-server JSON | ring buffer/limit, atomic save/load, corrupt file, fileKey, mixin limit |
 | Вкладки чата | `ChatTabController`, `ChatTabClassifier`, `ChatTabBar`, `ChatComponentFilterMixin`, `ChatScreenMixin` | `ResponderConfig` chatTabsEnabled, runtime identity map | classifier priority, unread counters, filter, remap |
 | Timestamps | `ChatTimestamps`, `ChatTimestampMixin` | `ResponderConfig` chatTimestampsEnabled | prefix format, restored skip, disabled passthrough |
