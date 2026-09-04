@@ -26,6 +26,8 @@ final class ResponderConfigTest {
 		assertTrue(config.friendSoundEnabled);
 		assertTrue(config.teleportRequestSoundEnabled);
 		assertTrue(config.chatDuplicateCollapseEnabled);
+		assertTrue(config.chatAlertsEnabled);
+		assertTrue(config.chatAlertRules.isEmpty());
 		assertEquals(TeleportAutoAcceptMode.OFF, config.teleportAutoAcceptMode);
 		assertTrue(config.teleportAutoAcceptFriends.isEmpty());
 		assertEquals("!", config.globalPrefix);
@@ -115,6 +117,8 @@ final class ResponderConfigTest {
 		config.chatSearchEnabled = null;
 		config.chatContextMenuEnabled = null;
 		config.chatDuplicateCollapseEnabled = null;
+		config.chatAlertsEnabled = null;
+		config.chatAlertRules = null;
 
 		config.sanitize();
 
@@ -123,6 +127,39 @@ final class ResponderConfigTest {
 		assertTrue(config.chatSearchEnabled);
 		assertTrue(config.chatContextMenuEnabled);
 		assertTrue(config.chatDuplicateCollapseEnabled);
+		assertTrue(config.chatAlertsEnabled);
+		assertTrue(config.chatAlertRules.isEmpty());
+	}
+
+	@Test
+	void sanitizeRepairsAndBoundsAlertRules() {
+		ResponderConfig config = new ResponderConfig();
+		config.chatAlertRules = new ArrayList<>();
+		config.chatAlertRules.add(null);
+		config.chatAlertRules.add(new ChatAlertRule("same", "  ", true, null,
+				" value ", null, true, false, -5));
+		config.chatAlertRules.add(new ChatAlertRule("same", "n".repeat(80), true,
+				ChatAlertMatchType.TEXT, "x".repeat(300), ChatAlertChannel.LOCAL, false, true, 9_999));
+		config.chatAlertRules.add(new ChatAlertRule("blank", "blank", true,
+				ChatAlertMatchType.TEXT, "   ", ChatAlertChannel.ANY, true, true, 1));
+		for (int index = 0; index < 110; index++) {
+			config.chatAlertRules.add(new ChatAlertRule("id-" + index, "rule", true,
+					ChatAlertMatchType.TEXT, "pattern", ChatAlertChannel.ANY, true, true, 0));
+		}
+
+		config.sanitize();
+
+		assertEquals(ResponderConfig.MAX_CHAT_ALERT_RULES, config.chatAlertRules.size());
+		assertEquals("Название", config.chatAlertRules.getFirst().name);
+		assertEquals(ChatAlertMatchType.TEXT, config.chatAlertRules.getFirst().matchType);
+		assertEquals(ChatAlertChannel.ANY, config.chatAlertRules.getFirst().channel);
+		assertEquals(0, config.chatAlertRules.getFirst().cooldownSeconds);
+		assertNotNull(config.chatAlertRules.get(1).id);
+		assertFalse(config.chatAlertRules.getFirst().id.equals(config.chatAlertRules.get(1).id));
+		assertEquals(ResponderConfig.MAX_CHAT_ALERT_NAME_LENGTH, config.chatAlertRules.get(1).name.length());
+		assertEquals(ResponderConfig.MAX_CHAT_ALERT_PATTERN_LENGTH,
+				config.chatAlertRules.get(1).pattern.length());
+		assertEquals(3600, config.chatAlertRules.get(1).cooldownSeconds);
 	}
 
 	@Test
@@ -229,6 +266,9 @@ final class ResponderConfigTest {
 		source.teleportRequestSoundEnabled = false;
 		source.chatTabsEnabled = false;
 		source.chatDuplicateCollapseEnabled = false;
+		source.chatAlertsEnabled = false;
+		source.chatAlertRules.add(new ChatAlertRule("alert", "Alert", true, ChatAlertMatchType.TEXT,
+				"word", ChatAlertChannel.ANY, true, false, 3));
 
 		persisted.applyGlobalSettingsFrom(source);
 
@@ -238,10 +278,54 @@ final class ResponderConfigTest {
 		assertFalse(persisted.teleportRequestSoundEnabled);
 		assertFalse(persisted.chatTabsEnabled);
 		assertFalse(persisted.chatDuplicateCollapseEnabled);
+		assertFalse(persisted.chatAlertsEnabled);
+		assertEquals("alert", persisted.chatAlertRules.getFirst().id);
+		assertEquals("trigger", persisted.rules.getFirst().trigger);
 		assertEquals(List.of("ServerFriend"), persisted.friends);
 		assertEquals(List.of("server-word"), persisted.mutedWords);
-		assertEquals("trigger", persisted.rules.getFirst().trigger);
 		assertTrue(persisted.chatSearchEnabled);
+	}
+
+	@Test
+	void tolerantJsonSkipsMalformedAlertsWithoutLosingAutomationBridge() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig config = ResponderConfigJson.read(gson, """
+				{
+				  "enabled": false,
+				  "rules": [{"trigger": null, "response": "reply", "channel": null}],
+				  "periodicMessages": null,
+				  "chatAlertsEnabled": "wrong",
+				  "chatAlertRules": [
+				    {"id":"valid","name":"Name","enabled":true,"matchType":"TEXT","pattern":"word","channel":"ANY","hudEnabled":true,"soundEnabled":false,"cooldownSeconds":3},
+				    {"id":"broken","pattern":{"not":"text"}},
+				    null
+				  ]
+				}
+				""");
+		config.sanitize();
+
+		assertFalse(config.enabled);
+		assertEquals(1, config.rules.size());
+		assertNull(config.rules.getFirst().trigger);
+		assertNull(config.rules.getFirst().channel);
+		assertNull(config.periodicMessages);
+		assertTrue(config.chatAlertsEnabled);
+		assertEquals(List.of("valid"), config.chatAlertRules.stream().map(rule -> rule.id).toList());
+	}
+
+	@Test
+	void alertRulesRoundTripExactly() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig source = new ResponderConfig();
+		source.chatAlertsEnabled = false;
+		source.chatAlertRules.add(new ChatAlertRule("stable", "Regex", false, ChatAlertMatchType.REGEX,
+				"^тест$", ChatAlertChannel.CLAN, false, true, 42));
+
+		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(source));
+		restored.sanitize();
+
+		assertFalse(restored.chatAlertsEnabled);
+		assertEquals(gson.toJson(source.chatAlertRules), gson.toJson(restored.chatAlertRules));
 	}
 
 	@SafeVarargs

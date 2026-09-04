@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.Screen;
 
 public final class ChatTabBar {
 	private static final int BAR_HEIGHT = 12;
@@ -20,6 +21,7 @@ public final class ChatTabBar {
 	private static final int COLOR_TEXT_ACTIVE = 0xFFFFFFFF;
 	private static final int COLOR_BADGE = 0xFFFF5555;
 	private static final String SEARCH_HINT = "Ctrl+F - поиск";
+	private static final String BOOKMARKS = "Закладки";
 
 	private ChatTabBar() {
 	}
@@ -39,6 +41,10 @@ public final class ChatTabBar {
 
 	public static int searchBoxY(Minecraft minecraft, int screenHeight) {
 		return Math.max(2, barBottom(minecraft, screenHeight) - BAR_HEIGHT - 20);
+	}
+
+	public static int searchBoxWidth(Font font, int screenWidth) {
+		return Math.max(40, Math.min(240, screenWidth - font.width(BOOKMARKS) - 14));
 	}
 
 	static List<TabRect> layout(Font font, ChatTabController tabs, int screenWidth, int barBottom) {
@@ -88,6 +94,40 @@ public final class ChatTabBar {
 			int screenHeight, Minecraft minecraft) {
 		if (search != null && search.enabled() && !search.active()) {
 			graphics.text(font, SEARCH_HINT, 6, searchBoxY(minecraft, screenHeight) + 5, COLOR_TEXT);
+		}
+	}
+
+	public static void renderBookmarks(CompatGraphics graphics, Font font, int screenWidth,
+			int screenHeight, int mouseX, int mouseY, Minecraft minecraft) {
+		if (CndlChatPlusClient.CHAT_BOOKMARKS == null) return;
+		BookmarkRect rect = bookmarkRect(font, screenWidth, screenHeight, minecraft);
+		graphics.fill(rect.x0(), rect.y0(), rect.x1(), rect.y1(),
+				rect.contains(mouseX, mouseY) ? COLOR_BG_HOVER : COLOR_BG);
+		graphics.outline(rect.x0(), rect.y0(), rect.x1() - rect.x0(), rect.y1() - rect.y0(),
+				COLOR_ACTIVE_OUTLINE);
+		graphics.text(font, BOOKMARKS, rect.x0() + PAD_X, rect.y0() + 3, COLOR_TEXT_ACTIVE);
+	}
+
+	public static boolean clickBookmarks(Screen parent, Font font, int screenWidth, int screenHeight,
+			double mouseX, double mouseY, Minecraft minecraft) {
+		if (CndlChatPlusClient.CHAT_BOOKMARKS == null
+				|| !bookmarkRect(font, screenWidth, screenHeight, minecraft).contains(mouseX, mouseY)) {
+			return false;
+		}
+		ClientUi.setScreen(minecraft, new ChatBookmarksScreen(parent, CndlChatPlusClient.CHAT_BOOKMARKS));
+		return true;
+	}
+
+	private static BookmarkRect bookmarkRect(Font font, int screenWidth, int screenHeight, Minecraft minecraft) {
+		int width = font.width(BOOKMARKS) + PAD_X * 2;
+		int x = Math.min(searchBoxWidth(font, screenWidth) + 6, screenWidth - width - 2);
+		int y = searchBoxY(minecraft, screenHeight) + 2;
+		return new BookmarkRect(Math.max(2, x), y, Math.max(2, x) + width, y + 14);
+	}
+
+	private record BookmarkRect(int x0, int y0, int x1, int y1) {
+		private boolean contains(double x, double y) {
+			return x >= x0 && x < x1 && y >= y0 && y < y1;
 		}
 	}
 

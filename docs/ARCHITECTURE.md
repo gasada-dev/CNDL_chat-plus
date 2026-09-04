@@ -22,6 +22,7 @@
 ```text
 MarriageLookupManager / FriendLookupManager interception
 → ChatVisibilityFilter
+→ ChatAlertService
 → ChatDuplicateCollapser / teleport handling
 → history/tabs
 → отображение сообщения
@@ -33,6 +34,17 @@ mute, explicit Minecraft sender mute и compiled muted words активного 
 сообщение не записывается в историю и вкладки. При отсутствии active template или compiled
 settings фильтр работает fail-open и показывает сообщение. CNDL_chat+ не запускает
 auto-reply callback и не отправляет сообщения по legacy rules.
+
+`ChatAlertService` получает только принятые фильтром CHAT/GAME events до объединения повторов.
+Он использует общую классификацию `ChatTabClassifier` и очищенный через
+`ChatMessageTextSanitizer` текст тела сообщения после распознанного sender-разделителя; ник
+отправителя не участвует в matching. `ChatAlertRuleCompiler` при load/save публикует immutable
+список TEXT/WILDCARD/REGEX matchers; message hot path regex не компилирует. Одно событие
+создаёт не больше одного HUD notice и
+одного sound action независимо от числа совпавших правил. Очередь HUD ограничена тремя
+уведомлениями с исходным текстом сообщения на четыре секунды; render только рисует snapshot. Join/disconnect очищают
+очередь и pending sounds. Восстановление history идёт напрямую в `ChatComponent`
+и alerts не запускает. Alert-конфигурация глобальна и не входит в active template.
 
 `ChatDuplicateCollapser` после фильтра сравнивает отображаемый текст, видимое форматирование и source type только
 с непосредственно предыдущей отображённой строкой. Последовательные duplicates отменяются
@@ -198,6 +210,17 @@ Copy работает локально; ЛС/pay/mail
 active template, player info открывает предзаполненный `PlayerInfoScreen`. Без active template
 командные действия отсутствуют.
 
+Пункт `Сохранить в закладки` доступен для любого найденного context target независимо от
+sender и active template. `ChatMessageTextSanitizer` удаляет собственный timestamp и Chat
+Heads label из bookmark text. `ChatBookmarkStore` держит отдельный список текущего connection
+и атомарно пишет каждую явную mutation в
+`config/cndl-chat-plus-chat-bookmarks/<fileKey>.json`. Join загружает scope по тому же
+нормализованному server address, что history; disconnect сохраняет и очищает runtime list.
+Bookmarks не входят в `ChatMessageStore`, template snapshot/import и не зависят от history
+toggles. Singleplayer без `ServerData` хранится только до disconnect. Кнопка над панелью
+вкладок открытого чата открывает список: новые записи сверху, copy только text, delete и отдельное
+подтверждения перед очисткой всех.
+
 ## VnbxBridge transport
 
 Minecraft 26.2 target регистрирует двунаправленный raw UTF-8 JSON payload `vnbx:bridge`.
@@ -210,6 +233,7 @@ server-specific adapters остаются на стороне VnbxBridge. Target
 - UI, connection/player list, chat/command send, HUD state и sound — client thread.
 - HTTP — async; callback не открывает screen.
 - JSON I/O не выполняется в message handler или render.
+- Bookmark I/O выполняется только по явному context/UI action и на connection lifecycle.
 - HUD render не сохраняет, не запускает lookup/commands/sound и не вычисляет presence transitions.
 - Persistent regex/wildcards компилируются при публикации snapshot, а не на каждом сообщении.
 

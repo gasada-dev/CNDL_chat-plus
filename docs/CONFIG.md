@@ -10,6 +10,7 @@
 | `.minecraft/config/server-templates/<id>.json` | один `ServerTemplate` на файл |
 | `.minecraft/config/cndl-chat-plus-template-imports/*.json` | входящие пользовательские templates; читаются только по кнопке загрузки |
 | `.minecraft/config/cndl-chat-plus-chat-history/<server>.json` | сохранённая история чата per server; пишется на disconnect, читается на join |
+| `.minecraft/config/cndl-chat-plus-chat-bookmarks/<server>.json` | независимые закладки сообщений per server; атомарно обновляются после явного действия |
 
 До чтения config старые `gasada-chat-responder.json`,
 `gasada-chat-responder-template-imports/` и `gasada-chat-responder-chat-history/` копируются
@@ -100,6 +101,31 @@ Automation-поля в обоих bundled JSON намеренно сохране
 - `friendHudEnabled` (default `true`) — HUD online-друзей на всех серверах.
 - `friendSoundEnabled` (default `true`) — звук появления друга независимо от HUD.
 - `teleportRequestSoundEnabled` (default `true`) — звук входящего запроса ТП без отключения кнопки.
+- `chatAlertsEnabled` (default `true`) — глобально включает Chat Alerts без удаления правил.
+- `chatAlertRules` (default `[]`) — ordered глобальные alert-правила, максимум 100.
+
+Alert-правило содержит stable `id`, `enabled`, `matchType` (`TEXT`,
+`WILDCARD`, `REGEX`), непустой `pattern`, `channel` (`ANY`, `GLOBAL`, `LOCAL`, `CLAN`,
+`PRIVATE`, `DISCORD`, `SYSTEM`) и независимые `hudEnabled`/`soundEnabled`. Pattern ограничен
+256 символами; null enum
+получает `TEXT`/`ANY`, blank pattern и null entry удаляются, duplicate/blank ID заменяется
+уникальным. Invalid regex остаётся безопасным persisted значением после ручного JSON edit,
+но не публикуется в runtime; UI не сохраняет его. Добавление полей backward-compatible и не
+меняет schema template repository.
+
+Legacy-поле alert rule `cooldownSeconds` сохраняется и sanitizes для JSON compatibility, но
+не показывается UI и не участвует в runtime matching.
+Поле `name` также сохраняется и sanitizes для compatibility, но не показывается в UI/HUD.
+
+Bookmark-файл содержит stable text DTO: `id`, `savedAtMillis`, nullable
+`messageTimestampMillis`, channel name, nullable `sender`, `text`. Load пропускает invalid/null
+entries и duplicate IDs, unknown channel заменяет на `SYSTEM`, sender ограничен 64, text 8192,
+файл 5000 новейших записей и bounded размер, покрывающий максимальный JSON этих полей.
+Corrupt/oversized JSON даёт пустой runtime list без crash. Запись использует
+sibling `.tmp` → atomic move. Данные не входят в config/template import и работают независимо
+от `chatHistoryEnabled`/`chatHistoryPersist`. Для текущей версии source message timestamp не
+сохраняется, если context target не предоставляет надёжную metadata; показывается время
+сохранения. Singleplayer без стабильного `ServerData` scope session-only.
 
 При первом чтении config без `friendSoundEnabled` значение переносится из default server
 template; если template недоступен, используется `true`. После этого глобальное значение
@@ -114,7 +140,8 @@ template; если template недоступен, используется `true
 4. восстанавливает `globalPrefix`, channel markers и обязательный global marker `(!)`;
 5. восстанавливает null `chatHistoryEnabled`/`chatHistoryPersist`/`chatHistoryLimit` и clamps
     limit к `[MIN_CHAT_HISTORY_LIMIT, MAX_CHAT_HISTORY_LIMIT]` (100–16384);
-6. восстанавливает null global feature toggles для чата, Discord, HUD и звуков.
+6. восстанавливает null global feature toggles для чата, Discord, HUD и звуков;
+7. sanitizes глобальные Chat Alerts по указанным лимитам, не затрагивая automation bridge.
 
 `sanitize()` не изменяет inert bridge: `enabled`, `rules` и nested values/order,
 `periodicMessages` и entries/order/count/intervals, legacy periodic singleton,

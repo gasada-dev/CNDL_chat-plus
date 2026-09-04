@@ -36,6 +36,22 @@ public final class ChatMessageSenderExtractor {
 				? Optional.of(new Sender(sender, false)) : Optional.empty();
 	}
 
+	public String messageBody(String displayed, CompiledParserSettings parsers) {
+		if (displayed == null) return "";
+		if (parsers == null || extract(displayed, parsers).isEmpty()) return displayed;
+		int separatorIndex = -1;
+		int separatorLength = 0;
+		for (String separator : parsers.replyCandidateSeparators()) {
+			if (separator == null || separator.isEmpty()) continue;
+			int index = displayed.lastIndexOf(separator);
+			if (index > separatorIndex) {
+				separatorIndex = index;
+				separatorLength = separator.length();
+			}
+		}
+		return separatorIndex < 0 ? displayed : displayed.substring(separatorIndex + separatorLength).trim();
+	}
+
 	public record Sender(String name, boolean discord) {
 	}
 }

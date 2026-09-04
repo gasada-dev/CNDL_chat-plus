@@ -36,6 +36,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	public static ChatDuplicateCollapser CHAT_DUPLICATES;
 	public static ChatSearchState CHAT_SEARCH;
 	public static TeleportRequestButton TELEPORT_REQUEST;
+	public static ChatAlertService CHAT_ALERTS;
+	public static ChatBookmarkStore CHAT_BOOKMARKS;
 	private ChatVisibilityFilter visibilityFilter;
 
 	@Override
@@ -110,6 +112,11 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		CHAT_TABS = new ChatTabController(new ChatTabClassifier(TEMPLATE_RUNTIME),
 				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled));
 		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));
+		CHAT_ALERTS = new ChatAlertService(() -> Boolean.TRUE.equals(CONFIG.chatAlertsEnabled),
+				CONFIG.chatAlertRules);
+		ChatAlertHud chatAlertHud = new ChatAlertHud();
+		chatAlertHud.register();
+		CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
 		switchCoordinator.register(CHAT_TABS::resetRuntimeState);
 		switchCoordinator.register(CHAT_TIMESTAMPS::resetRuntimeState);
 		switchCoordinator.register(CHAT_DUPLICATES::reset);
@@ -133,6 +140,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			friendsHud.tick(minecraft);
 			updateChecker.tick(minecraft);
 			TELEPORT_REQUEST.tick(minecraft);
+			chatAlertHud.tick(minecraft);
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
@@ -140,8 +148,9 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 					&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 					&& visibilityFilter.decide(message.getString(),
 							sender == null ? null : sender.name()).visible();
-			return visible && allowIncoming(chatMessageStore, chatHistoryCodec, message,
-					ChatDuplicateCollapser.Source.CHAT);
+			if (!visible) return false;
+			triggerAlert(chatAlertHud, message, false);
+			return allowIncoming(chatMessageStore, chatHistoryCodec, message, ChatDuplicateCollapser.Source.CHAT);
 		});
 		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
 			if (overlay) return true;
@@ -149,6 +158,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 					&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 					&& visibilityFilter.decide(message.getString()).visible();
 			if (!visible) return false;
+			triggerAlert(chatAlertHud, message, true);
 			return allowIncoming(chatMessageStore, chatHistoryCodec, message,
 					ChatDuplicateCollapser.Source.GAME);
 		});
@@ -165,6 +175,9 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
 			CHAT_DUPLICATES.reset();
+			CHAT_TIMESTAMPS.resetConnectionState();
+			chatAlertHud.resetRuntimeState();
+			connectBookmarks(minecraft);
 			restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec, minecraft);
 			PlatformBridgeNetworking.connected();
 		});
@@ -172,14 +185,23 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			PlatformBridgeNetworking.disconnected();
 			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
 			CHAT_TABS.resetRuntimeState();
-			CHAT_TIMESTAMPS.resetRuntimeState();
+			CHAT_TIMESTAMPS.resetConnectionState();
 			CHAT_DUPLICATES.reset();
+			chatAlertHud.resetRuntimeState();
+			CHAT_BOOKMARKS.disconnect();
 		});
 	}
 
 	private static boolean altDown(Minecraft minecraft) {
 		return InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LALT)
 				|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RALT);
+	}
+
+	private static void triggerAlert(ChatAlertHud hud, Component message, boolean fromGame) {
+		String text = message.getString();
+		ChatAlertDecision decision = CHAT_ALERTS.handle(text, CHAT_TABS.classify(text, fromGame),
+				TEMPLATE_RUNTIME.compiledParsers().orElse(null));
+		hud.handle(decision, text);
 	}
 
 	private static boolean allowIncoming(ChatMessageStore store, ChatHistoryCodec codec,
@@ -257,12 +279,22 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	}
 
 	private static String currentServerKey(Minecraft minecraft) {
+		String address = currentServerAddress(minecraft);
+		return address == null ? null : ChatHistoryStore.fileKey(address);
+	}
+
+	private static String currentServerAddress(Minecraft minecraft) {
 		ServerData server = minecraft.getCurrentServer();
 		if (server == null) {
 			return null;
 		}
 		ServerAddressNormalizer.NormalizationResult normalized = ServerAddressNormalizer.normalize(server.ip);
-		return normalized.valid() ? ChatHistoryStore.fileKey(normalized.normalizedAddress()) : null;
+		return normalized.valid() ? normalized.normalizedAddress() : null;
+	}
+
+	private static void connectBookmarks(Minecraft minecraft) {
+		String address = currentServerAddress(minecraft);
+		CHAT_BOOKMARKS.connect(address == null ? null : ChatHistoryStore.fileKey(address), address);
 	}
 
 }

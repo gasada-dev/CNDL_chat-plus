@@ -47,7 +47,8 @@ public final class LegacyConfigToVanillaBoxMigration {
 
 		ResponderConfig legacy;
 		try {
-			legacy = GSON.fromJson(Files.readString(legacyConfigPath, StandardCharsets.UTF_8), ResponderConfig.class);
+			legacy = ResponderConfigJson.read(GSON,
+					Files.readString(legacyConfigPath, StandardCharsets.UTF_8));
 			if (legacy == null) {
 				return TemplateOperationResult.failure("Старый config содержит JSON null", null);
 			}

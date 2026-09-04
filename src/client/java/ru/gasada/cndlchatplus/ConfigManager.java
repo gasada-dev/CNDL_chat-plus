@@ -32,6 +32,10 @@ public final class ConfigManager {
 		return CONFIG_PATH.getParent().resolve("cndl-chat-plus-chat-history");
 	}
 
+	public static Path chatBookmarksDirectory() {
+		return CONFIG_PATH.getParent().resolve("cndl-chat-plus-chat-bookmarks");
+	}
+
 	public static ResponderConfig load() {
 		try {
 			BrandPathMigration.migrate(CONFIG_PATH.getParent());
@@ -51,7 +55,7 @@ public final class ConfigManager {
 
 		try {
 			String serialized = Files.readString(CONFIG_PATH, StandardCharsets.UTF_8);
-			ResponderConfig config = GSON.fromJson(serialized, ResponderConfig.class);
+			ResponderConfig config = ResponderConfigJson.read(GSON, serialized);
 			if (config == null) {
 				return ResponderConfig.defaults();
 			}
@@ -87,7 +91,7 @@ public final class ConfigManager {
 		ResponderConfig persisted;
 		try {
 			persisted = Files.exists(CONFIG_PATH)
-					? GSON.fromJson(Files.readString(CONFIG_PATH, StandardCharsets.UTF_8), ResponderConfig.class)
+					? ResponderConfigJson.read(GSON, Files.readString(CONFIG_PATH, StandardCharsets.UTF_8))
 					: ResponderConfig.defaults();
 			if (persisted == null) {
 				CndlChatPlusClient.LOGGER.error("Не удалось сохранить глобальные настройки: пустой config");

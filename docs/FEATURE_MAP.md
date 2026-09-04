@@ -28,6 +28,8 @@
 | Повторы сообщений | `ChatDuplicateCollapser`, `ChatDuplicateAccess`, target `ChatComponentFilterMixin` | global enable + transient previous Component/count | consecutive-only/source/style/reset/history/timestamp/unread |
 | Поиск по чату | `ChatSearchState`, `ChatScreenMixin`, `ChatComponentFilterMixin` | `ResponderConfig` chatSearchEnabled | trim/case-insensitive/filter AND active tab/reset |
 | Контекстное меню чата | `ChatContextMenuController`, `ContextMenuBuilder`, `ChatMessageSenderExtractor`, `ChatMessageUnderMouseAccess` | active commands/parsers + `ResponderConfig` chatContextMenuEnabled | hit test/sender/actions/no-template fail-safe/drafts |
+| Chat Alerts | `ChatAlertService`, `ChatAlertRuleCompiler`, `ChatAlertHud`, `ChatAlertsScreen` | global `ResponderConfig.chatAlerts*` + transient HUD | matching/channel/aggregation/config sanitize, visible pipeline вручную |
+| Закладки сообщений | `ChatBookmarkStore`, `ChatContextMenuController`, `ChatBookmarksScreen` | отдельный per-server JSON + session runtime | CRUD/order/limits/atomic persistence/corrupt JSON/isolation/context action |
 | Alt+ПКМ по игроку | `NearbyPlayerMenuScreen`, `ServerCommandService` | exact Vanilla-box + protection/trader commands | modifier/player hit/gating/validation/send |
 | Принятие запроса ТП | `TeleportRequestButton`, `ServerCommandService` | active `acceptTeleport` + `teleportRequestPattern` + auto-accept mode/friends | match/policy/timeout/switch/click/send |
 

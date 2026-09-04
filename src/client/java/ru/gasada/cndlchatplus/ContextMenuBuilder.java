@@ -6,9 +6,10 @@ import java.util.List;
 public final class ContextMenuBuilder {
 	public List<ChatContextAction> build(ChatMessageSenderExtractor.Sender sender, Capabilities capabilities) {
 		List<ChatContextAction> actions = new ArrayList<>();
-		if (sender == null) return List.of(ChatContextAction.COPY_MESSAGE);
+		if (sender == null) return List.of(ChatContextAction.COPY_MESSAGE, ChatContextAction.BOOKMARK);
 		actions.add(ChatContextAction.COPY_NICK);
 		actions.add(ChatContextAction.COPY_MESSAGE);
+		actions.add(ChatContextAction.BOOKMARK);
 		if (sender.discord() || capabilities == null || !capabilities.activeTemplate()) {
 			return List.copyOf(actions);
 		}

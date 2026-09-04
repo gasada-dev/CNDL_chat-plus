@@ -40,4 +40,10 @@ final class ChatMessageSenderExtractorTest {
 	void rejectsMessagesWithoutConfiguredSeparator() {
 		assertTrue(extractor.extract("Steve вошёл в игру", parsers).isEmpty());
 	}
+
+	@Test
+	void messageBodyExcludesRecognizedSenderButKeepsSystemText() {
+		assertEquals("привет gasada", extractor.messageBody("[лс] Steve → привет gasada", parsers));
+		assertEquals("Steve вошёл в игру", extractor.messageBody("Steve вошёл в игру", parsers));
+	}
 }

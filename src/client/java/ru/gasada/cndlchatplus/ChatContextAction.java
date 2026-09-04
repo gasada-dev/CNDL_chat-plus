@@ -2,6 +2,7 @@ package ru.gasada.cndlchatplus;
 
 public enum ChatContextAction {
 	COPY_MESSAGE("Копировать сообщение"),
+	BOOKMARK("Сохранить в закладки"),
 	COPY_NICK("Копировать ник"),
 	PRIVATE_MESSAGE("Написать ЛС"),
 	ADD_FRIEND("Добавить в друзья"),

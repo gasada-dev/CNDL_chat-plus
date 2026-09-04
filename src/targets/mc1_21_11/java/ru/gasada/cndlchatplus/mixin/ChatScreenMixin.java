@@ -42,6 +42,8 @@ public abstract class ChatScreenMixin {
 		}
 		ChatTabBar.renderSearchHint(compat, Minecraft.getInstance().font,
 				CndlChatPlusClient.CHAT_SEARCH, screen.height, Minecraft.getInstance());
+		ChatTabBar.renderBookmarks(compat, Minecraft.getInstance().font,
+				screen.width, screen.height, mouseX, mouseY, Minecraft.getInstance());
 		gasada$contextMenu.render(compat, mouseX, mouseY, Minecraft.getInstance());
 	}
 
@@ -70,6 +72,11 @@ public abstract class ChatScreenMixin {
 			cir.setReturnValue(true);
 			return;
 		}
+		if (event.button() == 0 && ChatTabBar.clickBookmarks(screen, Minecraft.getInstance().font,
+				screen.width, screen.height, event.x(), event.y(), Minecraft.getInstance())) {
+			cir.setReturnValue(true);
+			return;
+		}
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
 		if (tabs == null || !tabs.enabled() || event.button() != 0) {
 			return;
@@ -95,7 +102,8 @@ public abstract class ChatScreenMixin {
 			Screen screen = (Screen) (Object) this;
 			int y = ChatTabBar.searchBoxY(Minecraft.getInstance(), screen.height);
 			gasada$searchBox = new EditBox(Minecraft.getInstance().font, 2, y,
-					Math.min(240, screen.width - 4), 18, Component.literal("Поиск по чату"));
+					ChatTabBar.searchBoxWidth(Minecraft.getInstance().font, screen.width), 18,
+					Component.literal("Поиск по чату"));
 			gasada$searchBox.setHint(Component.literal("Поиск по чату"));
 			gasada$searchBox.setResponder(value -> {
 				search.setQuery(value);

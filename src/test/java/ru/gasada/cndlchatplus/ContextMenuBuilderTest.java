@@ -10,19 +10,21 @@ final class ContextMenuBuilderTest {
 	private final ContextMenuBuilder builder = new ContextMenuBuilder();
 
 	@Test
-	void systemMessageOnlyAllowsCopy() {
-		assertEquals(List.of(ChatContextAction.COPY_MESSAGE), builder.build(null, null));
+	void systemMessageAllowsCopyAndBookmark() {
+		assertEquals(List.of(ChatContextAction.COPY_MESSAGE, ChatContextAction.BOOKMARK), builder.build(null, null));
 	}
 
 	@Test
 	void discordMessageOnlyAllowsCopying() {
-		assertEquals(List.of(ChatContextAction.COPY_NICK, ChatContextAction.COPY_MESSAGE),
+		assertEquals(List.of(ChatContextAction.COPY_NICK, ChatContextAction.COPY_MESSAGE,
+				ChatContextAction.BOOKMARK),
 				builder.build(new ChatMessageSenderExtractor.Sender("DiscordName", true), capabilities(true)));
 	}
 
 	@Test
 	void playerWithoutTemplateOnlyAllowsCopying() {
-		assertEquals(List.of(ChatContextAction.COPY_NICK, ChatContextAction.COPY_MESSAGE),
+		assertEquals(List.of(ChatContextAction.COPY_NICK, ChatContextAction.COPY_MESSAGE,
+				ChatContextAction.BOOKMARK),
 				builder.build(new ChatMessageSenderExtractor.Sender("Steve", false), capabilities(false)));
 	}
 
@@ -31,6 +33,7 @@ final class ContextMenuBuilderTest {
 		ContextMenuBuilder.Capabilities capabilities = new ContextMenuBuilder.Capabilities(
 				true, true, true, false, true, false);
 		assertEquals(List.of(ChatContextAction.COPY_NICK, ChatContextAction.COPY_MESSAGE,
+				ChatContextAction.BOOKMARK,
 				ChatContextAction.PRIVATE_MESSAGE, ChatContextAction.ADD_FRIEND, ChatContextAction.IGNORE,
 				ChatContextAction.PLAYER_INFO, ChatContextAction.CALL),
 				builder.build(new ChatMessageSenderExtractor.Sender("Steve", false), capabilities));

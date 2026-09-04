@@ -90,4 +90,17 @@ final class ChatTimestampsTest {
 		assertTrue(result.getString().matches("\\[\\d{2}:\\d{2}] \\[head] Player » hello x3"));
 		assertEquals(1, result.getString().split("\\[head]", -1).length - 1);
 	}
+
+	@Test
+	void ownershipTrackingIsBoundedAndDuplicateReplacementDoesNotLeak() {
+		ChatTimestamps timestamps = new ChatTimestamps(() -> true);
+		for (int index = 0; index < ResponderConfig.MAX_CHAT_HISTORY_LIMIT * 2 + 10; index++) {
+			timestamps.at(Component.literal("message " + index), index);
+		}
+		assertEquals(ResponderConfig.MAX_CHAT_HISTORY_LIMIT * 2, timestamps.trackedPrefixCount());
+
+		Component duplicate = timestamps.at(Component.literal("duplicate"), 0L);
+		for (int count = 2; count < 100; count++) duplicate = timestamps.counted(duplicate, count, count);
+		assertEquals(ResponderConfig.MAX_CHAT_HISTORY_LIMIT * 2, timestamps.trackedPrefixCount());
+	}
 }

@@ -33,7 +33,7 @@ public final class SettingsScreen extends CompatScreen {
 		panelHeight = Math.min(250, height - 24);
 		panelX = (width - panelWidth) / 2;
 		panelY = (height - panelHeight) / 2;
-		narrow = panelWidth < 520;
+		narrow = panelWidth < 520 || panelHeight < 245;
 		int gap = 16;
 		int columnWidth = (panelWidth - 52 - gap) / 2;
 		int left = panelX + 18;
@@ -173,6 +173,10 @@ public final class SettingsScreen extends CompatScreen {
 		addToggle("Звук входящего ТП", Boolean.TRUE.equals(config.teleportRequestSoundEnabled), x,
 				firstY + rowGap * 3, buttonWidth, "Проигрывать звук входящего запроса телепорта",
 				value -> config.teleportRequestSoundEnabled = value);
+		addRenderableWidget(StyledButton.create(Component.literal("Chat Alerts"), ignored ->
+				ClientUi.setScreen(minecraft, new ChatAlertsScreen(this, config)))
+				.bounds(x, firstY + rowGap * 4, buttonWidth, FIELD_HEIGHT)
+				.tooltip(Tooltip.create(Component.literal("Настроить уведомления о сообщениях"))).build());
 	}
 
 	private void addToggle(String name, boolean initial, int x, int y, int buttonWidth, String help,

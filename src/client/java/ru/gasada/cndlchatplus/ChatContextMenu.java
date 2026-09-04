@@ -14,6 +14,8 @@ public final class ChatContextMenu {
 
 	private String message;
 	private ChatMessageSenderExtractor.Sender sender;
+	private ChatTab channel;
+	private String bookmarkText;
 	private List<ChatContextAction> actions = List.of();
 	private int x;
 	private int y;
@@ -23,9 +25,12 @@ public final class ChatContextMenu {
 		return !actions.isEmpty();
 	}
 
-	public void open(String message, ChatMessageSenderExtractor.Sender sender, List<ChatContextAction> actions,
+	public void open(String message, String bookmarkText, ChatTab channel,
+			ChatMessageSenderExtractor.Sender sender, List<ChatContextAction> actions,
 			Font font, int mouseX, int mouseY, int screenWidth, int screenHeight) {
 		this.message = message;
+		this.bookmarkText = bookmarkText;
+		this.channel = channel;
 		this.sender = sender;
 		this.actions = List.copyOf(actions);
 		width = actions.stream().mapToInt(action -> font.width(action.label())).max().orElse(0) + PAD_X * 2;
@@ -37,6 +42,8 @@ public final class ChatContextMenu {
 		actions = List.of();
 		message = null;
 		sender = null;
+		channel = null;
+		bookmarkText = null;
 	}
 
 	public void render(CompatGraphics graphics, Font font, int mouseX, int mouseY) {
@@ -65,5 +72,13 @@ public final class ChatContextMenu {
 
 	public ChatMessageSenderExtractor.Sender sender() {
 		return sender;
+	}
+
+	public ChatTab channel() {
+		return channel;
+	}
+
+	public String bookmarkText() {
+		return bookmarkText;
 	}
 }

@@ -360,7 +360,39 @@ migration non-empty list переносится вместо singleton; при �
 форматированием и source type;
 любая другая строка завершает серию, overlay и скрытые фильтром сообщения в неё не входят.
 
-### 15.4. VnbxBridge transport (только 26.2)
+### 15.4. Chat Alerts
+
+1. В F8 → «Настройки» → `Chat Alerts` создать TEXT rule `gasada`, канал «Любой», HUD и звук.
+2. Получить `Gasada` в другом регистре: проверить одно HUD-уведомление и один vanilla sound на каждое входящее сообщение.
+3. Создать PRIVATE-only rule: global message не срабатывает, ЛС срабатывает.
+4. Отдельно проверить маску `*продам*алмазы*` и Unicode/case-insensitive regex.
+5. Ввести invalid regex и пустой pattern: экран остаётся открыт, правило не сохраняется, видна ошибка.
+6. Одним сообщением активировать несколько rules с HUD/звуком: виден один notice и слышен один sound.
+7. Проверить muted player, muted word, выключенный Discord и служебный lookup block: alerts отсутствуют.
+8. Получить серию одинаковых сообщений: duplicate collapse работает как раньше, alert получает каждое событие.
+9. Переподключиться с persisted history: восстановленные сообщения не вызывают HUD/sound.
+10. Выключить global `Chat Alerts`: rules остаются после reopen/restart, но не срабатывают.
+11. Переключить server template: rules сохраняются глобально, новые сообщения используют каналы нового template.
+12. Повторить минимум TEXT/HUD/sound/invalid-regex/reconnect на Minecraft 1.21.11 и 26.2.
+13. Создать правило по нику sender: ник до `»`/`→` не вызывает alert, то же слово в теле сообщения вызывает.
+
+### 15.5. Закладки сообщений
+
+1. ПКМ по player message → `Сохранить в закладки`; нажать `Закладки` над вкладками открытого чата.
+2. Проверить время сохранения, канал, sender и очищенный текст; `Копировать` кладёт в clipboard только text.
+3. Удалить запись, закрыть/reopen экран и reconnect: запись не возвращается.
+4. Сохранить два одинаковых сообщения: обе независимые записи остаются.
+5. Сохранить Discord и system/broadcast без sender.
+6. С Chat Heads и timestamps убедиться, что `[Ник head]` и synthetic `[HH:mm]` не входят в text.
+7. Сохранить wrapped message при изменённых chat scale/line spacing/scroll, active tab и search: создаётся одна запись целого target.
+8. Отключить `chatHistoryEnabled` и `chatHistoryPersist`: bookmark переживает reconnect на том же multiplayer server.
+9. Подключиться к другому server: списки не смешиваются; возврат восстанавливает первый список.
+10. Повредить bookmark JSON: клиент не падает, текущий список пуст, остальные функции работают.
+11. Нажать `Очистить все`: сначала открывается отдельное подтверждение; отмена сохраняет данные, подтверждение очищает файл.
+12. В singleplayer проверить session-only поведение без NPE; после disconnect список очищается.
+13. Повторить context action/load/copy/delete на Minecraft 1.21.11 и 26.2.
+
+### 15.6. VnbxBridge transport (только 26.2)
 
 1. Запустить локальный Folia 26.2 с `VnbxBridge` и подключиться клиентом 26.2.
 2. Проверить server log: клиент отправил `hello` и `request_snapshot`, сервер ответил

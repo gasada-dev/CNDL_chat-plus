@@ -31,11 +31,13 @@ public final class ChatContextMenuController {
 		CompiledParserSettings parsers = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
 				: CndlChatPlusClient.TEMPLATE_RUNTIME.compiledParsers().orElse(null);
 		String text = ChatMessageTextSanitizer.stripSyntheticLabels(target.component().getString());
-		boolean system = CndlChatPlusClient.CHAT_TABS != null
-				&& CndlChatPlusClient.CHAT_TABS.classify(text, target.fromGame()) == ChatTab.SYSTEM;
+		ChatTab channel = CndlChatPlusClient.CHAT_TABS == null ? ChatTab.SYSTEM
+				: CndlChatPlusClient.CHAT_TABS.classify(text, target.fromGame());
+		boolean system = channel == ChatTab.SYSTEM;
 		ChatMessageSenderExtractor.Sender sender = system ? null
 				: senderExtractor.extract(text, parsers).orElse(null);
-		menu.open(text, sender,
+		menu.open(text, ChatMessageTextSanitizer.canonicalMessageText(
+				target.component(), CndlChatPlusClient.CHAT_TIMESTAMPS), channel, sender,
 				menuBuilder.build(sender, capabilities()), minecraft.font,
 				(int) mouseX, (int) mouseY, screenWidth, screenHeight);
 		return true;
@@ -75,6 +77,10 @@ public final class ChatContextMenuController {
 		ServerCommandService commands = CndlChatPlusClient.SERVER_COMMANDS;
 		switch (action) {
 			case COPY_MESSAGE -> minecraft.keyboardHandler.setClipboard(menu.message());
+			case BOOKMARK -> {
+				ChatBookmarkStore bookmarks = CndlChatPlusClient.CHAT_BOOKMARKS;
+				if (bookmarks != null) bookmarks.add(menu.channel(), player, menu.bookmarkText());
+			}
 			case COPY_NICK -> minecraft.keyboardHandler.setClipboard(player);
 			case PRIVATE_MESSAGE -> commands.privateMessageDraft(player).ifPresent(draftConsumer);
 			case ADD_FRIEND -> CndlChatPlusClient.FRIEND_ACTIONS.addFriend(player);
