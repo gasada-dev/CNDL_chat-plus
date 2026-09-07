@@ -18,6 +18,16 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 - Карта feature → owner → tests: `docs/FEATURE_MAP.md`.
 - Build truth: `gradle.properties`, `build.gradle`.
 
+## Тестовая инфраструктура
+
+- Тестовый сервер: `/home/gasada/ai/vanillabox/vnbx-dev/server` (Folia 26.2); запуск
+  `java -jar folia.jar nogui`. Поднимать только для тестов и после проверки останавливать.
+- Тестовые инстансы PrismLauncher: `/home/gasada/.local/share/PrismLauncher/instances/{test,test2}`
+  (MC 26.2 Fabric).
+- Перед ручными тестами всегда собрать свежий JAR и подставить его в `minecraft/mods` обоих
+  тестовых инстансов.
+- MCP-сервер minecraft-mod-mcp — fork `/home/gasada/ai/minecraft-mod-mcp` (все изменения MCP там; bridge CLI: `packages/minecraft-mod-mcp/dist/cli.js`; клиентский мод для MCP-управления: `dist/minecraft-mcp-26.2-fabric.jar`).
+
 Читайте только относящиеся к задаче документы:
 
 | Задача | Документ |
