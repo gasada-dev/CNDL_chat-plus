@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Locale;
 import java.util.function.LongSupplier;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import net.minecraft.client.Minecraft;
@@ -24,6 +25,7 @@ public final class FriendLookupManager {
 	private final FriendActionService actions;
 	private final LongSupplier clock;
 	private final ServerLookupCoordinator coordinator;
+	private final BooleanSupplier bridgeAvailable;
 	private final Deque<LookupRequest> queue = new ArrayDeque<>();
 	private final Deque<LookupRequest> manualQueue = new ArrayDeque<>();
 	private LookupRequest pendingRequest;
@@ -57,15 +59,21 @@ public final class FriendLookupManager {
 
 	FriendLookupManager(ServerTemplateRuntime templateRuntime, FriendActionService actions, LongSupplier clock,
 			ServerLookupCoordinator coordinator) {
+		this(templateRuntime, actions, clock, coordinator, () -> false);
+	}
+
+	FriendLookupManager(ServerTemplateRuntime templateRuntime, FriendActionService actions, LongSupplier clock,
+			ServerLookupCoordinator coordinator, BooleanSupplier bridgeAvailable) {
 		this.templateRuntime = templateRuntime;
 		this.actions = actions;
 		this.clock = clock;
 		this.coordinator = coordinator;
+		this.bridgeAvailable = bridgeAvailable;
 	}
 
 	public void queueFriends(Collection<String> friends) {
 		ActiveTemplateSnapshot template = templateRuntime.activeSnapshot().orElse(null);
-		if (template == null) {
+		if (template == null || bridgeAvailable.getAsBoolean()) {
 			return;
 		}
 		for (String friend : friends) {
@@ -78,7 +86,8 @@ public final class FriendLookupManager {
 	}
 
 	public boolean queueManualLookup(String player, Consumer<PlayerLookupData> completion) {
-		if (!PlayerNameValidator.validate(player).valid() || completion == null || isAlreadyQueued(player)) {
+		if (bridgeAvailable.getAsBoolean() || !PlayerNameValidator.validate(player).valid() || completion == null
+				|| isAlreadyQueued(player)) {
 			return false;
 		}
 		manualQueue.addLast(new LookupRequest(player, completion, 0));

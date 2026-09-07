@@ -38,7 +38,6 @@ git diff --check
 - legacy rules/periodic/reply fields сохраняются после load/save/copy и остаются inert для миграции CNDL_toolkit;
 - bundled template JSON находится внутри JAR, пользовательские config/log/tmp не попали;
 - при недоступности player-profile API server lookup сохраняет named fields из active template;
-- при `marry: null` проверяется только настроенный в active template постраничный marriage lookup;
 - tag будет иметь точное имя `v<mod_version>`.
 
 Для версии 0.8.0 публикация CNDL_chat+ не меняет workflow: push main выполняется позже без

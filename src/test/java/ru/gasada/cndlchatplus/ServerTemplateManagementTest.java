@@ -68,4 +68,21 @@ final class ServerTemplateManagementTest {
 		assertEquals("vanilla-box", repository.loadRoot().value().defaultTemplateId);
 		assertTrue(repository.loadTemplate("vanilla-box").success());
 	}
+
+	@Test
+	void failedSelectionClearsRuntimeWithoutChangingConfiguredDefault() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
+		ServerTemplate selected = ServerTemplate.empty("selected", "Selected");
+		assertTrue(repository.saveTemplate(selected).success());
+		RootConfig root = new RootConfig();
+		root.defaultTemplateId = "missing";
+		assertTrue(repository.saveRoot(root).success());
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		runtime.switchTo(selected);
+		TemplateSelectionService selection = new TemplateSelectionService(repository, runtime, new ResponderConfig());
+
+		assertFalse(selection.select("missing").success());
+		assertTrue(runtime.activeSnapshot().isEmpty());
+		assertEquals("missing", repository.loadRoot().value().defaultTemplateId);
+	}
 }

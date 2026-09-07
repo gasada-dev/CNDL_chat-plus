@@ -10,11 +10,13 @@ import java.util.Set;
 
 public final class FriendPresenceTracker {
 	static final long ONLINE_NOTICE_MS = 4_000;
+	static final long ONLINE_CONFIRM_MS = 1_500;
 	static final long CONNECTION_WARMUP_MS = 30_000;
 	static final long OFFLINE_CONFIRM_MS = 5_000;
 
 	private final Set<String> previousOnline = new HashSet<>();
 	private final Map<String, Long> offlineSince = new LinkedHashMap<>();
+	private final Map<String, Long> onlineSince = new LinkedHashMap<>();
 	private final Map<String, Long> onlineNotices = new LinkedHashMap<>();
 	private boolean notificationsArmed;
 	private Object activeConnection;
@@ -57,12 +59,18 @@ public final class FriendPresenceTracker {
 			for (String friend : template.friends()) {
 				String normalized = friend.toLowerCase(Locale.ROOT);
 				if (!currentOnline.contains(normalized)) {
+					onlineSince.remove(normalized);
 					offlineSince.putIfAbsent(normalized, now);
 					continue;
 				}
 				Long confirmedOfflineAt = offlineSince.remove(normalized);
 				if (!previousOnline.contains(normalized) && confirmedOfflineAt != null
 						&& now - confirmedOfflineAt >= OFFLINE_CONFIRM_MS) {
+					onlineSince.put(normalized, now);
+				}
+				Long cameOnlineAt = onlineSince.get(normalized);
+				if (cameOnlineAt != null && now - cameOnlineAt >= ONLINE_CONFIRM_MS) {
+					onlineSince.remove(normalized);
 					onlineNotices.remove(friend);
 					onlineNotices.put(friend, now + ONLINE_NOTICE_MS);
 					friendCameOnline = true;
@@ -84,6 +92,7 @@ public final class FriendPresenceTracker {
 	public void reset() {
 		previousOnline.clear();
 		offlineSince.clear();
+		onlineSince.clear();
 		onlineNotices.clear();
 		notificationsArmed = false;
 		activeConnection = null;

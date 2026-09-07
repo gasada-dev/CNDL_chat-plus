@@ -7,7 +7,6 @@ public final class ServerCommandSettings {
 	public String pay = "";
 	public String call = "";
 	public String mail = "";
-	public String marriageList = "";
 	public String acceptTeleport = "";
 	public String protectionAdd = "";
 	public String protectionRemove = "";
@@ -42,7 +41,6 @@ public final class ServerCommandSettings {
 		copy.pay = pay;
 		copy.call = call;
 		copy.mail = mail;
-		copy.marriageList = marriageList;
 		copy.acceptTeleport = acceptTeleport;
 		copy.protectionAdd = protectionAdd;
 		copy.protectionRemove = protectionRemove;

@@ -20,7 +20,7 @@
 Порядок Fabric pipeline сохранён:
 
 ```text
-MarriageLookupManager / FriendLookupManager interception
+FriendLookupManager interception
 → ChatVisibilityFilter
 → ChatAlertService
 → ChatDuplicateCollapser / teleport handling
@@ -28,7 +28,7 @@ MarriageLookupManager / FriendLookupManager interception
 → отображение сообщения
 ```
 
-`ALLOW_CHAT`/`ALLOW_GAME` сначала дают marriage/friend managers извлечь данные и скрыть
+`ALLOW_CHAT`/`ALLOW_GAME` сначала даёт friend manager извлечь данные и скрыть
 служебные lookup blocks. Затем `ChatVisibilityFilter` применяет глобальный Discord toggle, Discord
 mute, explicit Minecraft sender mute и compiled muted words активного шаблона. Скрытое
 сообщение не записывается в историю и вкладки. При отсутствии active template или compiled
@@ -83,7 +83,7 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
 автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.
 
-`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд и notice 4 секунды. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
+`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд, online confirmation 1,5 секунды и notice 4 секунды. Если друг уходит offline во время online confirmation, notice и звук отменяются. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
 
 ## Запрос телепорта
 
@@ -99,8 +99,7 @@ compiled template patterns, отправка идёт через command service
 
 `ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move и сериализует explicit nulls для exact automation bridge round-trip. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` использует приоритет exact binding → exact pattern → wildcard → default → none.
 
-`RootConfigSchemaMigration` обновляет schema 1: безопасно переносит ID `game` в
-`vanilla-game`, сохраняя template data/default/bindings и не объединяя конфликтующие ID.
+`RootConfigSchemaMigration` обновляет только версию root schema, не меняя template ID или ссылки.
 `TemplateCatalogService` до начального выбора устанавливает отсутствующие bundled JSON из
 `assets/cndl_chat_plus/server_templates/catalog.json`. Descriptor также добавляет
 официальный домен существующему встроенному ID, не перезаписывая template. Внешние JSON размером до 1 MiB
@@ -130,17 +129,15 @@ controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiCons
 Над вкладкой друзей находится кнопка `Информация об игроке`. `PlayerInfoScreen` получает
 online suggestions из текущего connection и загружает данные только по `Обновить`.
 `PlayerInfoService` хранит session cache и отбрасывает ответы старой runtime generation.
-`VanillaGameProfileClient` обращается только к фиксированному HTTPS host/path без redirects,
-проверяет status, Content-Type, UTF-8 и размер body. При отказе API запрос ставится в общую
-очередь `FriendLookupManager`; parser сначала извлекает named `playerInfoPatterns`, затем
+При недоступности VnbxBridge запрос ставится в общую очередь `FriendLookupManager`; parser сначала
+извлекает named `playerInfoPatterns`, затем
 скрывает lookup block и передаёт собранные поля экрану. disconnect и switch завершают/очищают очередь. UI намеренно
 не показывает building score, placeholder скрытых контактов и pwarp без достоверного источника.
 
-Если успешный профиль VanillaGame содержит `marry: null`, `PlayerInfoService` передаёт
-запрос в `MarriageLookupManager`. Он использует command `marriageList {page}` и compiled
-patterns active template, последовательно просматривает до 100 страниц и обогащает уже
-загруженный профиль. `ServerLookupCoordinator` исключает одновременную отправку friend
-lookup и marriage lookup. Оба состояния сбрасываются при disconnect/template switch.
+На Minecraft 26.2 `PlayerInfoService` запрашивает clan/marriage через `VnbxBridge`.
+Доступный отрицательный результат считается authoritative; недоступный bridge сохраняет
+`/clan lookup` fallback. Публикация результата остаётся на client thread с проверкой
+generation/epoch.
 
 Подсказки friend actions получают templates из active `CommandSnapshot` и форматируют их
 через `CommandTemplateDisplay`; названия `/w`, `/tpa`, pay/mail не зашиты в UI.
@@ -225,8 +222,11 @@ toggles. Singleplayer без `ServerData` хранится только до dis
 
 Minecraft 26.2 target регистрирует двунаправленный raw UTF-8 JSON payload `vnbx:bridge`.
 `PlatformBridgeNetworking` изолирует Fabric API, `VnbxBridgeClient` проверяет protocol/type/16 KiB limit
-и хранит последние сообщения только до disconnect. Transport не меняет UI, config или active template;
-server-specific adapters остаются на стороне VnbxBridge. Target 1.21.11 содержит только no-op facade.
+и хранит последние сообщения только до disconnect. Player-relations requests имеют случайный
+request ID, strict bounded response parsing и timeout 5 секунд; mismatched/stale ответы
+отбрасываются, pending futures завершаются при disconnect. Payload content не логируется.
+Transport не меняет config или active template; server-specific adapters остаются на стороне
+VnbxBridge. Target 1.21.11 возвращает immediate unavailable result без отправки.
 
 ## Threading и I/O invariants
 

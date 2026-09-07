@@ -29,7 +29,6 @@ public final class ServerTemplate {
 	public List<PeriodicMessageConfig> periodicMessages = new ArrayList<>();
 	public ServerCommandSettings commands = new ServerCommandSettings();
 	public ParserSettings parsers = new ParserSettings();
-	public PlayerInfoSettings playerInfo = new PlayerInfoSettings();
 
 	public static ServerTemplate empty(String id, String name) {
 		ServerTemplate template = new ServerTemplate();
@@ -55,8 +54,6 @@ public final class ServerTemplate {
 				.noneMatch(friend -> friend.equalsIgnoreCase(selected)));
 		if (commands == null) commands = new ServerCommandSettings();
 		if (parsers == null) parsers = new ParserSettings();
-		if (playerInfo == null) playerInfo = new PlayerInfoSettings();
-		if (playerInfo.provider == null) playerInfo.provider = PlayerInfoProvider.NONE;
 		if (parsers.replyCandidateSeparators == null) parsers.replyCandidateSeparators = new ArrayList<>();
 		parsers.replyCandidateSeparators.removeIf(value -> value == null);
 		if (parsers.playerInfoPatterns == null) parsers.playerInfoPatterns = new LinkedHashMap<>();
@@ -100,7 +97,6 @@ public final class ServerTemplate {
 		copy.periodicMessages = copyPeriodicMessages(periodicMessages);
 		copy.commands = commands == null ? new ServerCommandSettings() : commands.copy();
 		copy.parsers = parsers == null ? new ParserSettings() : parsers.copy();
-		copy.playerInfo = playerInfo == null ? new PlayerInfoSettings() : playerInfo.copy();
 		return copy;
 	}
 

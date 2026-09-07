@@ -134,7 +134,7 @@ public final class TemplateCatalogService {
 	}
 
 	private String upgradeBundledDefaults(String templateId) {
-		if (!"vanilla-game".equals(templateId) && !"vanilla-box".equals(templateId)) return null;
+		if (!"vanilla-box".equals(templateId)) return null;
 		TemplateOperationResult<ServerTemplate> loaded = repository.loadTemplate(templateId);
 		if (!loaded.success()) return loaded.errorMessage();
 		ServerTemplate template = loaded.value();
@@ -163,23 +163,6 @@ public final class TemplateCatalogService {
 				template.commands.traderTrustedRemoveConfigured = true;
 				changed = true;
 			}
-			if (template.commands.marriageList != null && !template.commands.marriageList.isBlank()
-					|| template.parsers.marriageEntryPattern != null && !template.parsers.marriageEntryPattern.isBlank()
-					|| template.parsers.marriagePagePattern != null && !template.parsers.marriagePagePattern.isBlank()
-					|| template.parsers.marriageEmptyPattern != null && !template.parsers.marriageEmptyPattern.isBlank()
-					|| template.playerInfo.marriageLookupConfigured) {
-				template.commands.marriageList = "";
-				template.parsers.marriageEntryPattern = "";
-				template.parsers.marriagePagePattern = "";
-				template.parsers.marriageEmptyPattern = "";
-				template.playerInfo.marriageLookupConfigured = false;
-				changed = true;
-			}
-		}
-		if ("vanilla-game".equals(templateId) && !template.playerInfo.providerConfigured) {
-			template.playerInfo.provider = PlayerInfoProvider.VANILLA_GAME_PUBLIC_API;
-			template.playerInfo.providerConfigured = true;
-			changed = true;
 		}
 		if (!template.parsers.teleportRequestConfigured) {
 			template.commands.acceptTeleport = "tpaccept";
@@ -192,24 +175,6 @@ public final class TemplateCatalogService {
 				template.parsers.playerInfoPatterns.putIfAbsent(entry.getKey(), entry.getValue());
 			}
 			template.parsers.playerInfoPatternsConfigured = true;
-			changed = true;
-		}
-		if ("vanilla-game".equals(templateId) && !template.playerInfo.marriageLookupConfigured) {
-			if (template.commands.marriageList == null || template.commands.marriageList.isBlank()) {
-				template.commands.marriageList = "marry list {page}";
-			}
-			ParserSettings defaults = new ParserSettings();
-			ParserSettings.applyVanillaGameMarriageDefaults(defaults);
-			if (template.parsers.marriageEntryPattern == null || template.parsers.marriageEntryPattern.isBlank()) {
-				template.parsers.marriageEntryPattern = defaults.marriageEntryPattern;
-			}
-			if (template.parsers.marriagePagePattern == null || template.parsers.marriagePagePattern.isBlank()) {
-				template.parsers.marriagePagePattern = defaults.marriagePagePattern;
-			}
-			if (template.parsers.marriageEmptyPattern == null || template.parsers.marriageEmptyPattern.isBlank()) {
-				template.parsers.marriageEmptyPattern = defaults.marriageEmptyPattern;
-			}
-			template.playerInfo.marriageLookupConfigured = true;
 			changed = true;
 		}
 		if (!changed) return null;

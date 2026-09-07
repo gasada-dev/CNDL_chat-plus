@@ -2,9 +2,5 @@
   {
     "resource": "vanilla-box.json",
     "addressPatterns": ["mc.vanilla-box.ru"]
-  },
-  {
-    "resource": "vanilla-game.json",
-    "addressPatterns": ["mc.vanilla-game.ru"]
   }
 ]

@@ -227,9 +227,8 @@ public final class PlayerInfoScreen extends CompatScreen {
 		}
 		if (profile != null) {
 			y = drawProfile(graphics, panelX + 18, y);
-		} else if (lookupData != null) {
-			drawLookupData(graphics, panelX + 18, y);
 		}
+		if (lookupData != null && lookupData.hasData()) drawLookupData(graphics, panelX + 18, y);
 		CreditRenderer.draw(graphics, font, panelX + 4, height - 14, MUTED_COLOR);
 	}
 
@@ -238,16 +237,22 @@ public final class PlayerInfoScreen extends CompatScreen {
 		y = line(graphics, x, y, "Последний вход", profile.lastLogin());
 		if (profile.clan() != null) {
 			String clan = join(profile.clan().tag(), profile.clan().name());
-			y = line(graphics, x, y, "Клан", clan);
-			y = line(graphics, x, y, "Лидер клана", profile.clan().leaderName());
-			if (profile.clan().playerIsLeader()) {
-				y = line(graphics, x, y, "Роль в клане", "лидер");
-			}
+			y = line(graphics, x, y, "Клан", profile.clan().inClan()
+					? (clan == null ? "состоит" : clan) : "не состоит");
+			if (profile.clan().inClan()) y = line(graphics, x, y, "Лидер клана", profile.clan().leaderName());
+			String role = profile.clan().rank();
+			if (role == null && profile.clan().playerIsLeader()) role = "лидер";
+			if (profile.clan().inClan()) y = line(graphics, x, y, "Роль в клане", role);
 		}
 		if (profile.marriage() != null) {
-			y = line(graphics, x, y, "Супруг", profile.marriage().partner());
-			y = line(graphics, x, y, "Дата брака", profile.marriage().date());
-			y = line(graphics, x, y, "Фамилия", profile.marriage().surname());
+			boolean married = profile.marriage().married();
+			String partner = profile.marriage().partner();
+			y = line(graphics, x, y, "Брак", married && partner != null && !partner.isBlank()
+					? "в браке с " + partner : married ? "состоит" : "не состоит");
+			if (married) {
+				y = line(graphics, x, y, "Дата брака", profile.marriage().date());
+				y = line(graphics, x, y, "Фамилия", profile.marriage().surname());
+			}
 		}
 		y = line(graphics, x, y, "О себе", profile.about());
 		y = line(graphics, x, y, "Город", profile.city());

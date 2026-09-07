@@ -16,9 +16,6 @@ public final class ParserSettings {
 	public List<String> replyCandidateSeparators = new ArrayList<>();
 	public Map<String, String> playerInfoPatterns = new LinkedHashMap<>();
 	public boolean playerInfoPatternsConfigured;
-	public String marriageEntryPattern = "";
-	public String marriagePagePattern = "";
-	public String marriageEmptyPattern = "";
 	public String teleportRequestPattern = "";
 	public boolean teleportRequestConfigured;
 
@@ -56,15 +53,6 @@ public final class ParserSettings {
 		return settings;
 	}
 
-	public static void applyVanillaGameMarriageDefaults(ParserSettings settings) {
-		settings.marriageEntryPattern =
-				"(?iu)(?:^|\\s)([A-Za-z0-9_]{1,16})\\s*[❤♥♡]\\s*([A-Za-z0-9_]{1,16})(?:\\s|$)";
-		settings.marriagePagePattern =
-				"(?iu)страниц(?:а|е|у|ы)?\\s+(\\d+)\\s*/\\s*(\\d+)";
-		settings.marriageEmptyPattern =
-				"(?iu)нет\\s+(?:женатых|замужних)\\s+игроков";
-	}
-
 	public static void applyTeleportDefaults(ParserSettings settings) {
 		settings.teleportRequestPattern =
 				"(?iu)^([A-Za-z0-9_]{1,16})\\s+просит\\s+телепортироваться\\s+к\\s+вам\\.?$";
@@ -85,9 +73,6 @@ public final class ParserSettings {
 		copy.playerInfoPatterns = new LinkedHashMap<>(
 				playerInfoPatterns == null ? Map.of() : playerInfoPatterns);
 		copy.playerInfoPatternsConfigured = playerInfoPatternsConfigured;
-		copy.marriageEntryPattern = marriageEntryPattern;
-		copy.marriagePagePattern = marriagePagePattern;
-		copy.marriageEmptyPattern = marriageEmptyPattern;
 		copy.teleportRequestPattern = teleportRequestPattern;
 		copy.teleportRequestConfigured = teleportRequestConfigured;
 		return copy;

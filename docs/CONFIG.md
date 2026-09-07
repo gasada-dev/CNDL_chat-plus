@@ -39,8 +39,8 @@
 - `teleportAutoAcceptMode`: `OFF`, `EVERYONE`, `FRIENDS` или `SELECTED_FRIENDS`, default `OFF`;
 - `teleportAutoAcceptFriends`: выбранное подмножество `friends` для `SELECTED_FRIENDS`;
 - inert `periodicMessages`;
-- `commands` (`ServerCommandSettings`), включая `marriageList` с `{page}`, `acceptTeleport`
-  без placeholders и Vanilla-box `protectionAdd`/`protectionRemove`/
+- `commands` (`ServerCommandSettings`), включая `acceptTeleport` без placeholders и
+  Vanilla-box `protectionAdd`/`protectionRemove`/
   `traderTrustedAdd`/`traderTrustedRemove` с `{player}`;
 - `commands.nearbyPlayerCommandsConfigured` защищает ручное отключение Alt+ПКМ-команд от
   повторной установки bundled defaults;
@@ -48,10 +48,6 @@
   удаления из торговца;
 - `parsers` (`ParserSettings`), включая `playerInfoPatterns`: имя видимого поля →
   regex с capture group 1 для server lookup.
-- `playerInfo.provider`: `NONE` или `VANILLA_GAME_PUBLIC_API`;
-- только для `vanilla-game`: `playerInfo.marriageLookupConfigured` и parser-поля `marriageEntryPattern`,
-  `marriagePagePattern`, `marriageEmptyPattern`. Первые два regex содержат по две
-  capture groups: ники пары и current/max page соответственно.
 - `teleportRequestPattern`: regex запроса телепорта с ником в capture group 1;
   `teleportRequestConfigured` защищает пользовательское отключение от повторной установки bundled default.
 
@@ -72,14 +68,11 @@ Bundled templates находятся внутри JAR в
 `assets/cndl_chat_plus/server_templates/`; `catalog.json` связывает JSON-файлы
 с официальными address patterns. При запуске отсутствующие ID регистрируются, а для
 существующих встроенных ID добавляются только отсутствующие официальные домены и
-ещё не настроенные новые marriage/teleport/nearby-player поля без перезаписи пользовательских значений. Внешний import ограничен
+ещё не настроенные новые teleport/nearby-player поля без перезаписи пользовательских значений. Внешний import ограничен
 одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
-Текущий bundled catalog содержит `vanilla-box.json` и `vanilla-game.json`.
-Bundled `vanilla-game.json` содержит серверные команды, parser settings и публичный
-провайдер информации об игроке, но не содержит
-персональных друзей или last seen. Уже существующий пользовательский template с тем
-же ID не перезаписывается при обновлении JAR.
-Automation-поля в обоих bundled JSON намеренно сохранены как inert migration bridge;
+Текущий bundled catalog содержит только `vanilla-box.json`. Уже существующий пользовательский
+template с тем же ID не перезаписывается при обновлении JAR. Automation-поля bundled JSON
+намеренно сохранены как inert migration bridge;
 их читает и мигрирует CNDL_toolkit, CNDL_chat+ их не исполняет.
 
 ## Legacy ResponderConfig
@@ -173,13 +166,6 @@ values сохраняются. Старые default-rule и singleton-periodic m
 нейтральных, смерти, дату вступления, прошлые кланы и тип убийства. У существующего
 встроенного template эти patterns добавляются один раз, только если пользователь ещё не
 сохранял собственный набор.
-
-## Миграция schema 1 → 3
-
-Старый ID `game` копируется в `vanilla-game`, перечитывается для проверки, затем root
-атомарно обновляет metadata/default/bindings. Файл `game.json` удаляется только после
-успешной записи root. Если оба ID уже существуют, ни один template не перезаписывается;
-миграция сохраняет оба и пишет предупреждение.
 
 ## Известные ограничения
 

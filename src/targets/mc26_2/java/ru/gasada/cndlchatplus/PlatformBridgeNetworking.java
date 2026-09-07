@@ -1,5 +1,7 @@
 package ru.gasada.cndlchatplus;
 
+import java.util.concurrent.CompletableFuture;
+
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -31,7 +33,19 @@ final class PlatformBridgeNetworking {
 	}
 
 	static void disconnected() {
-		CLIENT.reset();
+		CLIENT.reset("disconnect");
+	}
+
+	static boolean available() {
+		return ClientPlayNetworking.canSend(TYPE);
+	}
+
+	static CompletableFuture<VnbxPlayerRelationsResult> requestPlayerRelations(String requestId, String player) {
+		if (!ClientPlayNetworking.canSend(TYPE)) {
+			VnbxBridgeClient.logRequestFailed(requestId, player, "bridge_unavailable");
+			return CompletableFuture.completedFuture(VnbxPlayerRelationsResult.unavailable(requestId, player));
+		}
+		return CLIENT.requestPlayerRelations(requestId, player, data -> ClientPlayNetworking.send(new Payload(data)));
 	}
 
 	private record Payload(byte[] data) implements CustomPacketPayload {

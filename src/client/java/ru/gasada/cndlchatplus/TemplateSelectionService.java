@@ -77,6 +77,7 @@ public final class TemplateSelectionService {
 	public TemplateOperationResult<ServerTemplate> select(String id) {
 		TemplateOperationResult<ServerTemplate> loaded = repository.loadTemplate(id);
 		if (!loaded.success()) {
+			runtime.clear();
 			return loaded;
 		}
 		LegacyConfigToVanillaBoxMigration.populateLegacyView(configView, loaded.value());

@@ -21,7 +21,6 @@ Server templates предотвращают смешивание commands, parse
 - политика автоприёма телепорта и выбранные друзья;
 - server command templates;
 - Discord/channel/friend lookup parser patterns и separators.
-- provider информации об игроке.
 
 Старые JSON-поля `discordChatEnabled`, `friendHudEnabled` и `friendSoundEnabled` сохраняются
 при load/save/copy как compatibility data, но больше не входят в active snapshot.
@@ -63,8 +62,8 @@ exact permanent binding
 - deep copy `Vanilla-box`;
 - deep copy выбранного template.
 
-`TemplateEditorScreen` редактирует display name/address patterns, provider информации об
-игроке, lookup command, именованные команды CNDL_chat+, Discord regex и
+`TemplateEditorScreen` редактирует display name/address patterns, lookup command,
+именованные команды CNDL_chat+, Discord regex и
 именованные player-info regex через deep-copy draft. Каждая player-info regex имеет capture
 group 1 и становится отдельной строкой экрана. Placeholders и regex проверяются до save. До
 успешного repository save runtime не меняется. Можно выбрать default, временно активировать
@@ -81,14 +80,10 @@ Non-Vanilla save не перезаписывает legacy Vanilla data; automati
   `src/client/resources/assets/cndl_chat_plus/server_templates/` и описывает ресурс
   с официальными доменами в `catalog.json`. При первом запуске template копируется в
   repository; существующее содержимое никогда не перезаписывается.
-- Текущий каталог содержит `vanilla-box.json` и `vanilla-game.json`. Их домены:
-  `mc.vanilla-box.ru` и `mc.vanilla-game.ru`. Персональные категории `friends` и
-  `friendLastSeen` во встроенном `vanilla-game` намеренно пусты.
+- Текущий каталог содержит только `vanilla-box.json` с доменом `mc.vanilla-box.ru`.
 - Bundled automation fields и legacy fixture не удаляются: это inert migration bridge,
   владельцем и потребителем которого является CNDL_toolkit.
 
-Старый `vanilla-game` без явно сохранённого выбора provider один раз получает
-`VANILLA_GAME_PUBLIC_API`; ручной выбор в editor помечается как явный и не заменяется.
 - Пользователь кладёт полученные JSON в
   `.minecraft/config/cndl-chat-plus-template-imports/` и нажимает
   «Загрузить шаблоны из папки». Source-файлы остаются на месте, duplicate ID пропускаются.
@@ -105,7 +100,7 @@ Non-Vanilla save не перезаписывает legacy Vanilla data; automati
 - friends/last seen/teleport auto-accept;
 - commands;
 - parser patterns.
-- provider информации об игроке и named lookup fields.
+- named lookup fields информации об игроке.
 
 Списки поддерживают `REPLACE`, `MERGE`, `SKIP`. Friend mode применяется вместе с категорией
 friends при `REPLACE`/`MERGE`, а список выбранных друзей использует тот же list mode. Merge строковых lists выполняет
@@ -134,11 +129,8 @@ Existing Vanilla-box получает отсутствующие nearby-player c
 
 ## Ограничения
 
-- Root schema version сейчас 3. Schema 1 безопасно мигрирует `game` в `vanilla-game`;
-  конфликт двух ID сохраняет оба template без объединения.
-- Встроенный `vanilla-game` задаёт `marry list {page}` и regex MarriageMaster. При
-  обновлении они заполняют только отсутствующие поля. Runtime и editor разрешают marriage
-  lookup только для точного ID `vanilla-game`; старые marriage-поля `vanilla-box` очищаются.
+- Root schema version сейчас 3. Миграция schema обновляет только версию root без изменения
+  template ID или ссылок.
 - UI metadata editor использует comma-separated address patterns; command templates хранятся без начального `/`. Legacy private reply prefix остаётся только в JSON bridge.
 - Удаление после успешного root update удаляет отдельный template file; active/default protections предотвращают loss текущего selection.
 - Minecraft client и реальные серверные formats требуют ручной проверки после изменения patterns/commands.

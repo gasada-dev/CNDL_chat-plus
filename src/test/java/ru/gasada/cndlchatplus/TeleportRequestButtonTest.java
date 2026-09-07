@@ -17,7 +17,7 @@ final class TeleportRequestButtonTest {
 	void matchesConfiguredRequestAndExpiresAfterSixtySeconds() {
 		long[] now = {1_000L};
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-game", "Vanilla-game");
+		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
 		template.commands.acceptTeleport = "tpaccept";
 		ParserSettings.applyTeleportDefaults(template.parsers);
 		runtime.switchTo(template);

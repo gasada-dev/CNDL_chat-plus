@@ -72,19 +72,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 		addField(panelX + 20, 84, panelWidth - 40, 64, nameValue, "Имя шаблона", value -> nameValue = value);
 		addField(panelX + 20, 130, panelWidth - 40, 1024, patternsValue,
 				"play.example.org, *.example.org", value -> patternsValue = value);
-		addRenderableWidget(StyledCycleButton.of(TemplateEditorScreen::providerTitle,
-				draft.playerInfo.provider == null ? PlayerInfoProvider.NONE : draft.playerInfo.provider,
-				List.of(PlayerInfoProvider.values()), panelX + 20, 176,
-				Math.min(260, panelWidth - 40), 20, Component.empty(),
-				(button, value) -> {
-					draft.playerInfo.provider = value;
-					draft.playerInfo.providerConfigured = true;
-				}));
-	}
-
-	private static Component providerTitle(PlayerInfoProvider provider) {
-		return Component.literal(provider == PlayerInfoProvider.VANILLA_GAME_PUBLIC_API
-				? "Публичный API VanillaGame" : "Только серверный lookup");
 	}
 
 	private void initCommands() {
@@ -104,13 +91,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 				"call {player}", value -> draft.commands.call = value);
 		addCommandField(right, 150, columnWidth, draft.commands.mail,
 				"mail send {player} {message}", value -> draft.commands.mail = value);
-		if (isVanillaGame()) {
-			addCommandField(right, 186, columnWidth, draft.commands.marriageList,
-					"marry list {page}", value -> {
-						draft.commands.marriageList = value;
-						draft.playerInfo.marriageLookupConfigured = true;
-					});
-		}
 		addCommandField(left, 222, columnWidth, draft.commands.acceptTeleport,
 				"tpaccept", value -> draft.commands.acceptTeleport = value);
 		addField(right, 222, columnWidth, ParserPatternValidator.MAX_PATTERN_LENGTH,
@@ -158,23 +138,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 					"Regex, capture group 1", value -> {
 						draft.parsers.playerInfoPatterns.put(field, value);
 						draft.parsers.playerInfoPatternsConfigured = true;
-					});
-		}
-		if (isVanillaGame()) {
-			addField(left, 278, columnWidth, ParserPatternValidator.MAX_PATTERN_LENGTH,
-					draft.parsers.marriageEntryPattern, "Regex: два ника в groups 1 и 2", value -> {
-						draft.parsers.marriageEntryPattern = value;
-						draft.playerInfo.marriageLookupConfigured = true;
-					});
-			addField(right, 278, columnWidth, ParserPatternValidator.MAX_PATTERN_LENGTH,
-					draft.parsers.marriagePagePattern, "Regex: page/max в groups 1 и 2", value -> {
-						draft.parsers.marriagePagePattern = value;
-						draft.playerInfo.marriageLookupConfigured = true;
-					});
-			addField(left, 326, columnWidth, ParserPatternValidator.MAX_PATTERN_LENGTH,
-					draft.parsers.marriageEmptyPattern, "Regex: список браков пуст", value -> {
-						draft.parsers.marriageEmptyPattern = value;
-						draft.playerInfo.marriageLookupConfigured = true;
 					});
 		}
 	}
@@ -245,7 +208,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 			case GENERAL -> {
 				label(graphics, "Имя", panelX + 20, 72);
 				label(graphics, "Адреса и wildcard поддомена (через запятую)", panelX + 20, 118);
-				label(graphics, "Источник информации об игроке", panelX + 20, 164);
 			}
 			case COMMANDS -> drawCommandLabels(graphics);
 			case DISCORD -> {
@@ -276,7 +238,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 		label(graphics, "Поиск друга — {player}", right, 66);
 		label(graphics, "Телепорт — {player}", right, 102);
 		label(graphics, "Почта — {player}, {message}", right, 138);
-		if (isVanillaGame()) label(graphics, "Список браков — {page}", right, 174);
 	}
 
 	private void drawPlayerInfoLabels(CompatGraphics graphics) {
@@ -289,15 +250,6 @@ public final class TemplateEditorScreen extends CompatScreen {
 			int y = 66 + (index / 2) * 38;
 			label(graphics, ParserSettings.PLAYER_INFO_FIELDS.get(index) + " — capture group 1", x, y);
 		}
-		if (isVanillaGame()) {
-			label(graphics, "Строка брака — ники в groups 1 и 2", left, 266);
-			label(graphics, "Страница списка — current/max", right, 266);
-			label(graphics, "Пустой список браков", left, 314);
-		}
-	}
-
-	private boolean isVanillaGame() {
-		return "vanilla-game".equals(draft.id);
 	}
 
 	private void label(CompatGraphics graphics, String text, int x, int y) {

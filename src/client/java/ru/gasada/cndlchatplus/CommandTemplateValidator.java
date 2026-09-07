@@ -47,7 +47,6 @@ public final class CommandTemplateValidator {
 		PROTECTION_REMOVE(Set.of("player")),
 		TRADER_TRUSTED_ADD(Set.of("player")),
 		TRADER_TRUSTED_REMOVE(Set.of("player")),
-		MARRIAGE_LIST(Set.of("page")),
 		ACCEPT_TELEPORT(Set.of());
 
 		private final Set<String> requiredPlaceholders;

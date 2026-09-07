@@ -134,7 +134,6 @@ public final class ChatBookmarksScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 12);
-		graphics.centeredText(font, "Сервер: " + store.scopeLabel(), width / 2, panelY + 36, MUTED);
 		ChatBookmark selected = selected();
 		if (selected != null) {
 			List<FormattedCharSequence> lines = font.split(Component.literal(selected.text()), panelWidth - 36);

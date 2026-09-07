@@ -132,7 +132,24 @@ final class FriendLookupManagerTest {
 		assertTrue(context.lookup.shouldShowSystemMessage(Component.literal("Обычное сообщение"), false));
 	}
 
+	@Test
+	void sendsNoLookupCommandsWhenBridgeIsAvailable() {
+		TestContext context = context(() -> true, "FriendOne", "FriendTwo");
+		context.lookup.tick(true);
+		context.clock.set(31_000);
+		context.lookup.tick(true);
+		context.lookup.queueActiveFriends();
+
+		assertEquals(0, context.lookup.queuedCount());
+		assertTrue(!context.lookup.queueManualLookup("ManualOne", ignored -> { }));
+		assertTrue(context.commands.isEmpty());
+	}
+
 	private static TestContext context(String... friends) {
+		return context(() -> false, friends);
+	}
+
+	private static TestContext context(java.util.function.BooleanSupplier bridgeAvailable, String... friends) {
 		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
 		template.commands = ServerCommandSettings.vanillaBoxDefaults();
 		template.parsers = ParserSettings.vanillaBoxDefaults();
@@ -144,7 +161,8 @@ final class FriendLookupManagerTest {
 		ServerCommandService commands = new ServerCommandService(runtime,
 				new OutgoingChatService(transport, ignored -> { }));
 		FriendLookupManager lookup = new FriendLookupManager(runtime,
-				new FriendActionService(runtime, commands, null), clock::get);
+				new FriendActionService(runtime, commands, null), clock::get, new ServerLookupCoordinator(),
+				bridgeAvailable);
 		return new TestContext(lookup, clock, transport.commands);
 	}
 

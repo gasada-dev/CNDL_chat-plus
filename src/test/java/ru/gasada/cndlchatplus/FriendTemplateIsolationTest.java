@@ -31,7 +31,7 @@ final class FriendTemplateIsolationTest {
 	@Test
 	void onlyVanillaBoxLastSeenSavePreservesLookupQueue() {
 		assertTrue(FriendActionService.usesQueuePreservingSave("vanilla-box"));
-		assertFalse(FriendActionService.usesQueuePreservingSave("vanilla-game"));
+		assertFalse(FriendActionService.usesQueuePreservingSave("example-server"));
 		assertFalse(FriendActionService.usesQueuePreservingSave(null));
 	}
 

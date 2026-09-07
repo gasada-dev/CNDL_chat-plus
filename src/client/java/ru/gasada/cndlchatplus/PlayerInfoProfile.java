@@ -25,7 +25,8 @@ public record PlayerInfoProfile(
 				|| !buildings.isEmpty();
 	}
 
-	public record Clan(String tag, String name, String leaderName, boolean playerIsLeader) { }
-	public record Marriage(String partner, String date, String surname) { }
+	public record Clan(String tag, String name, String leaderName, boolean playerIsLeader, String rank,
+			boolean inClan) { }
+	public record Marriage(String partner, String date, String surname, boolean married) { }
 	public record Building(String title, String rating) { }
 }

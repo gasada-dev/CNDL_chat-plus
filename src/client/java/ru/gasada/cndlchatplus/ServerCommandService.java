@@ -47,14 +47,6 @@ public final class ServerCommandService {
 				command("mail"), player, message, MessageValidator.MessageType.MAIL);
 	}
 
-	public CommandResult marriageList(int page) {
-		if (page < 1 || page > 1_000) {
-			return CommandResult.failure("Некорректная страница списка браков");
-		}
-		return expandAndSend(CommandTemplateValidator.CommandType.MARRIAGE_LIST, command("marriageList"),
-				Map.of("page", Integer.toString(page)));
-	}
-
 	public CommandResult acceptTeleport() {
 		return expandAndSend(CommandTemplateValidator.CommandType.ACCEPT_TELEPORT,
 				command("acceptTeleport"), Map.of());
@@ -105,7 +97,6 @@ public final class ServerCommandService {
 			case PROTECTION_REMOVE -> command("protectionRemove");
 			case TRADER_TRUSTED_ADD -> command("traderTrustedAdd");
 			case TRADER_TRUSTED_REMOVE -> command("traderTrustedRemove");
-			case MARRIAGE_LIST -> command("marriageList");
 			case ACCEPT_TELEPORT -> command("acceptTeleport");
 		};
 		return template.filter(value -> CommandTemplateValidator.validate(value, type).valid()).isPresent();
@@ -195,7 +186,6 @@ public final class ServerCommandService {
 			case "pay" -> commands.pay();
 			case "call" -> commands.call();
 			case "mail" -> commands.mail();
-			case "marriageList" -> commands.marriageList();
 			case "acceptTeleport" -> commands.acceptTeleport();
 			case "protectionAdd" -> commands.protectionAdd();
 			case "protectionRemove" -> commands.protectionRemove();

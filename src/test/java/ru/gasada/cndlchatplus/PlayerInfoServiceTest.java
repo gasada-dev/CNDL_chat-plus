@@ -4,99 +4,162 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
 final class PlayerInfoServiceTest {
 	@Test
-	void cachesSuccessfulProfileOnlyInsideCurrentTemplateGeneration() {
-		ServerTemplateRuntime runtime = runtimeWithApi("first");
-		PlayerInfoProfile profile = new PlayerInfoProfile("Player_1", null, null, null, "Москва",
-				null, null, null, null, null, List.of());
-		PlayerInfoService service = new PlayerInfoService(runtime,
-				ignored -> CompletableFuture.completedFuture(
-						VanillaGameProfileClient.FetchResult.success(profile)), null, Runnable::run);
+	void cachesBridgeProfileOnlyInsideCurrentTemplateGeneration() {
+		ServerTemplateRuntime runtime = runtime();
+		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", true,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+				new VnbxPlayerRelationsResult.Marriage(true, "uuid", "Partner"));
+		PlayerInfoService service = service(runtime, bridge);
 
-		assertTrue(service.refresh("Player_1").join().success());
-		assertEquals(profile, service.cached("player_1").orElseThrow());
+		PlayerInfoService.LoadResult result = service.refresh("Player_1").join();
+		assertTrue(result.success());
+		assertFalse(result.profile().clan().inClan());
+		assertEquals("Partner", result.profile().marriage().partner());
+		assertEquals(result.profile(), service.cached("player_1").orElseThrow());
 		service.resetRuntimeState();
 		assertTrue(service.cached("Player_1").isEmpty());
 	}
 
 	@Test
-	void profileWithOnlyNicknameUsesManualLookupFallback() {
-		ServerTemplateRuntime runtime = runtimeWithApi("first");
-		PlayerInfoService service = new PlayerInfoService(runtime,
-				ignored -> CompletableFuture.completedFuture(VanillaGameProfileClient.FetchResult.success(
-						new PlayerInfoProfile("Player_1", null, null, null, null, null, null, null,
-								null, null, List.of()))), null, Runnable::run);
-
-		assertFalse(service.refresh("Player_1").join().success());
-	}
-
-	@Test
-	void rejectsResponseAfterTemplateSwitchAndWrongPlayerResponse() {
-		ServerTemplateRuntime runtime = runtimeWithApi("first");
-		CompletableFuture<VanillaGameProfileClient.FetchResult> pending = new CompletableFuture<>();
-		PlayerInfoService service = new PlayerInfoService(runtime, ignored -> pending, null, Runnable::run);
+	void rejectsResponseAfterTemplateSwitch() {
+		ServerTemplateRuntime runtime = runtime();
+		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> pending, null, Runnable::run);
 		CompletableFuture<PlayerInfoService.LoadResult> load = service.refresh("Player_1");
 		runtime.switchTo(ServerTemplate.empty("second", "Second"));
-		pending.complete(VanillaGameProfileClient.FetchResult.success(new PlayerInfoProfile(
-				"Player_1", null, null, null, null, null, null, null, null, null, List.of())));
+		pending.complete(VnbxPlayerRelationsResult.unavailable());
+
 		assertFalse(load.join().success());
 		assertTrue(service.cached("Player_1").isEmpty());
-
-		ServerTemplate api = ServerTemplate.empty("third", "Third");
-		api.playerInfo.provider = PlayerInfoProvider.VANILLA_GAME_PUBLIC_API;
-		runtime.switchTo(api);
-		PlayerInfoService wrong = new PlayerInfoService(runtime, ignored -> CompletableFuture.completedFuture(
-				VanillaGameProfileClient.FetchResult.success(new PlayerInfoProfile(
-						"Other", null, null, null, null, null, null, null, null, null, List.of()))),
-				null, Runnable::run);
-		assertFalse(wrong.refresh("Player_1").join().success());
-
-		PlayerInfoService missing = new PlayerInfoService(runtime, ignored -> CompletableFuture.completedFuture(
-				VanillaGameProfileClient.FetchResult.success(new PlayerInfoProfile(
-						null, null, null, null, null, null, null, null, null, null, List.of()))),
-				null, Runnable::run);
-		assertFalse(missing.refresh("Player_1").join().success());
 	}
 
 	@Test
-	void enrichesApiProfileWithMarriageListWhenApiMarriageIsNull() {
-		ServerTemplateRuntime runtime = runtimeWithApi("vanilla-game");
-		ServerTemplate configured = ServerTemplate.empty("vanilla-game", "Vanilla-game");
-		configured.playerInfo.provider = PlayerInfoProvider.VANILLA_GAME_PUBLIC_API;
-		configured.commands.marriageList = "marry list {page}";
-		ParserSettings.applyVanillaGameMarriageDefaults(configured.parsers);
-		runtime.switchTo(configured);
-		MarriageLookupManager marriages = new MarriageLookupManager(runtime, ignored -> true,
-				new ServerLookupCoordinator(), System::currentTimeMillis);
-		PlayerInfoProfile profile = new PlayerInfoProfile("Player_1", "01.01.2026", null, null,
-				"Москва", null, null, null, null, null, List.of());
-		PlayerInfoService service = new PlayerInfoService(runtime,
-				ignored -> CompletableFuture.completedFuture(
-						VanillaGameProfileClient.FetchResult.success(profile)), null, marriages, Runnable::run);
+	void treatsAvailableNegativeMarriageAsAuthoritativeWithoutClanFallback() throws Exception {
+		ServerTemplateRuntime runtime = runtime();
+		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", false,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+				new VnbxPlayerRelationsResult.Marriage(false, null, null));
 
-		CompletableFuture<PlayerInfoService.LoadResult> load = service.refresh("Player_1");
-		marriages.tick(true);
-		marriages.handleMessage("Список замужних игроков - страница 1/1");
-		marriages.handleMessage("Player_1 ❤ Partner_2");
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> CompletableFuture.completedFuture(bridge),
+				new FriendLookupManager(new ResponderConfig()), Runnable::run);
+		PlayerInfoService.LoadResult result = service.refresh("Player_1").get(1, TimeUnit.SECONDS);
 
-		PlayerInfoService.LoadResult result = load.join();
 		assertTrue(result.success());
-		assertEquals("Partner_2", result.profile().marriage().partner());
-		assertEquals("Москва", result.profile().city());
-		assertEquals(result.profile(), service.cached("player_1").orElseThrow());
+		assertFalse(result.fallback());
+		assertFalse(result.profile().marriage().married());
 	}
 
-	private static ServerTemplateRuntime runtimeWithApi(String id) {
-		ServerTemplate template = ServerTemplate.empty(id, id);
-		template.playerInfo.provider = PlayerInfoProvider.VANILLA_GAME_PUBLIC_API;
+	@Test
+	void publishesBridgeProfileOnClientExecutor() {
+		ServerTemplateRuntime runtime = runtime();
+		CompletableFuture<VnbxPlayerRelationsResult> bridgeFuture = new CompletableFuture<>();
+		Deque<Runnable> clientTasks = new ArrayDeque<>();
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> bridgeFuture, null, clientTasks::addLast);
+		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", true,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), false,
+				new VnbxPlayerRelationsResult.Marriage(false, null, null));
+
+		CompletableFuture<PlayerInfoService.LoadResult> result = service.refresh("Player_1");
+		CompletableFuture.runAsync(() -> bridgeFuture.complete(bridge)).join();
+
+		assertTrue(service.cached("Player_1").isEmpty());
+		assertFalse(result.isDone());
+		clientTasks.removeFirst().run();
+		assertEquals(result.join().profile(), service.cached("Player_1").orElseThrow());
+	}
+
+	@Test
+	void queuesManualLookupWhenBridgeIsUnavailable() {
+		ServerTemplateRuntime runtime = runtime();
+		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
+		PlayerInfoService service = new PlayerInfoService(runtime,
+				(requestId, ignored) -> CompletableFuture.completedFuture(VnbxPlayerRelationsResult.unavailable(requestId, ignored)), lookupManager,
+				Runnable::run);
+
+		CompletableFuture<PlayerInfoService.LoadResult> result = service.refresh("Player_1");
+
+		assertFalse(result.isDone());
+		assertEquals(1, lookupManager.queuedCount());
+		lookupManager.resetRuntimeState();
+	}
+
+	@Test
+	void retainsCallerRequestIdWhenBridgeFutureFails() {
+		ServerTemplateRuntime runtime = runtime();
+		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
+		AtomicReference<String> requestId = new AtomicReference<>();
+		AtomicReference<String> target = new AtomicReference<>();
+		PlayerInfoService service = new PlayerInfoService(runtime, (id, player) -> {
+			requestId.set(id);
+			target.set(player);
+			return CompletableFuture.failedFuture(new IllegalStateException());
+		}, lookupManager, Runnable::run);
+
+		CompletableFuture<PlayerInfoService.LoadResult> result = service.refresh("Player_1");
+
+		assertTrue(requestId.get().matches("[A-Za-z0-9_-]{1,64}"));
+		assertEquals("Player_1", target.get());
+		assertFalse(result.isDone());
+		assertEquals(1, lookupManager.queuedCount());
+		lookupManager.resetRuntimeState();
+	}
+
+	@Test
+	void publishesExtendedBridgeFieldsWithoutLookup() {
+		ServerTemplateRuntime runtime = runtime();
+		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
+		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "id-1", "Player_1", true,
+				new VnbxPlayerRelationsResult.Clan(true, "TAG", "Clan", "Офицер", "Leader_1"), true,
+				new VnbxPlayerRelationsResult.Marriage(true, "uuid", "Partner", "01.02.2026", "Иванов"),
+				java.util.Map.of("Статус", "Активен", "КПД / KDR", "1.5"));
+		PlayerInfoService service = new PlayerInfoService(runtime,
+				(requestId, ignored) -> CompletableFuture.completedFuture(bridge), () -> true, lookupManager,
+				Runnable::run);
+
+		PlayerInfoService.LoadResult result = service.refresh("Player_1").join();
+
+		assertTrue(result.success());
+		assertFalse(result.fallback());
+		assertEquals("Leader_1", result.profile().clan().leaderName());
+		assertEquals("01.02.2026", result.profile().marriage().date());
+		assertEquals("Иванов", result.profile().marriage().surname());
+		assertEquals("1.5", result.lookupData().fields().get("КПД / KDR"));
+		assertEquals(0, lookupManager.queuedCount());
+	}
+
+	@Test
+	void skipsChatLookupFallbackWhenBridgeIsPresent() {
+		ServerTemplateRuntime runtime = runtime();
+		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
+		PlayerInfoService service = new PlayerInfoService(runtime,
+				(requestId, player) -> CompletableFuture.completedFuture(
+						VnbxPlayerRelationsResult.unavailable(requestId, player)),
+				() -> true, lookupManager, Runnable::run);
+
+		PlayerInfoService.LoadResult result = service.refresh("Player_1").join();
+
+		assertFalse(result.success());
+		assertEquals("Данные игрока недоступны", result.message());
+		assertEquals(0, lookupManager.queuedCount());
+	}
+
+	private static PlayerInfoService service(ServerTemplateRuntime runtime, VnbxPlayerRelationsResult bridge) {
+		return new PlayerInfoService(runtime, (requestId, ignored) -> CompletableFuture.completedFuture(bridge), null, Runnable::run);
+	}
+
+	private static ServerTemplateRuntime runtime() {
 		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		runtime.switchTo(template);
+		runtime.switchTo(ServerTemplate.empty("vanilla-box", "Vanilla-box"));
 		return runtime;
 	}
 }

@@ -71,16 +71,12 @@ public final class TemplateImportService {
 				case LAST_SEEN -> importLastSeen(source, target, options);
 				case COMMANDS -> target.commands = source.commands.copy();
 				case PARSER_PATTERNS -> target.parsers = source.parsers.copy();
-				case PLAYER_INFO -> target.playerInfo = source.playerInfo.copy();
+				case PLAYER_INFO -> {
+					target.parsers.playerInfoPatterns = new LinkedHashMap<>(source.parsers.playerInfoPatterns);
+					target.parsers.playerInfoPatternsConfigured = source.parsers.playerInfoPatternsConfigured;
+				}
 			}
 			summary.put(category, describe(category, target));
-		}
-		if (!"vanilla-game".equals(target.id)) {
-			target.commands.marriageList = "";
-			target.parsers.marriageEntryPattern = "";
-			target.parsers.marriagePagePattern = "";
-			target.parsers.marriageEmptyPattern = "";
-			target.playerInfo.marriageLookupConfigured = false;
 		}
 	}
 
@@ -129,10 +125,6 @@ public final class TemplateImportService {
 				validateCommand(errors, draft.commands.acceptTeleport,
 						CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);
 			}
-			if (draft.commands.marriageList != null && !draft.commands.marriageList.isBlank()) {
-				validateCommand(errors, draft.commands.marriageList,
-						CommandTemplateValidator.CommandType.MARRIAGE_LIST);
-			}
 		}
 		if (options.selected(TemplateImportOptions.Category.PARSER_PATTERNS)) {
 			ParserSettings p = draft.parsers;
@@ -144,9 +136,6 @@ public final class TemplateImportService {
 			validatePattern(errors, p.lookupOutputPattern, false);
 			validatePattern(errors, p.timestampOnlyPattern, false);
 			validatePatternIfPresent(errors, p.teleportRequestPattern, 1);
-			validatePatternIfPresent(errors, p.marriageEntryPattern, 2);
-			validatePatternIfPresent(errors, p.marriagePagePattern, 2);
-			validatePatternIfPresent(errors, p.marriageEmptyPattern, 0);
 		}
 		return errors;
 	}

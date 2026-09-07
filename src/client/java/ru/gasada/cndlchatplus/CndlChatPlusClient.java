@@ -30,7 +30,6 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	public static TemplateSelectionService TEMPLATE_SELECTION;
 	public static TemplateCatalogService TEMPLATE_CATALOG;
 	public static PlayerInfoService PLAYER_INFO;
-	public static MarriageLookupManager MARRIAGE_LOOKUP;
 	public static ChatTabController CHAT_TABS;
 	public static ChatTimestamps CHAT_TIMESTAMPS;
 	public static ChatDuplicateCollapser CHAT_DUPLICATES;
@@ -91,16 +90,14 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				() -> Boolean.TRUE.equals(CONFIG.discordChatEnabled));
 		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
 		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis,
-				lookupCoordinator);
-		MARRIAGE_LOOKUP = new MarriageLookupManager(TEMPLATE_RUNTIME, SERVER_COMMANDS, lookupCoordinator);
-		PLAYER_INFO = new PlayerInfoService(TEMPLATE_RUNTIME, new VanillaGameProfileClient(), FRIEND_LOOKUP,
-				MARRIAGE_LOOKUP,
+				lookupCoordinator, PlatformBridgeNetworking::available);
+		PLAYER_INFO = new PlayerInfoService(TEMPLATE_RUNTIME, PlatformBridgeNetworking::requestPlayerRelations,
+				PlatformBridgeNetworking::available, FRIEND_LOOKUP,
 				runnable -> net.minecraft.client.Minecraft.getInstance().execute(runnable));
 		switchCoordinator.register(PLAYER_INFO::resetRuntimeState);
 		FriendsHud friendsHud = new FriendsHud(TEMPLATE_RUNTIME);
 		switchCoordinator.register(friendsHud::resetRuntimeState);
 		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
-		switchCoordinator.register(MARRIAGE_LOOKUP::resetRuntimeState);
 		friendsHud.register();
 
 		ChatMessageStore chatMessageStore = new ChatMessageStore(() -> CONFIG.chatHistoryLimit);
@@ -135,7 +132,6 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			while (openScreen.consumeClick()) {
 				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
 			}
-			MARRIAGE_LOOKUP.tick(minecraft);
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
 			updateChecker.tick(minecraft);
@@ -144,8 +140,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
-			boolean visible = MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
-					&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+			boolean visible = FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 					&& visibilityFilter.decide(message.getString(),
 							sender == null ? null : sender.name()).visible();
 			if (!visible) return false;
@@ -154,8 +149,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
 			if (overlay) return true;
-			boolean visible = MARRIAGE_LOOKUP.shouldShowSystemMessage(message, false)
-					&& FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
+			boolean visible = FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 					&& visibilityFilter.decide(message.getString()).visible();
 			if (!visible) return false;
 			triggerAlert(chatAlertHud, message, true);
@@ -182,6 +176,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			PlatformBridgeNetworking.connected();
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
+			PLAYER_INFO.resetRuntimeState();
 			PlatformBridgeNetworking.disconnected();
 			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
 			CHAT_TABS.resetRuntimeState();

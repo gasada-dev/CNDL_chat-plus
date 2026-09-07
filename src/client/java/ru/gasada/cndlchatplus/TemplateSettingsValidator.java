@@ -31,11 +31,6 @@ public final class TemplateSettingsValidator {
 				CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD);
 		validateCommand(errors, template.commands.traderTrustedRemove,
 				CommandTemplateValidator.CommandType.TRADER_TRUSTED_REMOVE);
-		if ("vanilla-game".equals(template.id)) {
-			validateCommand(errors, template.commands.marriageList,
-					CommandTemplateValidator.CommandType.MARRIAGE_LIST);
-		}
-
 		ParserSettings parsers = template.parsers;
 		validatePattern(errors, "Discord marker", parsers.discordMarkerPattern, false);
 		validatePattern(errors, "Discord name", parsers.discordNamePattern, false);
@@ -45,11 +40,6 @@ public final class TemplateSettingsValidator {
 		validatePattern(errors, "Lookup output", parsers.lookupOutputPattern, false);
 		validatePattern(errors, "Timestamp", parsers.timestampOnlyPattern, false);
 		validatePattern(errors, "Teleport request", parsers.teleportRequestPattern, true);
-		if ("vanilla-game".equals(template.id)) {
-			validatePattern(errors, "Marriage entry", parsers.marriageEntryPattern, 2);
-			validatePattern(errors, "Marriage page", parsers.marriagePagePattern, 2);
-			validatePattern(errors, "Marriage empty", parsers.marriageEmptyPattern, 0);
-		}
 		if (parsers.playerInfoPatterns != null) {
 			for (var entry : parsers.playerInfoPatterns.entrySet()) {
 				if (entry.getKey() == null || entry.getKey().isBlank() || entry.getKey().length() > 64) {

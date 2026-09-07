@@ -12,8 +12,7 @@
 | `/pay <player> <amount>` | `ServerCommandService.pay` | `{player}`, `{amount}` | player, positive `BigDecimal`, comma→dot, max 2 decimals, no exponent/NaN/Infinity |
 | `/call <player>` | `ServerCommandService.call` | `{player}` | player/template/connection |
 | `/mail send <player> <message>` | `ServerCommandService.mail` | `{player}`, `{message}` | player, `MessageValidator.MAIL` (220), template, outgoing |
-| `/marry list <page>` (Vanilla-game) | `ServerCommandService.marriageList` | `{page}` | page 1–1000, template, connection |
-| `/tpaccept` (Vanilla-box/Vanilla-game) | `ServerCommandService.acceptTeleport` | нет | template, connection |
+| `/tpaccept` (Vanilla-box) | `ServerCommandService.acceptTeleport` | нет | template, connection |
 | `/ps add <player>` (Vanilla-box) | `ServerCommandService.addToProtection` | `{player}` | player/template/connection |
 | `/ps remove <player>` (Vanilla-box) | `ServerCommandService.removeFromProtection` | `{player}` | player/template/connection |
 | `/vm trusted add <player>` (Vanilla-box) | `ServerCommandService.addTraderTrusted` | `{player}` | player/template/connection |
@@ -46,12 +45,10 @@ recorder и обслуживает только именованные server co
 
 ## Parser/lookup boundaries
 
-Friend lookup и marriage list commands берутся из active template и отправляются
-`ServerCommandService`; ответы разбираются active compiled patterns. Lookup брака
-используется только при отсутствии `marry` в успешном API-профиле, точном active ID
-`vanilla-game`, command `{page}`, regex пары с двумя никами и regex current/max page. Общий
-`ServerLookupCoordinator` сериализует friend/manual/marriage запросы и очищается при
-disconnect/switch. Parser извлекает данные до скрытия служебной строки.
+Friend lookup commands берутся из active template и отправляются `ServerCommandService`;
+ответы разбираются active compiled patterns. `ServerLookupCoordinator` сериализует
+friend/manual запросы и очищается при disconnect/switch. Parser извлекает данные до скрытия
+служебной строки.
 
 `teleportRequestPattern` active template требует capture group 1 с валидным Minecraft-ником.
 Политика active template может автоматически принять запрос от всех, друзей или выбранных

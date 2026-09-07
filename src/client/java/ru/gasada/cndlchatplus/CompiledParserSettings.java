@@ -16,17 +16,13 @@ public final class CompiledParserSettings {
 	private final Optional<Pattern> timestampOnly;
 	private final List<String> replyCandidateSeparators;
 	private final Map<String, Pattern> playerInfoPatterns;
-	private final Optional<Pattern> marriageEntry;
-	private final Optional<Pattern> marriagePage;
-	private final Optional<Pattern> marriageEmpty;
 	private final Optional<Pattern> teleportRequest;
 
 	private CompiledParserSettings(Optional<Pattern> discordMarker, Optional<Pattern> discordName,
 			Optional<Pattern> lastSeen, Optional<Pattern> inactive, Optional<Pattern> lookupEnd,
 			Optional<Pattern> lookupOutput, Optional<Pattern> timestampOnly,
 			List<String> replyCandidateSeparators, Map<String, Pattern> playerInfoPatterns,
-			Optional<Pattern> marriageEntry, Optional<Pattern> marriagePage,
-			Optional<Pattern> marriageEmpty, Optional<Pattern> teleportRequest) {
+			Optional<Pattern> teleportRequest) {
 		this.discordMarker = discordMarker;
 		this.discordName = discordName;
 		this.lastSeen = lastSeen;
@@ -36,9 +32,6 @@ public final class CompiledParserSettings {
 		this.timestampOnly = timestampOnly;
 		this.replyCandidateSeparators = replyCandidateSeparators;
 		this.playerInfoPatterns = playerInfoPatterns;
-		this.marriageEntry = marriageEntry;
-		this.marriagePage = marriagePage;
-		this.marriageEmpty = marriageEmpty;
 		this.teleportRequest = teleportRequest;
 	}
 
@@ -52,9 +45,6 @@ public final class CompiledParserSettings {
 				compileOne(source.lookupOutputPattern(), false),
 				compileOne(source.timestampOnlyPattern(), false),
 				List.copyOf(source.replyCandidateSeparators()), compileAll(source.playerInfoPatterns()),
-				compileOne(source.marriageEntryPattern(), 2),
-				compileOne(source.marriagePagePattern(), 2),
-				compileOne(source.marriageEmptyPattern(), 0),
 				compileOne(source.teleportRequestPattern(), 1));
 	}
 
@@ -68,8 +58,7 @@ public final class CompiledParserSettings {
 				compileOne(source.lookupOutputPattern, false),
 				compileOne(source.timestampOnlyPattern, false),
 				List.copyOf(source.replyCandidateSeparators), compileAll(source.playerInfoPatterns),
-				compileOne(source.marriageEntryPattern, 2), compileOne(source.marriagePagePattern, 2),
-				compileOne(source.marriageEmptyPattern, 0), compileOne(source.teleportRequestPattern, 1));
+				compileOne(source.teleportRequestPattern, 1));
 	}
 
 	private static Optional<Pattern> compileOne(String source, boolean captureRequired) {
@@ -128,8 +117,5 @@ public final class CompiledParserSettings {
 		return playerInfoPatterns;
 	}
 
-	public Optional<Pattern> marriageEntry() { return marriageEntry; }
-	public Optional<Pattern> marriagePage() { return marriagePage; }
-	public Optional<Pattern> marriageEmpty() { return marriageEmpty; }
 	public Optional<Pattern> teleportRequest() { return teleportRequest; }
 }

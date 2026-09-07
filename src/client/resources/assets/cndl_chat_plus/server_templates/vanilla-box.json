@@ -70,9 +70,5 @@
     "playerInfoPatternsConfigured": true,
     "teleportRequestPattern": "(?iu)^([A-Za-z0-9_]{1,16})\\s+просит\\s+телепортироваться\\s+к\\s+вам\\.?$",
     "teleportRequestConfigured": true
-  },
-  "playerInfo": {
-    "provider": "NONE",
-    "providerConfigured": true
   }
 }
