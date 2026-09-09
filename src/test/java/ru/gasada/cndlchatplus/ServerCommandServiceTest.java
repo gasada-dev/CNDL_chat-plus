@@ -40,6 +40,11 @@ final class ServerCommandServiceTest {
 		assertTrue(commands.removeFromProtection("Player_1").success());
 		assertTrue(commands.addTraderTrusted("Player_1").success());
 		assertTrue(commands.removeTraderTrusted("Player_1").success());
+		assertTrue(commands.claimFly().success());
+		assertTrue(commands.enderChest().success());
+		assertTrue(commands.marryKiss().success());
+		assertTrue(commands.marryHome().success());
+		assertTrue(commands.marryTp().success());
 
 		assertEquals(List.of(
 				"ignoreplayer Player_1",
@@ -52,7 +57,12 @@ final class ServerCommandServiceTest {
 				"ps add Player_1",
 				"ps remove Player_1",
 				"vm trusted add Player_1",
-				"vm trusted remove Player_1"), transport.commands);
+				"vm trusted remove Player_1",
+				"claimfly",
+				"enderchest",
+				"marry kiss",
+				"marry home",
+				"marry tp"), transport.commands);
 	}
 
 	@Test
@@ -64,6 +74,19 @@ final class ServerCommandServiceTest {
 		assertFalse(result.success());
 		assertTrue(result.errorMessage().contains("отсутствует"));
 		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
+	void placeholderFreeCommandsUseOnlyTheActiveSnapshot() {
+		ServerTemplate custom = ServerTemplate.empty("custom", "Custom");
+		custom.commands.claimFly = "customfly";
+		runtime.switchTo(custom);
+
+		assertTrue(commands.claimFly().success());
+		assertFalse(commands.enderChest().success());
+		assertTrue(commands.supports(CommandTemplateValidator.CommandType.CLAIM_FLY));
+		assertFalse(commands.supports(CommandTemplateValidator.CommandType.ENDER_CHEST));
+		assertEquals(List.of("customfly"), transport.commands);
 	}
 
 	@Test

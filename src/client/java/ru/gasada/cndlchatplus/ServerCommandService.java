@@ -72,6 +72,26 @@ public final class ServerCommandService {
 				command("traderTrustedRemove"), player);
 	}
 
+	public CommandResult claimFly() {
+		return expandAndSend(CommandTemplateValidator.CommandType.CLAIM_FLY, command("claimFly"), Map.of());
+	}
+
+	public CommandResult enderChest() {
+		return expandAndSend(CommandTemplateValidator.CommandType.ENDER_CHEST, command("enderChest"), Map.of());
+	}
+
+	public CommandResult marryKiss() {
+		return expandAndSend(CommandTemplateValidator.CommandType.MARRY_KISS, command("marryKiss"), Map.of());
+	}
+
+	public CommandResult marryHome() {
+		return expandAndSend(CommandTemplateValidator.CommandType.MARRY_HOME, command("marryHome"), Map.of());
+	}
+
+	public CommandResult marryTp() {
+		return expandAndSend(CommandTemplateValidator.CommandType.MARRY_TP, command("marryTp"), Map.of());
+	}
+
 	public Optional<String> privateMessageDraft(String player) {
 		return playerDraft(CommandTemplateValidator.CommandType.PRIVATE_MESSAGE,
 				command("privateMessage"), player, "message");
@@ -98,6 +118,11 @@ public final class ServerCommandService {
 			case TRADER_TRUSTED_ADD -> command("traderTrustedAdd");
 			case TRADER_TRUSTED_REMOVE -> command("traderTrustedRemove");
 			case ACCEPT_TELEPORT -> command("acceptTeleport");
+			case CLAIM_FLY -> command("claimFly");
+			case ENDER_CHEST -> command("enderChest");
+			case MARRY_KISS -> command("marryKiss");
+			case MARRY_HOME -> command("marryHome");
+			case MARRY_TP -> command("marryTp");
 		};
 		return template.filter(value -> CommandTemplateValidator.validate(value, type).valid()).isPresent();
 	}
@@ -191,6 +216,11 @@ public final class ServerCommandService {
 			case "protectionRemove" -> commands.protectionRemove();
 			case "traderTrustedAdd" -> commands.traderTrustedAdd();
 			case "traderTrustedRemove" -> commands.traderTrustedRemove();
+			case "claimFly" -> commands.claimFly();
+			case "enderChest" -> commands.enderChest();
+			case "marryKiss" -> commands.marryKiss();
+			case "marryHome" -> commands.marryHome();
+			case "marryTp" -> commands.marryTp();
 			default -> "";
 		});
 	}

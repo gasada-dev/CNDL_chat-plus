@@ -47,7 +47,12 @@ public final class CommandTemplateValidator {
 		PROTECTION_REMOVE(Set.of("player")),
 		TRADER_TRUSTED_ADD(Set.of("player")),
 		TRADER_TRUSTED_REMOVE(Set.of("player")),
-		ACCEPT_TELEPORT(Set.of());
+		ACCEPT_TELEPORT(Set.of()),
+		CLAIM_FLY(Set.of()),
+		ENDER_CHEST(Set.of()),
+		MARRY_KISS(Set.of()),
+		MARRY_HOME(Set.of()),
+		MARRY_TP(Set.of());
 
 		private final Set<String> requiredPlaceholders;
 
