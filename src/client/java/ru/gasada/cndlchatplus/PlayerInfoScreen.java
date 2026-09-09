@@ -60,10 +60,9 @@ public final class PlayerInfoScreen extends CompatScreen {
 		});
 		addRenderableWidget(playerBox);
 
-		Button refresh = addRenderableWidget(StyledButton.create(Component.literal("Обновить"), ignored -> refresh())
+		addRenderableWidget(StyledButton.create(Component.literal("Обновить"), ignored -> refresh())
 				.bounds(panelX + 246, 54, 90, 20)
 				.tooltip(Tooltip.create(Component.literal("Загрузить свежие данные профиля"))).build());
-		refresh.active = !loading;
 		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 108, 54, 90, 20).build());
 
@@ -93,14 +92,18 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 	private void select(String player) {
 		playerValue = player;
-		selectedPlayer = player;
 		playerBox.setValue(player);
-		profile = CndlChatPlusClient.PLAYER_INFO == null ? null
-				: CndlChatPlusClient.PLAYER_INFO.cached(player).orElse(null);
-		lookupData = null;
-		buildingPage = 0;
-		status = profile == null ? "Игрок выбран; нажмите «Обновить»" : "Показаны данные из кэша сеанса";
-		statusColor = profile == null ? MUTED_COLOR : SUCCESS_COLOR;
+		if (selectedPlayer == null || !selectedPlayer.equalsIgnoreCase(player)) {
+			requestSerial++;
+			loading = false;
+			selectedPlayer = player;
+			profile = CndlChatPlusClient.PLAYER_INFO == null ? null
+					: CndlChatPlusClient.PLAYER_INFO.cached(player).orElse(null);
+			lookupData = null;
+			buildingPage = 0;
+			status = profile == null ? "Игрок выбран; нажмите «Обновить»" : "Показаны данные из кэша сеанса";
+			statusColor = profile == null ? MUTED_COLOR : SUCCESS_COLOR;
+		}
 		refreshSuggestions();
 	}
 
@@ -117,9 +120,12 @@ public final class PlayerInfoScreen extends CompatScreen {
 			statusColor = ERROR_COLOR;
 			return;
 		}
-		selectedPlayer = player;
-		profile = null;
-		lookupData = null;
+		if (selectedPlayer == null || !selectedPlayer.equalsIgnoreCase(player)) {
+			selectedPlayer = player;
+			profile = null;
+			lookupData = null;
+			buildingPage = 0;
+		}
 		loading = true;
 		status = "Загрузка…";
 		statusColor = MUTED_COLOR;
@@ -287,7 +293,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 	private int line(CompatGraphics graphics, int x, int y, String label, String value) {
 		if (value == null || value.isBlank()) return y;
-		graphics.text(font, label + ": " + value, x, y, TEXT_COLOR);
+		graphics.text(font, label + ": " + ChatMessageTextSanitizer.stripDisplayFormatting(value), x, y, TEXT_COLOR);
 		return y + 14;
 	}
 
