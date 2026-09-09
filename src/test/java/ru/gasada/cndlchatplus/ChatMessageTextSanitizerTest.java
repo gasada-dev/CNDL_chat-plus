@@ -20,6 +20,24 @@ final class ChatMessageTextSanitizerTest {
 	}
 
 	@Test
+	void stripsSimpleClansFormattingCodesWithoutChangingText() {
+		assertEquals("Глава WITCH лидер", ChatMessageTextSanitizer.stripDisplayFormatting(
+				"&#fb0000&lГлава &aWITCH §kлидер§r"));
+	}
+
+	@Test
+	void stripsCaseInsensitiveHexAndSectionSignCodes() {
+		assertEquals("Глава Witch", ChatMessageTextSanitizer.stripDisplayFormatting(
+				"&#FB0000§lГлава §aWitch"));
+	}
+
+	@Test
+	void preservesAmpersandsThatAreNotFormattingCodes() {
+		assertEquals("R&G 100% &hello 123456", ChatMessageTextSanitizer.stripDisplayFormatting(
+				"R&G 100% &hello 123456"));
+	}
+
+	@Test
 	void canonicalTextRemovesStructurallyOwnedTimestampAndChatHeadsLabel() {
 		ChatTimestamps timestamps = new ChatTimestamps(() -> true);
 		Component stamped = timestamps.at(
