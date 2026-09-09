@@ -36,7 +36,7 @@ public final class ChatContextMenuController {
 		boolean system = channel == ChatTab.SYSTEM;
 		ChatMessageSenderExtractor.Sender sender = system ? null
 				: senderExtractor.extract(text, parsers).orElse(null);
-		menu.open(text, ChatMessageTextSanitizer.canonicalMessageText(
+		menu.open(senderExtractor.messageBody(text, parsers), ChatMessageTextSanitizer.canonicalMessageText(
 				target.component(), CndlChatPlusClient.CHAT_TIMESTAMPS), channel, sender,
 				menuBuilder.build(sender, capabilities()), minecraft.font,
 				(int) mouseX, (int) mouseY, screenWidth, screenHeight);

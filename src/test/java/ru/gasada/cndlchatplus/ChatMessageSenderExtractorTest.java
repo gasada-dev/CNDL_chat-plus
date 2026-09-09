@@ -46,4 +46,14 @@ final class ChatMessageSenderExtractorTest {
 		assertEquals("привет gasada", extractor.messageBody("[лс] Steve → привет gasada", parsers));
 		assertEquals("Steve вошёл в игру", extractor.messageBody("Steve вошёл в игру", parsers));
 	}
+
+	@Test
+	void messageBodyExcludesDecoratedChatMetadata() {
+		assertEquals("сообщение", extractor.messageBody("[12:34] (!) LGN @ kzz » сообщение", parsers));
+		assertEquals("пропстите ночь пж", extractor.messageBody(
+				ChatMessageTextSanitizer.stripSyntheticLabels("[17:17] (!) [ZISSKAS head]ZISSKAS » пропстите ночь пж"), parsers));
+		assertEquals("привет", extractor.messageBody("[лс] Steve → привет", parsers));
+		assertEquals("привет", extractor.messageBody("[Discord] Name_1 » привет", parsers));
+		assertEquals("Steve вошёл в игру", extractor.messageBody("Steve вошёл в игру", parsers));
+	}
 }
