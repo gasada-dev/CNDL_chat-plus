@@ -46,6 +46,9 @@
   повторной установки bundled defaults;
 - `commands.traderTrustedRemoveConfigured` отдельно защищает добавленную позднее команду
   удаления из торговца;
+- `commands.utilityCommandsConfigured` один раз добавляет пустые Vanilla-box команды
+  `claimFly`, `enderChest`, `marryKiss`, `marryHome` и `marryTp`, не восстанавливая их после
+  последующей ручной очистки;
 - `parsers` (`ParserSettings`), включая `playerInfoPatterns`: имя видимого поля →
   regex с capture group 1 для server lookup.
 - `teleportRequestPattern`: regex запроса телепорта с ником в capture group 1;
@@ -68,7 +71,7 @@ Bundled templates находятся внутри JAR в
 `assets/cndl_chat_plus/server_templates/`; `catalog.json` связывает JSON-файлы
 с официальными address patterns. При запуске отсутствующие ID регистрируются, а для
 существующих встроенных ID добавляются только отсутствующие официальные домены и
-ещё не настроенные новые teleport/nearby-player поля без перезаписи пользовательских значений. Внешний import ограничен
+ещё не настроенные новые teleport/nearby-player/utility поля без перезаписи пользовательских значений. Внешний import ограничен
 одним JSON-файлом до 1 MiB и проверяет структуру команд/parsers до сохранения.
 Текущий bundled catalog содержит только `vanilla-box.json`. Уже существующий пользовательский
 template с тем же ID не перезаписывается при обновлении JAR. Automation-поля bundled JSON

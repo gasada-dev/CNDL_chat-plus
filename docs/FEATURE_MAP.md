@@ -18,6 +18,7 @@
 | Friend lookup | `FriendLookupManager`, `FriendLookupParser`, `ServerLookupCoordinator` | active friends/patterns/last seen | delay/timeout/block interception/named fields/switch reset |
 | Информация об игроке | `PlayerInfoScreen`, `PlayerInfoService`, `VnbxBridgeClient`, target `PlatformBridgeNetworking` | bridge relations + commands/parsers + session cache | suggestions/manual refresh/bridge relations/lookup fields/stale reset |
 | Friend presence/HUD | `FriendPresenceTracker`, `FriendsHud` | active friends + global HUD/sound | warmup/offline confirm/notice/reconnect |
+| HUD брака и меню действий | `MarriageHudController`, `MarriageHud`, `MarriageMenuScreen` | self profile текущих connection/generation + active marriage commands | one-shot bridge refresh/stale result/bounds/action order/fail-closed send |
 | Main UI | `ResponderScreen`, `SettingsScreen`, `HelpScreen` + tab controllers | global toggles + compatible active view | две равные вкладки, settings/help, server commands button, player info |
 | Legacy config/migration | `ConfigManager`, `BrandPathMigration`, `ResponderConfig`, `LegacyConfigToVanillaBoxMigration`, `RootConfigSchemaMigration` | legacy + root + Vanilla-box | brand paths, backup, inert automation bridge, schema migration, no repeat/no loss |
 | Repository | `ServerTemplateRepository` | root/template JSON | atomic temp→move, isolation, corrupt-file failure |

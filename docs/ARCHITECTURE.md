@@ -62,7 +62,7 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 
 ## Исходящие команды
 
-`OutgoingChatService.MinecraftTransport` — единственное место вызовов Minecraft `sendChat`/`sendCommand`; оно повторно проверяет connection. Composition root создаёт сервис с no-op recorder, потому что echo guard удалён. `ServerCommandService` получает templates активного snapshot и валидирует аргументы непосредственно перед отправкой через `PlayerNameValidator`, `MessageValidator`, `AmountValidator`, `InputSanitizer` и `CommandTemplateValidator`.
+`OutgoingChatService.MinecraftTransport` — единственное место вызовов Minecraft `sendChat`/`sendCommand`; оно повторно проверяет connection. Composition root создаёт сервис с no-op recorder, потому что echo guard удалён. `ServerCommandService` получает templates активного snapshot и валидирует аргументы непосредственно перед отправкой через `PlayerNameValidator`, `MessageValidator`, `AmountValidator`, `InputSanitizer` и `CommandTemplateValidator`. Переназначаемые F7 и `\` вызывают active-template `claimFly` и `enderChest` из client tick только при закрытом GUI.
 
 Команды Vanilla-box находятся только в `ServerCommandSettings.vanillaBoxDefaults()`. При отсутствии command template fallback не применяется, отправка не выполняется. `FriendActionService` предоставляет UI/lookup friend actions, не собирая строки команд.
 
@@ -84,6 +84,24 @@ compiled template patterns, отправка идёт через command service
 автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.
 
 `FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд, online confirmation 1,5 секунды и notice 4 секунды. Если друг уходит offline во время online confirmation, notice и звук отменяются. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
+
+`MarriageHudController` после появления доступного VnbxBridge один раз для пары connection identity +
+active template generation читает текущий Minecraft-ник и вызывает `PlayerInfoService.refresh(self)`.
+Polling и retry отсутствуют. In-flight ключ `PlayerInfoService` включает captured режим доступности
+bridge, поэтому pending fallback не coalesce с последующим bridge-backed запросом того же игрока.
+Контроллер публикует immutable `MarriageHudSnapshot` только для married-профиля с валидным partner;
+unavailable, unmarried, blank/invalid partner и устаревший callback оставляют snapshot пустым.
+Переход bridge available → unavailable один раз увеличивает controller epoch, очищает partner/snapshot
+и делает menu context и pending completion устаревшими. Повторные unavailable ticks ничего не меняют;
+возврат available разрешает один новый current refresh, включая attachment к same-mode in-flight service request.
+Disconnect и template switch очищают state. `MarriageHud.render` только рисует snapshot независимо
+от переключателя HUD друзей и располагает панель над полной occupied-высотой `FriendsHud`, включая notices.
+
+В открытом `ChatScreen` ПКМ сначала проверяет bounds панели брака и только затем контекстное меню
+сообщения. `MarriageMenuScreen` показывает три русских действия без текста команд. При открытии он
+фиксирует connection identity, generation и partner; перед каждой отправкой `MarriageHudController`
+сверяет их с текущим snapshot, а `ServerCommandService` повторно валидирует active command.
+Успешное действие закрывает экран, stale context или ошибка оставляют его открытым с сообщением.
 
 ## Запрос телепорта
 
