@@ -69,6 +69,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		}
 		OutgoingChatService outgoingChatService = OutgoingChatService.forMinecraft(ignored -> { });
 		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, outgoingChatService);
+		ChatBindService chatBinds = new ChatBindService(CONFIG, outgoingChatService);
 		TELEPORT_REQUEST = new TeleportRequestButton(TEMPLATE_RUNTIME, SERVER_COMMANDS);
 		switchCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
 		TELEPORT_REQUEST.register();
@@ -129,29 +130,13 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_F8,
 				category));
-		KeyMapping claimFly = PlatformKeyMapping.register(new KeyMapping(
-				"key.cndl_chat_plus.claim_fly",
-				InputConstants.Type.KEYSYM,
-				InputConstants.KEY_F7,
-				category));
-		KeyMapping enderChest = PlatformKeyMapping.register(new KeyMapping(
-				"key.cndl_chat_plus.ender_chest",
-				InputConstants.Type.KEYSYM,
-				InputConstants.KEY_BACKSLASH,
-				category));
-
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			TEMPLATE_SELECTION.tick(minecraft);
 			PLAYER_INFO.tick(minecraft);
 			while (openScreen.consumeClick()) {
 				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
 			}
-			while (claimFly.consumeClick()) {
-				if (ClientUi.currentScreen(minecraft) == null) SERVER_COMMANDS.claimFly();
-			}
-			while (enderChest.consumeClick()) {
-				if (ClientUi.currentScreen(minecraft) == null) SERVER_COMMANDS.enderChest();
-			}
+			chatBinds.tick(minecraft);
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
 			MARRIAGE_HUD.tick(minecraft);

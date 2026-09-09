@@ -43,7 +43,8 @@ public final class MarriageHud {
 		MarriageHudSnapshot snapshot = controller.snapshot();
 		if (!snapshot.visible()) return false;
 		int contentWidth = Math.max(font.width(TITLE), font.width(snapshot.partner()));
-		Bounds bounds = bounds(screenWidth, screenHeight, contentWidth, friendsHud.occupiedHeight());
+		Bounds bounds = bounds(screenWidth, screenHeight, contentWidth, friendsHud.occupiedHeight(),
+				friendsHud.renderedWidth());
 		if (!bounds.contains(mouseX, mouseY)) return false;
 		ClientUi.setScreen(minecraft, new MarriageMenuScreen(snapshot.context()));
 		return true;
@@ -58,16 +59,17 @@ public final class MarriageHud {
 		Font font = Minecraft.getInstance().font;
 		int contentWidth = Math.max(font.width(TITLE), font.width(snapshot.partner()));
 		Bounds bounds = bounds(graphics.guiWidth(), graphics.guiHeight(), contentWidth,
-				friendsHud.occupiedHeight());
+				friendsHud.occupiedHeight(), friendsHud.renderedWidth());
 		graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(),
-				UiConstants.HUD_SURFACE);
-		graphics.outline(bounds.x(), bounds.y(), bounds.width(), bounds.height(), UiConstants.BORDER);
-		graphics.text(font, TITLE, bounds.x() + 6, bounds.y() + 4, UiConstants.TEXT);
-		graphics.text(font, snapshot.partner(), bounds.x() + 6, bounds.y() + 15, UiConstants.TEXT);
+				UiConstants.MARRIAGE_SURFACE);
+		graphics.outline(bounds.x(), bounds.y(), bounds.width(), bounds.height(), UiConstants.MARRIAGE_BORDER);
+		graphics.text(font, TITLE, bounds.x() + 6, bounds.y() + 4, UiConstants.MARRIAGE_ACCENT);
+		graphics.text(font, snapshot.partner(), bounds.x() + 6, bounds.y() + 15, UiConstants.MARRIAGE_TEXT);
 	}
 
-	static Bounds bounds(int screenWidth, int screenHeight, int contentWidth, int friendsOccupiedHeight) {
-		int width = contentWidth + 12;
+	static Bounds bounds(int screenWidth, int screenHeight, int contentWidth, int friendsOccupiedHeight,
+			int friendsWidth) {
+		int width = Math.max(contentWidth + 12, friendsWidth);
 		return new Bounds(screenWidth - width - 5,
 				screenHeight - friendsOccupiedHeight - HEIGHT - 5, width, HEIGHT);
 	}

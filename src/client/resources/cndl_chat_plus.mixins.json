@@ -7,7 +7,10 @@
 		"ChatComponentFilterMixin",
 		"ChatScreenMixin",
 		"ChatTimestampMixin",
-		"ScreenMixin"
+		"PlayerNametagMixin",
+		"PlayerTabOverlayMixin",
+		"ScreenMixin",
+		"ChatComponentSelectionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -18,6 +18,10 @@ public final class UiConstants {
 	public static final int WARNING = 0xFFFFCC66;
 	public static final int ERROR = 0xFFFF7777;
 	public static final int ONLINE = 0xFF55FF55;
+	public static final int MARRIAGE_SURFACE = 0xE03A2A38;
+	public static final int MARRIAGE_BORDER = 0xFFFF8FB5;
+	public static final int MARRIAGE_ACCENT = 0xFFFF6FA5;
+	public static final int MARRIAGE_TEXT = 0xFFFFE4EE;
 
 	public static final int PANEL_COLOR = SURFACE;
 	public static final int PANEL_BORDER = BORDER;

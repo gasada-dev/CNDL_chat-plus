@@ -48,8 +48,9 @@ final class FriendLookupManagerTest {
 	}
 
 	@Test
-	void pausesAfterFiveSequentialLookups() {
-		TestContext context = context("One", "Two", "Three", "Four", "Five", "Six");
+	void pausesAfterEveryFiveSequentialLookups() {
+		TestContext context = context("One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight",
+				"Nine", "Ten", "Eleven");
 		context.lookup.queueActiveFriends();
 
 		for (int index = 0; index < 5; index++) {
@@ -67,6 +68,53 @@ final class FriendLookupManagerTest {
 		context.clock.incrementAndGet();
 		context.lookup.tick(true);
 		assertEquals("clan lookup Six", context.commands.getLast());
+		context.completeResponse();
+
+		for (int index = 0; index < 4; index++) {
+			context.clock.addAndGet(10_000);
+			context.lookup.tick(true);
+			context.completeResponse();
+		}
+		assertEquals(List.of(
+				"clan lookup One", "clan lookup Two", "clan lookup Three", "clan lookup Four",
+				"clan lookup Five", "clan lookup Six", "clan lookup Seven", "clan lookup Eight",
+				"clan lookup Nine", "clan lookup Ten"), context.commands);
+
+		context.clock.addAndGet(59_999);
+		context.lookup.tick(true);
+		assertEquals(10, context.commands.size());
+		context.clock.incrementAndGet();
+		context.lookup.tick(true);
+		assertEquals("clan lookup Eleven", context.commands.getLast());
+	}
+
+	@Test
+	void restartsRoundRobinAfterFinalPartialBatchPause() {
+		TestContext context = context("One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight",
+				"Nine", "Ten", "Eleven", "Twelve", "Thirteen");
+		context.lookup.queueActiveFriends();
+
+		for (int index = 0; index < 13; index++) {
+			context.lookup.tick(true);
+			context.completeResponse();
+			if (index == 4 || index == 9) {
+				context.clock.addAndGet(60_000);
+			} else if (index < 12) {
+				context.clock.addAndGet(10_000);
+			}
+		}
+		assertEquals(List.of(
+				"clan lookup One", "clan lookup Two", "clan lookup Three", "clan lookup Four",
+				"clan lookup Five", "clan lookup Six", "clan lookup Seven", "clan lookup Eight",
+				"clan lookup Nine", "clan lookup Ten", "clan lookup Eleven", "clan lookup Twelve",
+				"clan lookup Thirteen"), context.commands);
+
+		context.clock.addAndGet(59_999);
+		context.lookup.tick(true);
+		assertEquals(13, context.commands.size());
+		context.clock.incrementAndGet();
+		context.lookup.tick(true);
+		assertEquals("clan lookup One", context.commands.getLast());
 	}
 
 	@Test

@@ -14,8 +14,10 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.network.chat.Component;
 import ru.gasada.cndlchatplus.ChatDuplicateCollapser;
+import ru.gasada.cndlchatplus.ChatTabController;
 import ru.gasada.cndlchatplus.ChatTimestamps;
 import ru.gasada.cndlchatplus.CndlChatPlusClient;
+import ru.gasada.cndlchatplus.NicknameColorFix;
 
 @Mixin(ChatComponent.class)
 public abstract class ChatTimestampMixin {
@@ -25,8 +27,15 @@ public abstract class ChatTimestampMixin {
 			method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
 			at = @At("HEAD"), argsOnly = true, require = 0)
 	private Component gasada$timestampPrefix(Component message) {
+		Component fixed = CndlChatPlusClient.CONFIG != null && CndlChatPlusClient.CONFIG.whitenBlackNames
+				? NicknameColorFix.whitenBlack(message) : message;
 		ChatTimestamps timestamps = CndlChatPlusClient.CHAT_TIMESTAMPS;
-		return timestamps == null ? message : timestamps.apply(message);
+		Component displayed = timestamps == null ? fixed : timestamps.apply(fixed);
+		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
+		if (tabs != null) {
+			tabs.remapComponent(message, displayed);
+		}
+		return displayed;
 	}
 
 	@Inject(

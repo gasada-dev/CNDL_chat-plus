@@ -77,8 +77,10 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 `FriendLookupManager` ставит в FIFO-очередь только друзей active snapshot; обход автоматически
 начинается через 30 секунд после подключения или раньше при открытии friends tab. Manager
 проверяет по пять игроков с delay 10 секунд между завершёнными ответами и паузой 60 секунд
-между группами. Timeout равен 15 секундам; background lookup без данных один раз повторяется
-после 60-секундной паузы. Ручной player-info fallback принимает любой валидный Minecraft-ник,
+между группами. После завершения очереди, включая неполную последнюю группу, manager ждёт
+60 секунд и снова ставит в FIFO всех друзей active snapshot с первого. Timeout равен 15 секунд;
+background lookup без данных один раз повторяется после 60-секундной паузы. Ручной player-info
+fallback принимает любой валидный Minecraft-ник,
 идёт перед оставшейся background-очередью, но соблюдает общий cooldown. Parser использует
 compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
 автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.

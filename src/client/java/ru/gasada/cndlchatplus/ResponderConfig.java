@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.lwjgl.glfw.GLFW;
+
 public final class ResponderConfig {
 	public static final int MIN_CHAT_HISTORY_LIMIT = 100;
 	public static final int MAX_CHAT_HISTORY_LIMIT = 16384;
@@ -43,8 +45,12 @@ public final class ResponderConfig {
 	public Boolean chatSearchEnabled = true;
 	public Boolean chatContextMenuEnabled = true;
 	public Boolean chatDuplicateCollapseEnabled = true;
+	public boolean whitenBlackNames = true;
 	public Boolean chatAlertsEnabled = true;
 	public List<ChatAlertRule> chatAlertRules = new ArrayList<>();
+	public List<ChatBind> chatBinds = new ArrayList<>(List.of(
+			new ChatBind(GLFW.GLFW_KEY_F7, "claimfly"),
+			new ChatBind(GLFW.GLFW_KEY_BACKSLASH, "enderchest")));
 
 	public static ResponderConfig defaults() {
 		ResponderConfig config = new ResponderConfig();
@@ -66,8 +72,10 @@ public final class ResponderConfig {
 		chatSearchEnabled = source.chatSearchEnabled;
 		chatContextMenuEnabled = source.chatContextMenuEnabled;
 		chatDuplicateCollapseEnabled = source.chatDuplicateCollapseEnabled;
+		whitenBlackNames = source.whitenBlackNames;
 		chatAlertsEnabled = source.chatAlertsEnabled;
 		chatAlertRules = source.chatAlertRules.stream().map(ChatAlertRule::copy).toList();
+		chatBinds = source.chatBinds.stream().map(ChatBind::copy).toList();
 	}
 
 	public void sanitize() {
@@ -157,6 +165,19 @@ public final class ResponderConfig {
 			chatAlertsEnabled = true;
 		}
 		chatAlertRules = sanitizeAlertRules(chatAlertRules);
+		chatBinds = sanitizeChatBinds(chatBinds);
+	}
+
+	private static List<ChatBind> sanitizeChatBinds(List<ChatBind> source) {
+		if (source == null) return new ArrayList<>();
+		List<ChatBind> result = new ArrayList<>();
+		for (ChatBind bind : source) {
+			if (bind == null || bind.keyCode <= 0 || bind.command == null) continue;
+			bind.command = bind.command.trim();
+			if (bind.command.startsWith("/")) bind.command = bind.command.substring(1).trim();
+			if (!bind.command.isBlank()) result.add(bind);
+		}
+		return result;
 	}
 
 	private static List<ChatAlertRule> sanitizeAlertRules(List<ChatAlertRule> source) {

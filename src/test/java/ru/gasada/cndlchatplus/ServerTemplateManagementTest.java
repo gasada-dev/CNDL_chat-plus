@@ -14,7 +14,7 @@ final class ServerTemplateManagementTest {
 	@TempDir Path directory;
 
 	@Test
-	void draftRenameAndPatternsDoNotChangeRuntimeUntilSelection() {
+	void draftRenameAndPatternsDoNotChangeRuntimeUntilVanillaBoxSelection() {
 		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
 		ServerTemplateManager manager = new ServerTemplateManager(repository);
 		ServerTemplate vanilla = manager.createEmpty("vanilla-box", "Vanilla-box").value();
@@ -36,7 +36,8 @@ final class ServerTemplateManagementTest {
 				repository.loadRoot().value().templates.stream()
 						.filter(info -> "second".equals(info.id)).findFirst().orElseThrow().addressPatterns);
 		assertTrue(selection.select("second").success());
-		assertEquals("Renamed", runtime.activeSnapshot().orElseThrow().name());
+		assertEquals("vanilla-box", runtime.activeSnapshot().orElseThrow().id());
+		assertEquals("Vanilla-box", runtime.activeSnapshot().orElseThrow().name());
 	}
 
 	@Test
@@ -67,6 +68,22 @@ final class ServerTemplateManagementTest {
 		assertEquals("vanilla-box", runtime.activeSnapshot().orElseThrow().id());
 		assertEquals("vanilla-box", repository.loadRoot().value().defaultTemplateId);
 		assertTrue(repository.loadTemplate("vanilla-box").success());
+	}
+
+	@Test
+	void initializationPinsConfiguredDefaultToVanillaBox() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
+		ServerTemplateManager manager = new ServerTemplateManager(repository);
+		assertTrue(manager.createEmpty("vanilla-box", "Vanilla-box").success());
+		assertTrue(manager.createEmpty("second", "Second").success());
+		assertTrue(manager.setDefault("second").success());
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		TemplateSelectionService selection = new TemplateSelectionService(repository, runtime,
+				ResponderConfig.defaults());
+
+		assertTrue(selection.initializeDefault().success());
+		assertEquals("vanilla-box", runtime.activeSnapshot().orElseThrow().id());
+		assertEquals("second", repository.loadRoot().value().defaultTemplateId);
 	}
 
 	@Test

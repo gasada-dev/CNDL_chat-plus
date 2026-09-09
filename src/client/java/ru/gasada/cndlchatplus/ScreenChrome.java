@@ -12,8 +12,13 @@ final class ScreenChrome {
 	}
 
 	static void drawPanel(CompatGraphics graphics, int x, int y, int width, int height) {
-		graphics.fill(x - 2, y - 2, x + width + 2, y + height + 2, UiConstants.BORDER);
-		graphics.fill(x, y, x + width, y + height, UiConstants.SURFACE);
+		drawPanel(graphics, x, y, width, height, UiConstants.SURFACE, UiConstants.BORDER);
+	}
+
+	static void drawPanel(CompatGraphics graphics, int x, int y, int width, int height,
+			int surfaceColor, int borderColor) {
+		graphics.fill(x - 2, y - 2, x + width + 2, y + height + 2, borderColor);
+		graphics.fill(x, y, x + width, y + height, surfaceColor);
 	}
 
 	static void drawHeader(CompatGraphics graphics, Font font, Component title, int centerX, int y) {

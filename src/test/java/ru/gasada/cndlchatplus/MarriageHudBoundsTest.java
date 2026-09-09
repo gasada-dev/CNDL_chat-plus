@@ -12,7 +12,7 @@ final class MarriageHudBoundsTest {
 	@Test
 	void positionsFivePixelsAboveBottomWithoutVisibleFriends() {
 		MarriageHud.Bounds bounds = MarriageHud.bounds(320, 200, 70,
-				FriendsHud.occupiedHeight(FriendHudSnapshot.empty()));
+				FriendsHud.occupiedHeight(FriendHudSnapshot.empty()), 0);
 
 		assertEquals(233, bounds.x());
 		assertEquals(165, bounds.y());
@@ -26,12 +26,22 @@ final class MarriageHudBoundsTest {
 	void positionsFivePixelsAboveVisibleFriends() {
 		FriendHudSnapshot friends = new FriendHudSnapshot(List.of("Alice", "Bob"), List.of(), true, false);
 		int occupied = FriendsHud.occupiedHeight(friends);
-		MarriageHud.Bounds marriage = MarriageHud.bounds(320, 200, 70, occupied);
+		MarriageHud.Bounds marriage = MarriageHud.bounds(320, 200, 70, occupied, 96);
 		int friendsHeight = 8 + 3 * 11;
 		int friendsTop = 200 - friendsHeight - 5;
 
 		assertEquals(friendsHeight + 5, occupied);
+		assertEquals(96, marriage.width());
+		assertEquals(219, marriage.x());
 		assertEquals(friendsTop - 5, marriage.y() + marriage.height());
+	}
+
+	@Test
+	void keepsContentWidthWhenItExceedsVisibleFriends() {
+		MarriageHud.Bounds bounds = MarriageHud.bounds(320, 200, 100, 0, 96);
+
+		assertEquals(112, bounds.width());
+		assertEquals(203, bounds.x());
 	}
 
 	@Test

@@ -256,7 +256,12 @@ public final class FriendLookupManager {
 		if (retry) {
 			queue.addFirst(finished.retry());
 		}
-		if (backgroundNoDataTimeout || commandsInBatch >= BACKGROUND_BATCH_SIZE) {
+		if (!retry && finished != null && finished.completion() == null && queue.isEmpty()) {
+			activeFriendsQueued = false;
+			commandsInBatch = 0;
+			automaticQueueAt = now + BACKGROUND_BATCH_PAUSE_MS;
+			nextCommandAt = automaticQueueAt;
+		} else if (backgroundNoDataTimeout || commandsInBatch >= BACKGROUND_BATCH_SIZE) {
 			commandsInBatch = 0;
 			nextCommandAt = now + BACKGROUND_BATCH_PAUSE_MS;
 		} else {

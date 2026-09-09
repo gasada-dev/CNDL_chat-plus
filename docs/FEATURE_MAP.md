@@ -13,6 +13,7 @@
 | Normalization | `ChatTextNormalizer` | chat text | Unicode whitespace и lowercase matching |
 | Discord/muted visibility | `ChatVisibilityFilter`, `CompiledFilterSet` | global Discord toggle + active mutes/words | hidden message не попадает в history/tabs |
 | Исходящий chat/command | `OutgoingChatService` | connection | единственные Minecraft API send calls |
+| Чат-бинды | `ChatBindService`, `ChatBind`, `SettingsScreen`, `ResponderConfig` | global `ResponderConfig.chatBinds` | defaults/sanitize/save, capture, one send per press, GUI/world gating |
 | Именованные команды | `ServerCommandService` | active command templates | validators, missing command → no send |
 | Friend actions | `FriendActionService`, `CommandTemplateDisplay` | active friends/commands | send validators + подсказки фактических templates |
 | Friend lookup | `FriendLookupManager`, `FriendLookupParser`, `ServerLookupCoordinator` | active friends/patterns/last seen | delay/timeout/block interception/named fields/switch reset |

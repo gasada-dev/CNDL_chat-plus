@@ -7,7 +7,6 @@ public final class TemplateSelectionService {
 	private final ServerTemplateRepository repository;
 	private final ServerTemplateRuntime runtime;
 	private final ResponderConfig configView;
-	private final ServerTemplateResolver resolver = new ServerTemplateResolver();
 	private Object lastConnection;
 	private String currentAddress;
 
@@ -44,8 +43,7 @@ public final class TemplateSelectionService {
 				return TemplateOperationResult.failure(rootSaved.errorMessage(), rootSaved.error());
 			}
 		}
-		String id = root.defaultTemplateId;
-		return select(id);
+		return select(LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID);
 	}
 
 	public void tick(Minecraft minecraft) {
@@ -63,19 +61,14 @@ public final class TemplateSelectionService {
 		if (currentAddress == null) {
 			return;
 		}
-		TemplateOperationResult<RootConfig> loaded = repository.loadRoot();
-		if (!loaded.success()) {
-			runtime.clear();
-			return;
-		}
-		ServerTemplateResolver.Resolution resolution = resolver.resolve(loaded.value(), currentAddress);
-		if (!resolution.resolved() || !select(resolution.templateId()).success()) {
+		if (!select(LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID).success()) {
 			runtime.clear();
 		}
 	}
 
-	public TemplateOperationResult<ServerTemplate> select(String id) {
-		TemplateOperationResult<ServerTemplate> loaded = repository.loadTemplate(id);
+	public TemplateOperationResult<ServerTemplate> select(String ignoredId) {
+		TemplateOperationResult<ServerTemplate> loaded = repository.loadTemplate(
+				LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID);
 		if (!loaded.success()) {
 			runtime.clear();
 			return loaded;

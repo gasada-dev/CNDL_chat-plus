@@ -2,12 +2,13 @@ package ru.gasada.cndlchatplus;
 
 import static ru.gasada.cndlchatplus.UiConstants.*;
 
-import java.util.List;
 import java.util.function.Consumer;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 
 public final class SettingsScreen extends CompatScreen {
@@ -20,6 +21,8 @@ public final class SettingsScreen extends CompatScreen {
 	private int panelHeight;
 	private boolean narrow;
 	private Page page = Page.CHAT;
+	private int chatBindPage;
+	private ChatBind capturedBind;
 
 	public SettingsScreen(Screen parent, ResponderConfig config) {
 		super(Component.literal("Настройки CNDL_chat+"));
@@ -39,84 +42,39 @@ public final class SettingsScreen extends CompatScreen {
 		int left = panelX + 18;
 		int right = left + columnWidth + gap;
 		int firstY = panelY + (narrow ? 64 : 52);
-		int rowGap = 25;
+		int rowGap = narrow ? 22 : 25;
 
 		if (narrow) {
 			int pageWidth = (panelWidth - 36) / 3;
 			addPageButton(Page.CHAT, left, panelY + 34, pageWidth);
 			addPageButton(Page.DISPLAY, left + pageWidth, panelY + 34,
 					pageWidth);
-			addPageButton(Page.SERVER, left + pageWidth * 2, panelY + 34,
+			addPageButton(Page.BINDS, left + pageWidth * 2, panelY + 34,
 					panelWidth - 36 - pageWidth * 2);
 			if (page == Page.CHAT) {
 				addChatSettings(left, panelWidth - 36, firstY, rowGap);
 			} else if (page == Page.DISPLAY) {
 				addDisplaySettings(left, panelWidth - 36, firstY, rowGap);
 			} else {
-				addServerSelector(left, firstY, panelWidth - 36);
-				addServerSettingsButton(left, firstY + rowGap, panelWidth - 36);
+				addChatBinds(left, panelWidth - 36, firstY, buttonY(panelY));
 			}
+		} else if (page == Page.BINDS) {
+			addChatBinds(left, panelWidth - 36, firstY, buttonY(panelY) - 25);
 		} else {
 			addChatSettings(left, columnWidth, firstY, rowGap);
 			addDisplaySettings(right, columnWidth, firstY, rowGap);
 		}
 
-		int buttonY = panelY + panelHeight - 30;
+		int buttonY = buttonY(panelY);
 		int backWidth = narrow ? 50 : 80;
-		if (!narrow) {
-			int serverButtonWidth = Math.min(260, panelWidth - 132);
-			addServerSettingsButton(left, buttonY, serverButtonWidth);
-			int selectorX = left + serverButtonWidth + 8;
-			int backX = panelX + panelWidth - 18 - backWidth;
-			addServerSelector(selectorX, buttonY, backX - selectorX - 8);
+		if (!narrow && page == Page.BINDS) {
+			addPageButton(Page.CHAT, left, buttonY, 120);
+		} else if (!narrow) {
+			int bindsButtonWidth = 74;
+			addPageButton(Page.BINDS, left, buttonY, bindsButtonWidth);
 		}
 		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 18 - backWidth, buttonY, backWidth, FIELD_HEIGHT).build());
-	}
-
-	private void addServerSettingsButton(int x, int y, int buttonWidth) {
-		addRenderableWidget(StyledButton.create(Component.literal("Настройка команд для сервера"), ignored ->
-				ClientUi.setScreen(minecraft, new TemplatesScreen(this)))
-				.bounds(x, y, buttonWidth, FIELD_HEIGHT)
-				.tooltip(Tooltip.create(Component.literal("Открыть серверные шаблоны, команды и форматы")))
-				.build());
-	}
-
-	private void addServerSelector(int x, int y, int buttonWidth) {
-		TemplateOperationResult<RootConfig> loaded = ConfigManager.templateRepository().loadRoot();
-		String activeId = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::id).orElse(null);
-		if (!loaded.success() || loaded.value().templates.isEmpty()) return;
-		List<String> ids = loaded.value().templates.stream().map(info -> info.id).toList();
-		String initial = activeId != null && ids.contains(activeId) ? activeId : ids.getFirst();
-		StyledCycleButton<String> selector = StyledCycleButton.of(
-				id -> Component.literal(templateName(loaded.value(), id)), initial, ids,
-				x, y, buttonWidth, FIELD_HEIGHT, Component.literal("Сервер"),
-				(button, id) -> selectTemplate(id));
-		addRenderableWidget(selector);
-		selector.setTooltip(Tooltip.create(Component.literal("Выбрать активные команды и форматы сервера")));
-	}
-
-	private static String templateName(RootConfig root, String id) {
-		return root.templates.stream().filter(info -> id.equals(info.id))
-				.map(info -> info.name).findFirst().orElse(id);
-	}
-
-	private void selectTemplate(String id) {
-		String current = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::id).orElse(null);
-		if (id.equals(current)) return;
-		TemplateOperationResult<ServerTemplate> selected = CndlChatPlusClient.TEMPLATE_SELECTION.select(id);
-		if (!selected.success()) {
-			status.set(selected.errorMessage(), ERROR);
-			rebuild();
-			return;
-		}
-		if (parent instanceof ResponderScreen responder) responder.activeTemplateChanged();
-		status.set("Активный сервер: " + selected.value().name, SUCCESS);
-		rebuild();
 	}
 
 	private void addPageButton(Page target, int x, int y, int buttonWidth) {
@@ -173,10 +131,79 @@ public final class SettingsScreen extends CompatScreen {
 		addToggle("Звук входящего ТП", Boolean.TRUE.equals(config.teleportRequestSoundEnabled), x,
 				firstY + rowGap * 3, buttonWidth, "Проигрывать звук входящего запроса телепорта",
 				value -> config.teleportRequestSoundEnabled = value);
+		addToggle("Белые ники вместо чёрных", config.whitenBlackNames, x, firstY + rowGap * 4,
+				buttonWidth, "Заменять чёрный цвет ников на белый",
+				value -> config.whitenBlackNames = value);
 		addRenderableWidget(StyledButton.create(Component.literal("Chat Alerts"), ignored ->
 				ClientUi.setScreen(minecraft, new ChatAlertsScreen(this, config)))
-				.bounds(x, firstY + rowGap * 4, buttonWidth, FIELD_HEIGHT)
+				.bounds(x, firstY + rowGap * 5, buttonWidth, FIELD_HEIGHT)
 				.tooltip(Tooltip.create(Component.literal("Настроить уведомления о сообщениях"))).build());
+	}
+
+	private void addChatBinds(int x, int buttonWidth, int firstY, int controlsY) {
+		int pageSize = Math.max(1, (controlsY - firstY - 4) / 25);
+		chatBindPage = Pagination.clampPage(chatBindPage, config.chatBinds.size(), pageSize);
+		int start = chatBindPage * pageSize;
+		int keyWidth = Math.min(narrow ? 104 : 150, buttonWidth / 3);
+		int commandWidth = buttonWidth - keyWidth - 30;
+		for (int row = 0; row < pageSize && start + row < config.chatBinds.size(); row++) {
+			ChatBind bind = config.chatBinds.get(start + row);
+			int y = firstY + row * 25;
+			StyledEditBox command = new StyledEditBox(font, x, y, commandWidth, FIELD_HEIGHT,
+					Component.literal("Команда"));
+			command.setMaxLength(OutgoingChatService.MAX_OUTGOING_LENGTH);
+			command.setValue(bind.command);
+			command.setHint(Component.literal("команда без /"));
+			command.setResponder(value -> {
+				bind.command = value;
+				persistChatBindIfComplete(bind);
+			});
+			addRenderableWidget(command);
+			String keyLabel = capturedBind == bind ? "Нажмите клавишу..." : keyName(bind.keyCode);
+			addRenderableWidget(StyledButton.create(Component.literal(keyLabel), ignored -> {
+				capturedBind = bind;
+				rebuild();
+			}).bounds(x + commandWidth + 4, y, keyWidth, FIELD_HEIGHT).build());
+			addRenderableWidget(StyledButton.create(Component.literal("×"), ignored -> {
+				config.chatBinds.remove(bind);
+				if (capturedBind == bind) capturedBind = null;
+				persistChatBinds();
+				rebuild();
+			}).bounds(x + commandWidth + keyWidth + 8, y, 22, FIELD_HEIGHT).build());
+		}
+		Button previous = addRenderableWidget(StyledButton.create(Component.literal("<"), ignored -> {
+			chatBindPage--;
+			rebuild();
+		}).bounds(x, controlsY, 28, FIELD_HEIGHT).build());
+		previous.active = chatBindPage > 0;
+		Button next = addRenderableWidget(StyledButton.create(Component.literal(">"), ignored -> {
+			chatBindPage++;
+			rebuild();
+		}).bounds(x + 32, controlsY, 28, FIELD_HEIGHT).build());
+		next.active = chatBindPage < Pagination.maxPage(config.chatBinds.size(), pageSize);
+		addRenderableWidget(StyledButton.create(Component.literal("Добавить"), ignored -> {
+			config.chatBinds.add(new ChatBind());
+			chatBindPage = Pagination.maxPage(config.chatBinds.size(), pageSize);
+			rebuild();
+		}).bounds(x + 68, controlsY, 86, FIELD_HEIGHT).build());
+	}
+
+	private void persistChatBinds() {
+		boolean saved = ConfigManager.saveGlobalSettings(config);
+		status.set(saved ? "Бинды сохранены" : "Не удалось сохранить бинды", saved ? SUCCESS : ERROR);
+	}
+
+	private void persistChatBindIfComplete(ChatBind bind) {
+		if (bind.keyCode > 0 && !bind.command.isBlank()) persistChatBinds();
+	}
+
+	private static String keyName(int keyCode) {
+		return keyCode <= 0 ? "Назначить" : InputConstants.Type.KEYSYM.getOrCreate(keyCode)
+				.getDisplayName().getString();
+	}
+
+	private int buttonY(int panelTop) {
+		return panelTop + panelHeight - 30;
 	}
 
 	private void addToggle(String name, boolean initial, int x, int y, int buttonWidth, String help,
@@ -193,6 +220,21 @@ public final class SettingsScreen extends CompatScreen {
 	}
 
 	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (capturedBind == null) return super.keyPressed(event);
+		if (event.key() == InputConstants.KEY_ESCAPE) {
+			capturedBind = null;
+			rebuild();
+			return true;
+		}
+		capturedBind.keyCode = event.key();
+		persistChatBindIfComplete(capturedBind);
+		capturedBind = null;
+		rebuild();
+		return true;
+	}
+
+	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawBackground(graphics, width, height);
 	}
@@ -201,7 +243,9 @@ public final class SettingsScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 14);
-		if (!narrow) {
+		if (!narrow && page == Page.BINDS) {
+			graphics.text(font, "Бинды", panelX + 18, panelY + 38, ACCENT_SOFT);
+		} else if (!narrow) {
 			graphics.text(font, "Чат", panelX + 18, panelY + 38, ACCENT_SOFT);
 			graphics.text(font, "Отображение и звуки", panelX + panelWidth / 2 + 8, panelY + 38, ACCENT_SOFT);
 		}
@@ -228,7 +272,7 @@ public final class SettingsScreen extends CompatScreen {
 	private enum Page {
 		CHAT("Чат"),
 		DISPLAY("HUD и звуки"),
-		SERVER("Сервер");
+		BINDS("Бинды");
 
 		private final String title;
 

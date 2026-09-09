@@ -16,6 +16,7 @@ public final class FriendsHud {
 	private final ServerTemplateRuntime runtime;
 	private final FriendPresenceTracker tracker = new FriendPresenceTracker();
 	private volatile FriendHudSnapshot snapshot = FriendHudSnapshot.empty();
+	private int lastRenderedWidth;
 
 	public FriendsHud(ServerTemplateRuntime runtime) {
 		this.runtime = runtime;
@@ -24,6 +25,7 @@ public final class FriendsHud {
 	public void resetRuntimeState() {
 		tracker.reset();
 		snapshot = FriendHudSnapshot.empty();
+		lastRenderedWidth = 0;
 	}
 
 	public void tick(Minecraft minecraft) {
@@ -51,6 +53,7 @@ public final class FriendsHud {
 	}
 
 	private void render(CompatGraphics graphics, FriendHudSnapshot snapshot) {
+		lastRenderedWidth = 0;
 		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) {
 			return;
 		}
@@ -65,6 +68,7 @@ public final class FriendsHud {
 		}
 
 		int boxWidth = contentWidth + 12;
+		lastRenderedWidth = boxWidth;
 		int boxHeight = 8 + (online.size() + 1) * 11;
 		int x = graphics.guiWidth() - boxWidth - 5;
 		int y = graphics.guiHeight() - boxHeight - 5;
@@ -95,6 +99,10 @@ public final class FriendsHud {
 
 	int occupiedHeight() {
 		return occupiedHeight(snapshot);
+	}
+
+	int renderedWidth() {
+		return lastRenderedWidth;
 	}
 
 	static int occupiedHeight(FriendHudSnapshot snapshot) {
