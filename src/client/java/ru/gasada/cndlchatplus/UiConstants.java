@@ -8,6 +8,7 @@ public final class UiConstants {
 	public static final int SURFACE = 0xD9242B38;
 	public static final int SURFACE_ALT = 0xD91C222E;
 	public static final int SURFACE_HOVER = 0xD9262E3D;
+	public static final int HUD_SURFACE = 0xB0181D27;
 	public static final int BORDER = 0xFF536178;
 	public static final int ACCENT = 0xFFA242F3;
 	public static final int ACCENT_SOFT = 0xFFB76EF5;

@@ -12,10 +12,10 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 
 public final class FriendsHud {
+	private static final int MAX_DISPLAYED_ONLINE_FRIENDS = 15;
 	private final ServerTemplateRuntime runtime;
 	private final FriendPresenceTracker tracker = new FriendPresenceTracker();
 	private volatile FriendHudSnapshot snapshot = FriendHudSnapshot.empty();
-	private int maxDisplayedOnlineFriends = 15;
 
 	public FriendsHud(ServerTemplateRuntime runtime) {
 		this.runtime = runtime;
@@ -57,7 +57,7 @@ public final class FriendsHud {
 		Minecraft minecraft = Minecraft.getInstance();
 		Font font = minecraft.font;
 		List<String> allOnline = snapshot.onlineFriends();
-		List<String> online = allOnline.subList(0, Math.min(maxDisplayedOnlineFriends, allOnline.size()));
+		List<String> online = allOnline.subList(0, Math.min(MAX_DISPLAYED_ONLINE_FRIENDS, allOnline.size()));
 		String title = "Друзья онлайн: " + allOnline.size();
 		int contentWidth = font.width(title);
 		for (String friend : online) {
@@ -68,7 +68,7 @@ public final class FriendsHud {
 		int boxHeight = 8 + (online.size() + 1) * 11;
 		int x = graphics.guiWidth() - boxWidth - 5;
 		int y = graphics.guiHeight() - boxHeight - 5;
-		graphics.fill(x, y, x + boxWidth, y + boxHeight, 0xB0181D27);
+		graphics.fill(x, y, x + boxWidth, y + boxHeight, UiConstants.HUD_SURFACE);
 		graphics.outline(x, y, boxWidth, boxHeight, UiConstants.BORDER);
 		graphics.text(font, title, x + 6, y + 4, UiConstants.TEXT);
 		for (int index = 0; index < online.size(); index++) {
@@ -91,5 +91,17 @@ public final class FriendsHud {
 			graphics.text(font, notice, 0, 0, UiConstants.ONLINE);
 			graphics.popPose();
 		}
+	}
+
+	int occupiedHeight() {
+		return occupiedHeight(snapshot);
+	}
+
+	static int occupiedHeight(FriendHudSnapshot snapshot) {
+		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) return 0;
+		int displayed = Math.min(MAX_DISPLAYED_ONLINE_FRIENDS, snapshot.onlineFriends().size());
+		int boxHeight = 8 + (displayed + 1) * 11;
+		return snapshot.notices().isEmpty() ? boxHeight + 5
+				: boxHeight + 10 + snapshot.notices().size() * 20;
 	}
 }
