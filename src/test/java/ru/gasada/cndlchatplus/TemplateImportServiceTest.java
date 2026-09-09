@@ -188,6 +188,31 @@ final class TemplateImportServiceTest {
 		assertEquals("pay {player} {amount}", repository.loadTemplate("target").value().commands.pay);
 	}
 
+	@Test
+	void commandImportCopiesAndValidatesPlaceholderFreeCommands() {
+		ServerTemplate source = template("source");
+		source.commands.claimFly = "customfly";
+		source.commands.enderChest = "chest {player}";
+		ServerTemplate target = template("target");
+		save(source, target);
+		TemplateImportOptions options = new TemplateImportOptions()
+				.select(TemplateImportOptions.Category.COMMANDS, true);
+
+		TemplateImportPreview invalid = service.preview("source", "target", options).value();
+		assertFalse(invalid.valid());
+		assertTrue(invalid.validationErrors().stream().anyMatch(error -> error.contains("ENDER_CHEST")));
+
+		source.commands.enderChest = "customchest";
+		source.commands.marryKiss = "love kiss";
+		source.commands.utilityCommandsConfigured = true;
+		assertTrue(repository.saveTemplate(source).success());
+		ServerTemplate imported = service.preview("source", "target", options).value().proposedTargetCopy();
+		assertEquals("customfly", imported.commands.claimFly);
+		assertEquals("customchest", imported.commands.enderChest);
+		assertEquals("love kiss", imported.commands.marryKiss);
+		assertTrue(imported.commands.utilityCommandsConfigured);
+	}
+
 	private void save(ServerTemplate... templates) {
 		for (ServerTemplate template : templates) assertTrue(repository.saveTemplate(template).success());
 	}

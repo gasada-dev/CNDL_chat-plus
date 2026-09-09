@@ -121,6 +121,16 @@ public final class TemplateImportService {
 					CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD);
 			validateCommand(errors, draft.commands.traderTrustedRemove,
 					CommandTemplateValidator.CommandType.TRADER_TRUSTED_REMOVE);
+			validateCommand(errors, draft.commands.claimFly,
+					CommandTemplateValidator.CommandType.CLAIM_FLY);
+			validateCommand(errors, draft.commands.enderChest,
+					CommandTemplateValidator.CommandType.ENDER_CHEST);
+			validateCommand(errors, draft.commands.marryKiss,
+					CommandTemplateValidator.CommandType.MARRY_KISS);
+			validateCommand(errors, draft.commands.marryHome,
+					CommandTemplateValidator.CommandType.MARRY_HOME);
+			validateCommand(errors, draft.commands.marryTp,
+					CommandTemplateValidator.CommandType.MARRY_TP);
 			if (draft.commands.acceptTeleport != null && !draft.commands.acceptTeleport.isBlank()) {
 				validateCommand(errors, draft.commands.acceptTeleport,
 						CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);

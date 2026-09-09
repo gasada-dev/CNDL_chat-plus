@@ -31,6 +31,16 @@ public final class TemplateSettingsValidator {
 				CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD);
 		validateCommand(errors, template.commands.traderTrustedRemove,
 				CommandTemplateValidator.CommandType.TRADER_TRUSTED_REMOVE);
+		validateCommand(errors, template.commands.claimFly,
+				CommandTemplateValidator.CommandType.CLAIM_FLY);
+		validateCommand(errors, template.commands.enderChest,
+				CommandTemplateValidator.CommandType.ENDER_CHEST);
+		validateCommand(errors, template.commands.marryKiss,
+				CommandTemplateValidator.CommandType.MARRY_KISS);
+		validateCommand(errors, template.commands.marryHome,
+				CommandTemplateValidator.CommandType.MARRY_HOME);
+		validateCommand(errors, template.commands.marryTp,
+				CommandTemplateValidator.CommandType.MARRY_TP);
 		ParserSettings parsers = template.parsers;
 		validatePattern(errors, "Discord marker", parsers.discordMarkerPattern, false);
 		validatePattern(errors, "Discord name", parsers.discordNamePattern, false);
