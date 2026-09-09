@@ -163,6 +163,26 @@ public final class TemplateCatalogService {
 				template.commands.traderTrustedRemoveConfigured = true;
 				changed = true;
 			}
+			if (!template.commands.utilityCommandsConfigured) {
+				ServerCommandSettings defaults = ServerCommandSettings.vanillaBoxDefaults();
+				if (template.commands.claimFly == null || template.commands.claimFly.isBlank()) {
+					template.commands.claimFly = defaults.claimFly;
+				}
+				if (template.commands.enderChest == null || template.commands.enderChest.isBlank()) {
+					template.commands.enderChest = defaults.enderChest;
+				}
+				if (template.commands.marryKiss == null || template.commands.marryKiss.isBlank()) {
+					template.commands.marryKiss = defaults.marryKiss;
+				}
+				if (template.commands.marryHome == null || template.commands.marryHome.isBlank()) {
+					template.commands.marryHome = defaults.marryHome;
+				}
+				if (template.commands.marryTp == null || template.commands.marryTp.isBlank()) {
+					template.commands.marryTp = defaults.marryTp;
+				}
+				template.commands.utilityCommandsConfigured = true;
+				changed = true;
+			}
 		}
 		if (!template.parsers.teleportRequestConfigured) {
 			template.commands.acceptTeleport = "tpaccept";

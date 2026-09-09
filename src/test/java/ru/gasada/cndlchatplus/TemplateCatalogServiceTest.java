@@ -35,8 +35,14 @@ final class TemplateCatalogServiceTest {
 		assertEquals("ps remove {player}", vanilla.commands.protectionRemove);
 		assertEquals("vm trusted add {player}", vanilla.commands.traderTrustedAdd);
 		assertEquals("vm trusted remove {player}", vanilla.commands.traderTrustedRemove);
+		assertEquals("claimfly", vanilla.commands.claimFly);
+		assertEquals("enderchest", vanilla.commands.enderChest);
+		assertEquals("marry kiss", vanilla.commands.marryKiss);
+		assertEquals("marry home", vanilla.commands.marryHome);
+		assertEquals("marry tp", vanilla.commands.marryTp);
 		assertTrue(vanilla.commands.nearbyPlayerCommandsConfigured);
 		assertTrue(vanilla.commands.traderTrustedRemoveConfigured);
+		assertTrue(vanilla.commands.utilityCommandsConfigured);
 		assertFalse(vanilla.parsers.teleportRequestPattern.isBlank());
 		assertEquals(TeleportAutoAcceptMode.OFF, vanilla.teleportAutoAcceptMode);
 		assertTrue(vanilla.teleportAutoAcceptFriends.isEmpty());
@@ -109,6 +115,37 @@ final class TemplateCatalogServiceTest {
 		assertTrue(service.installBundledTemplates().success());
 		assertTrue(repository.loadTemplate("vanilla-box").value().commands.protectionRemove.isBlank());
 		assertTrue(repository.loadTemplate("vanilla-box").value().commands.traderTrustedRemove.isBlank());
+	}
+
+	@Test
+	void utilityCommandDefaultsUpgradeVanillaBoxOnceAndLeaveOtherTemplatesBlank() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory.resolve("utility-upgrade"));
+		ServerTemplate vanilla = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		vanilla.commands.claimFly = "customfly";
+		ServerTemplate other = ServerTemplate.empty("other", "Other");
+		assertTrue(repository.saveTemplate(vanilla).success());
+		assertTrue(repository.saveTemplate(other).success());
+		RootConfig root = new RootConfig();
+		root.templates.add(new ServerTemplateInfo(vanilla.id, vanilla.name));
+		root.templates.add(new ServerTemplateInfo(other.id, other.name));
+		assertTrue(repository.saveRoot(root).success());
+		TemplateCatalogService service = new TemplateCatalogService(repository, directory.resolve("utility-imports"));
+
+		assertTrue(service.installBundledTemplates().success());
+		ServerTemplate upgraded = repository.loadTemplate("vanilla-box").value();
+		assertEquals("customfly", upgraded.commands.claimFly);
+		assertEquals("enderchest", upgraded.commands.enderChest);
+		assertEquals("marry kiss", upgraded.commands.marryKiss);
+		assertEquals("marry home", upgraded.commands.marryHome);
+		assertEquals("marry tp", upgraded.commands.marryTp);
+		assertTrue(upgraded.commands.utilityCommandsConfigured);
+		assertTrue(repository.loadTemplate("other").value().commands.claimFly.isBlank());
+		assertTrue(repository.loadTemplate("other").value().commands.marryTp.isBlank());
+
+		upgraded.commands.enderChest = "";
+		assertTrue(repository.saveTemplate(upgraded).success());
+		assertTrue(service.installBundledTemplates().success());
+		assertTrue(repository.loadTemplate("vanilla-box").value().commands.enderChest.isBlank());
 	}
 
 	@Test
