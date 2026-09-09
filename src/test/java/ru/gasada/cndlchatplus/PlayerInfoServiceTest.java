@@ -8,11 +8,91 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
 final class PlayerInfoServiceTest {
+	@Test
+	void coalescesConcurrentRefreshesForSamePlayerIgnoringCase() {
+		ServerTemplateRuntime runtime = runtime();
+		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
+		AtomicInteger fetches = new AtomicInteger();
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> {
+			fetches.incrementAndGet();
+			return pending;
+		}, null, Runnable::run);
+
+		CompletableFuture<PlayerInfoService.LoadResult> first = service.refresh("Player_1");
+		CompletableFuture<PlayerInfoService.LoadResult> second = service.refresh("player_1");
+
+		assertEquals(1, fetches.get());
+		pending.complete(new VnbxPlayerRelationsResult(true, "Player_1", false,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+				new VnbxPlayerRelationsResult.Marriage(false, null, null)));
+		assertTrue(first.join().success());
+		assertTrue(second.join().success());
+		assertTrue(service.refresh("PLAYER_1").join().success());
+		assertEquals(2, fetches.get());
+	}
+
+	@Test
+	void availableBridgeRefreshDoesNotCoalesceWithPendingUnavailableFallback() {
+		ServerTemplateRuntime runtime = runtime();
+		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
+		AtomicBoolean bridgeAvailable = new AtomicBoolean();
+		AtomicInteger fetches = new AtomicInteger();
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, player) -> {
+			fetches.incrementAndGet();
+			return CompletableFuture.completedFuture(bridgeAvailable.get()
+					? new VnbxPlayerRelationsResult(true, player, false,
+							new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+							new VnbxPlayerRelationsResult.Marriage(true, null, "Partner_1"))
+					: VnbxPlayerRelationsResult.unavailable(requestId, player));
+		}, bridgeAvailable::get, lookupManager, Runnable::run);
+
+		CompletableFuture<PlayerInfoService.LoadResult> fallback = service.refresh("Player_1");
+		assertFalse(fallback.isDone());
+		assertEquals(1, lookupManager.queuedCount());
+
+		bridgeAvailable.set(true);
+		CompletableFuture<PlayerInfoService.LoadResult> bridgeRefresh = service.refresh("player_1");
+		assertEquals(2, fetches.get());
+		PlayerInfoService.LoadResult bridge = bridgeRefresh.join();
+		assertTrue(bridge.success());
+		assertFalse(bridge.fallback());
+		assertEquals("Partner_1", bridge.profile().marriage().partner());
+		assertEquals("Partner_1", service.cached("PLAYER_1").orElseThrow().marriage().partner());
+		lookupManager.resetRuntimeState();
+	}
+
+	@Test
+	void resetDoesNotLetStaleInFlightRequestBlockOrPopulateNextContext() {
+		ServerTemplateRuntime runtime = runtime();
+		CompletableFuture<VnbxPlayerRelationsResult> staleBridge = new CompletableFuture<>();
+		CompletableFuture<VnbxPlayerRelationsResult> currentBridge = new CompletableFuture<>();
+		AtomicInteger fetches = new AtomicInteger();
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) ->
+				fetches.getAndIncrement() == 0 ? staleBridge : currentBridge, null, Runnable::run);
+		CompletableFuture<PlayerInfoService.LoadResult> stale = service.refresh("Player_1");
+
+		service.resetRuntimeState();
+		CompletableFuture<PlayerInfoService.LoadResult> current = service.refresh("player_1");
+		assertEquals(2, fetches.get());
+
+		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", false,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+				new VnbxPlayerRelationsResult.Marriage(false, null, null));
+		staleBridge.complete(bridge);
+		assertFalse(stale.join().success());
+		assertTrue(service.cached("Player_1").isEmpty());
+		currentBridge.complete(bridge);
+		assertTrue(current.join().success());
+		assertTrue(service.cached("Player_1").isPresent());
+	}
+
 	@Test
 	void cachesBridgeProfileOnlyInsideCurrentTemplateGeneration() {
 		ServerTemplateRuntime runtime = runtime();
@@ -33,14 +113,25 @@ final class PlayerInfoServiceTest {
 	@Test
 	void rejectsResponseAfterTemplateSwitch() {
 		ServerTemplateRuntime runtime = runtime();
-		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
-		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> pending, null, Runnable::run);
-		CompletableFuture<PlayerInfoService.LoadResult> load = service.refresh("Player_1");
+		CompletableFuture<VnbxPlayerRelationsResult> staleBridge = new CompletableFuture<>();
+		CompletableFuture<VnbxPlayerRelationsResult> currentBridge = new CompletableFuture<>();
+		AtomicInteger fetches = new AtomicInteger();
+		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) ->
+				fetches.getAndIncrement() == 0 ? staleBridge : currentBridge, null, Runnable::run);
+		CompletableFuture<PlayerInfoService.LoadResult> stale = service.refresh("Player_1");
 		runtime.switchTo(ServerTemplate.empty("second", "Second"));
-		pending.complete(VnbxPlayerRelationsResult.unavailable());
+		CompletableFuture<PlayerInfoService.LoadResult> current = service.refresh("player_1");
+		assertEquals(2, fetches.get());
 
-		assertFalse(load.join().success());
+		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", false,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+				new VnbxPlayerRelationsResult.Marriage(false, null, null));
+		staleBridge.complete(bridge);
+
+		assertFalse(stale.join().success());
 		assertTrue(service.cached("Player_1").isEmpty());
+		currentBridge.complete(bridge);
+		assertTrue(current.join().success());
 	}
 
 	@Test

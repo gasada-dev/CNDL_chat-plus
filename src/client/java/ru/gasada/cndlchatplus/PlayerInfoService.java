@@ -16,6 +16,7 @@ public final class PlayerInfoService {
 	private final FriendLookupManager lookupManager;
 	private final Consumer<Runnable> clientExecutor;
 	private final Map<String, PlayerInfoProfile> sessionCache = new HashMap<>();
+	private final Map<String, CompletableFuture<LoadResult>> inFlight = new HashMap<>();
 	private long epoch;
 
 	PlayerInfoService(ServerTemplateRuntime runtime,
@@ -42,12 +43,28 @@ public final class PlayerInfoService {
 		long generation = snapshot.generation();
 		long requestEpoch = epoch;
 		boolean bridgePresent = bridgeAvailable.getAsBoolean();
-		String requestId = VnbxBridgeClient.newRequestId();
-		return bridgeFetcher.apply(requestId, player).exceptionally(error -> {
-			VnbxBridgeClient.logRequestFailed(requestId, player, "bridge_error");
-			return VnbxPlayerRelationsResult.unavailable(requestId, player);
-		})
-				.thenCompose(bridge -> publishBridgeResult(player, bridge, generation, requestEpoch, bridgePresent));
+		String requestKey = requestEpoch + ":" + generation + ":" + bridgePresent + ":" + key(player);
+		CompletableFuture<LoadResult> existing = inFlight.get(requestKey);
+		if (existing != null) return existing;
+		CompletableFuture<LoadResult> shared = new CompletableFuture<>();
+		inFlight.put(requestKey, shared);
+		try {
+			String requestId = VnbxBridgeClient.newRequestId();
+			bridgeFetcher.apply(requestId, player).exceptionally(error -> {
+				VnbxBridgeClient.logRequestFailed(requestId, player, "bridge_error");
+				return VnbxPlayerRelationsResult.unavailable(requestId, player);
+			})
+					.thenCompose(bridge -> publishBridgeResult(player, bridge, generation, requestEpoch, bridgePresent))
+					.whenComplete((result, error) -> {
+						inFlight.remove(requestKey, shared);
+						if (error == null) shared.complete(result);
+						else shared.completeExceptionally(error);
+					});
+		} catch (RuntimeException error) {
+			inFlight.remove(requestKey, shared);
+			shared.completeExceptionally(error);
+		}
+		return shared;
 	}
 
 	private CompletableFuture<LoadResult> publishBridgeResult(String player, VnbxPlayerRelationsResult bridge,
@@ -80,6 +97,7 @@ public final class PlayerInfoService {
 	public void resetRuntimeState() {
 		epoch++;
 		sessionCache.clear();
+		inFlight.clear();
 	}
 
 	public void tick(net.minecraft.client.Minecraft minecraft) {
