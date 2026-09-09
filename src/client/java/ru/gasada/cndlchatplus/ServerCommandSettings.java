@@ -12,8 +12,14 @@ public final class ServerCommandSettings {
 	public String protectionRemove = "";
 	public String traderTrustedAdd = "";
 	public String traderTrustedRemove = "";
+	public String claimFly = "";
+	public String enderChest = "";
+	public String marryKiss = "";
+	public String marryHome = "";
+	public String marryTp = "";
 	public boolean nearbyPlayerCommandsConfigured;
 	public boolean traderTrustedRemoveConfigured;
+	public boolean utilityCommandsConfigured;
 
 	public static ServerCommandSettings vanillaBoxDefaults() {
 		ServerCommandSettings settings = new ServerCommandSettings();
@@ -28,8 +34,14 @@ public final class ServerCommandSettings {
 		settings.protectionRemove = "ps remove {player}";
 		settings.traderTrustedAdd = "vm trusted add {player}";
 		settings.traderTrustedRemove = "vm trusted remove {player}";
+		settings.claimFly = "claimfly";
+		settings.enderChest = "enderchest";
+		settings.marryKiss = "marry kiss";
+		settings.marryHome = "marry home";
+		settings.marryTp = "marry tp";
 		settings.nearbyPlayerCommandsConfigured = true;
 		settings.traderTrustedRemoveConfigured = true;
+		settings.utilityCommandsConfigured = true;
 		return settings;
 	}
 
@@ -46,8 +58,14 @@ public final class ServerCommandSettings {
 		copy.protectionRemove = protectionRemove;
 		copy.traderTrustedAdd = traderTrustedAdd;
 		copy.traderTrustedRemove = traderTrustedRemove;
+		copy.claimFly = claimFly;
+		copy.enderChest = enderChest;
+		copy.marryKiss = marryKiss;
+		copy.marryHome = marryHome;
+		copy.marryTp = marryTp;
 		copy.nearbyPlayerCommandsConfigured = nearbyPlayerCommandsConfigured;
 		copy.traderTrustedRemoveConfigured = traderTrustedRemoveConfigured;
+		copy.utilityCommandsConfigured = utilityCommandsConfigured;
 		return copy;
 	}
 }

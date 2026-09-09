@@ -169,11 +169,15 @@ final class ServerTemplateRepositoryTest {
 		copy.rules.getFirst().trigger = "changed";
 		copy.periodicMessages.getFirst().message = "changed";
 		copy.commands.call = "different {player}";
+		copy.commands.claimFly = "different-fly";
+		copy.commands.utilityCommandsConfigured = false;
 
 		ServerTemplate reloadedSource = repository.loadTemplate("source").value();
 		assertEquals(List.of("Alice"), reloadedSource.friends);
 		assertEquals("one", reloadedSource.rules.getFirst().trigger);
 		assertEquals("legacy", reloadedSource.periodicMessages.getFirst().message);
 		assertEquals("call {player}", reloadedSource.commands.call);
+		assertEquals("claimfly", reloadedSource.commands.claimFly);
+		assertTrue(reloadedSource.commands.utilityCommandsConfigured);
 	}
 }

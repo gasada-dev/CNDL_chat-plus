@@ -43,8 +43,14 @@
     "protectionRemove": "ps remove {player}",
     "traderTrustedAdd": "vm trusted add {player}",
     "traderTrustedRemove": "vm trusted remove {player}",
+    "claimFly": "claimfly",
+    "enderChest": "enderchest",
+    "marryKiss": "marry kiss",
+    "marryHome": "marry home",
+    "marryTp": "marry tp",
     "nearbyPlayerCommandsConfigured": true,
-    "traderTrustedRemoveConfigured": true
+    "traderTrustedRemoveConfigured": true,
+    "utilityCommandsConfigured": true
   },
   "parsers": {
     "discordMarkerPattern": "(?iu)(?:\\(|\\[|<|\\{|«|‹|〈)\\s*discord\\s*(?:\\)|\\]|>|\\}|»|›|〉)",
