@@ -17,8 +17,16 @@
 | `/ps remove <player>` (Vanilla-box) | `ServerCommandService.removeFromProtection` | `{player}` | player/template/connection |
 | `/vm trusted add <player>` (Vanilla-box) | `ServerCommandService.addTraderTrusted` | `{player}` | player/template/connection |
 | `/vm trusted remove <player>` (Vanilla-box) | `ServerCommandService.removeTraderTrusted` | `{player}` | player/template/connection |
+| `/claimfly` (Vanilla-box, F7) | `ServerCommandService.claimFly` | нет | template, connection |
+| `/enderchest` (Vanilla-box, `\`) | `ServerCommandService.enderChest` | нет | template, connection |
+| `/marry kiss` (Vanilla-box) | `ServerCommandService.marryKiss` | нет | template, connection |
+| `/marry home` (Vanilla-box) | `ServerCommandService.marryHome` | нет | template, connection |
+| `/marry tp` (Vanilla-box) | `ServerCommandService.marryTp` | нет | template, connection |
 
 Vanilla strings определены только в `ServerCommandSettings.vanillaBoxDefaults()`. Другие classes не конкатенируют эти команды. `CommandTemplateValidator` требует точный набор placeholders и хранение без leading `/`. Если active template не содержит команду или template invalid, сервис возвращает понятную ошибку и ничего не отправляет; скрытого fallback Vanilla-box нет.
+
+F7 и `\` зарегистрированы как обычные переназначаемые key mappings Minecraft. Они вызывают
+`claimFly` и `enderChest` только при закрытом GUI и используют команды active template.
 
 Страница «Команды» в `TemplateEditorScreen` позволяет для каждого template заменить,
 например, `w {player} {message}` на `msg {player} {message}`, `call {player}` на
