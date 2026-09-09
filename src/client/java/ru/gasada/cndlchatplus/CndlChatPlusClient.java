@@ -35,6 +35,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	public static ChatDuplicateCollapser CHAT_DUPLICATES;
 	public static ChatSearchState CHAT_SEARCH;
 	public static TeleportRequestButton TELEPORT_REQUEST;
+	public static MarriageHud MARRIAGE_HUD;
 	public static ChatAlertService CHAT_ALERTS;
 	public static ChatBookmarkStore CHAT_BOOKMARKS;
 	private ChatVisibilityFilter visibilityFilter;
@@ -99,6 +100,9 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		switchCoordinator.register(friendsHud::resetRuntimeState);
 		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		friendsHud.register();
+		MARRIAGE_HUD = new MarriageHud(TEMPLATE_RUNTIME, PLAYER_INFO, SERVER_COMMANDS, friendsHud);
+		switchCoordinator.register(MARRIAGE_HUD::resetRuntimeState);
+		MARRIAGE_HUD.register();
 
 		ChatMessageStore chatMessageStore = new ChatMessageStore(() -> CONFIG.chatHistoryLimit);
 		ChatHistoryStore chatHistoryStore = new ChatHistoryStore(ConfigManager.chatHistoryDirectory());
@@ -125,6 +129,16 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				InputConstants.Type.KEYSYM,
 				InputConstants.KEY_F8,
 				category));
+		KeyMapping claimFly = PlatformKeyMapping.register(new KeyMapping(
+				"key.cndl_chat_plus.claim_fly",
+				InputConstants.Type.KEYSYM,
+				InputConstants.KEY_F7,
+				category));
+		KeyMapping enderChest = PlatformKeyMapping.register(new KeyMapping(
+				"key.cndl_chat_plus.ender_chest",
+				InputConstants.Type.KEYSYM,
+				InputConstants.KEY_BACKSLASH,
+				category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			TEMPLATE_SELECTION.tick(minecraft);
@@ -132,8 +146,15 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			while (openScreen.consumeClick()) {
 				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
 			}
+			while (claimFly.consumeClick()) {
+				if (ClientUi.currentScreen(minecraft) == null) SERVER_COMMANDS.claimFly();
+			}
+			while (enderChest.consumeClick()) {
+				if (ClientUi.currentScreen(minecraft) == null) SERVER_COMMANDS.enderChest();
+			}
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
+			MARRIAGE_HUD.tick(minecraft);
 			updateChecker.tick(minecraft);
 			TELEPORT_REQUEST.tick(minecraft);
 			chatAlertHud.tick(minecraft);
@@ -177,6 +198,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
 			PLAYER_INFO.resetRuntimeState();
+			MARRIAGE_HUD.resetRuntimeState();
 			PlatformBridgeNetworking.disconnected();
 			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
 			CHAT_TABS.resetRuntimeState();

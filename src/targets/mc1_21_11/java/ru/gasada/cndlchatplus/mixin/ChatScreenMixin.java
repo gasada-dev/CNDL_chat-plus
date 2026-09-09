@@ -57,6 +57,13 @@ public abstract class ChatScreenMixin {
 			cir.setReturnValue(true);
 			return;
 		}
+		if (event.button() == 1 && CndlChatPlusClient.MARRIAGE_HUD != null
+				&& CndlChatPlusClient.MARRIAGE_HUD.rightClick(event.x(), event.y(), screen.width,
+						screen.height, Minecraft.getInstance().font, Minecraft.getInstance())) {
+			gasada$contextMenu.close();
+			cir.setReturnValue(true);
+			return;
+		}
 		if (event.button() == 1 && gasada$contextMenu.rightClick(event.x(), event.y(),
 				screen.width, screen.height, Minecraft.getInstance())) {
 			cir.setReturnValue(true);
