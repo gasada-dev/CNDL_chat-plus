@@ -1,5 +1,7 @@
 {
 	"key.cndl_chat_plus.open": "Open chat manager",
+	"key.cndl_chat_plus.claim_fly": "Toggle claim flight",
+	"key.cndl_chat_plus.ender_chest": "Open ender chest",
 	"key.categories.cndl_chat_plus.main": "CNDL_chat-plus",
 	"key.category.cndl_chat_plus.main": "CNDL_chat-plus"
 }

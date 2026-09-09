@@ -1,5 +1,7 @@
 {
 	"key.cndl_chat_plus.open": "Открыть менеджер чата",
+	"key.cndl_chat_plus.claim_fly": "Переключить полёт в привате",
+	"key.cndl_chat_plus.ender_chest": "Открыть эндер-сундук",
 	"key.categories.cndl_chat_plus.main": "CNDL_chat-plus",
 	"key.category.cndl_chat_plus.main": "CNDL_chat-plus"
 }
