@@ -1,282 +1,82 @@
 # Архитектура CNDL_chat+
 
-Документ описывает текущее состояние проекта. Мод является client-only Fabric entrypoint для Minecraft 26.2; все игровые API вызываются на client thread.
+CNDL_chat+ является client-only Fabric модом для Minecraft 1.21.11 и 26.2. Игровой UI,
+connection, player list, send, HUD и sound выполняются на client thread. F8 открывает менеджер
+чата, F9 и automation принадлежат CNDL_toolkit.
 
-## Bootstrap и active template
+## Bootstrap, gate и runtime
 
-`CndlChatPlusClient` загружает совместимый `ResponderConfig`, создаёт services и регистрирует F8, client tick, ALLOW/CHAT/GAME events и HUD. F8 открывает менеджер чата сразу на вкладке друзей; F9 и automation принадлежат CNDL_toolkit. `TemplateSelectionService` открывает repository и выбирает `vanilla-box` для начального compatible runtime. При разрешённом connection `connect(normalizedAddress)` сохраняет адрес для scope history/bookmarks и снова выбирает `vanilla-box`; `ServerTemplateResolver` в этом пути не вызывается.
+`CndlChatPlusClient` загружает `ResponderConfig`, выполняет `VanillaBoxStorageMigration`,
+создаёт сервисы и регистрирует Fabric events. `VanillaBoxConnectionGate` является единственной
+границей server activation. Он принимает только `ServerData.ip` с hostname `vanilla-box.ru` или
+настоящим поддоменом, с корректным optional port. Регистр и одна trailing dot нормализуются.
+Lookalike, unrelated hostname, IP, malformed input, singleplayer и connection без `ServerData`
+отклоняются без DNS lookup.
 
-`VanillaBoxConnectionGate` на JOIN получает только `ServerData.ip`. Он активирует runtime, если
-адрес после case и одного trailing-dot normalization имеет hostname ровно `vanilla-box.ru` или
-суффикс `.vanilla-box.ru`, с необязательным valid port. DNS lookup отсутствует. Lookalike,
-IP, malformed address, singleplayer и connection без `ServerData` отклоняются. Разрешённый адрес
-нормализуется и передаётся в template, history и bookmark scope. При denied JOIN runtime
-fail-inactive: template отключается, transient chat/HUD/search/bind state очищается, F8 и binds
-не действуют, входящие сообщения проходят vanilla без обработки. DISCONNECT очищает gate и весь
-session state; JSON templates и legacy automation bridge не удаляются.
+При разрешённом join `VanillaBoxConfigStore` загружает только
+`server-templates/vanilla-box.json`, а `VanillaBoxRuntime` публикует immutable
+`VanillaBoxSnapshot`. Нормализованный адрес используется только для history/bookmark scope.
+Он не участвует в выборе config. Denied join, disconnect, failed migration, missing config после
+`storageVersion: 1` или compilation failure очищают runtime, gate, очереди, HUD и transient state.
+Это fail-inactive поведение, без defaults и fallback.
 
-`ServerTemplateRuntime` публикует immutable `ActiveTemplateSnapshot`. Перед публикацией строятся `CompiledParserSettings` и `CompiledFilterSet`; message hot path не читает JSON и не компилирует regex. Automation-поля остаются только в persisted `ServerTemplate` и не входят в runtime snapshot. `TemplateSwitchCoordinator` сначала очищает:
+Snapshot содержит deep immutable settings, generation и заранее скомпилированные parser/filter
+артефакты. `RuntimeResetCoordinator` очищает lookup queues, presence и transient UI state при
+activation и clear. `updateLastSeen` публикует новую generation без очистки очереди. Message и
+render hot paths не читают файлы, не делают HTTP и не компилируют regex.
 
-- friend lookup queue/pending response;
-- friend presence, notices и HUD snapshot;
-- compiled filters и parsers.
+## Хранение и migration
 
-Если `vanilla-box` невозможно загрузить, runtime очищается: настройки другого сервера не
-применяются. `ServerTemplateResolver` остаётся для persisted root metadata и template-management,
-но не выбирает template при connection. При отсутствии connection/address tick не меняет runtime.
+`cndl-chat-plus.json` хранит global visible settings и compatible view. `VanillaBoxConfig` в
+`server-templates/vanilla-box.json` является единственной server-specific authority. Существующий
+корректный файл побеждает совместимое представление. `ServerCommandSettings.vanillaBoxDefaults()`
+и `ParserSettings.vanillaBoxDefaults()` применяются только при первой инициализации. Bundled
+catalog и JSON-конфигурации в JAR отсутствуют.
 
-## Входящие сообщения
+`ResponderConfig.storageVersion` nullable: absent, `null` и `0` запускают переход. Migration
+сначала сохраняет и перечитывает Vanilla-box config, затем архивирует retired candidates в
+`cndl-chat-plus-retired-server-support-v1/files/<relative-path>`. `manifest.json` содержит
+отсортированные `path`, `size` и lowercase SHA-256. Archive проверяет raw bytes до удаления.
+Совпадающий неизменяемый archive поддерживает resume после прерывания. Только manifest-listed
+`server-templates.json`, non-Vanilla JSON из `server-templates/` и
+`cndl-chat-plus-template-imports/**` удаляются после verification. `storageVersion: 1` пишется
+последним.
 
-Порядок Fabric pipeline сохранён:
+Legacy backup, branded config sources, branded imports, history и bookmarks остаются. Automation
+bridge, включая nullable `rules`, `periodicMessages`, prefixes и nested values, не исполняется и
+не нормализуется CNDL_chat+, но сохраняется для CNDL_toolkit.
 
-```text
-FriendLookupManager interception
-→ ChatVisibilityFilter
-→ ChatAlertService
-→ ChatDuplicateCollapser / teleport handling
-→ history/tabs
-→ отображение сообщения
-```
+## Сообщения, команды и privacy
 
-`ALLOW_CHAT`/`ALLOW_GAME` сначала даёт friend manager извлечь данные и скрыть
-служебные lookup blocks. Затем `ChatVisibilityFilter` применяет глобальный Discord toggle, Discord
-mute, explicit Minecraft sender mute и compiled muted words активного шаблона. Скрытое
-сообщение не записывается в историю и вкладки. При отсутствии active template или compiled
-settings фильтр работает fail-open и показывает сообщение. CNDL_chat+ не запускает
-auto-reply callback и не отправляет сообщения по legacy rules.
+Входящий pipeline имеет порядок: friend lookup interception, visibility filter, Chat Alerts,
+duplicate collapse и teleport handling, затем history/tabs и vanilla display. Скрытые сообщения
+не записываются. При inactive runtime фильтр fail-open, то есть vanilla message остаётся видимым.
+Global Chat Alerts обрабатывают только принятые сообщения.
 
-`ChatAlertService` получает только принятые фильтром CHAT/GAME events до объединения повторов.
-Он использует общую классификацию `ChatTabClassifier` и очищенный через
-`ChatMessageTextSanitizer` текст тела сообщения после распознанного sender-разделителя; ник
-отправителя не участвует в matching. `ChatAlertRuleCompiler` при load/save публикует immutable
-список TEXT/WILDCARD/REGEX matchers; message hot path regex не компилирует. Одно событие
-создаёт не больше одного HUD notice и
-одного sound action независимо от числа совпавших правил. Очередь HUD ограничена тремя
-уведомлениями с исходным текстом сообщения на четыре секунды; render только рисует snapshot. Join/disconnect очищают
-очередь и pending sounds. Восстановление history идёт напрямую в `ChatComponent`
-и alerts не запускает. Alert-конфигурация глобальна и не входит в active template.
+`OutgoingChatService.MinecraftTransport` является единственным вызовом Minecraft send API. Он
+повторно проверяет gate, connection и generation перед transport. `ServerCommandService` строит
+только команды Vanilla-box, валидирует placeholders и аргументы непосредственно перед send.
+F7, `\`, friend actions, teleport и marriage actions не работают вне active runtime. Private
+messages, email, reply payloads и amounts не логируются.
 
-`ChatDuplicateCollapser` после фильтра сравнивает отображаемый текст, видимое форматирование и source type только
-с непосредственно предыдущей отображённой строкой. Последовательные duplicates отменяются
-через Fabric `ALLOW_CHAT`/`ALLOW_GAME`; target-specific `ChatDuplicateAccess` заменяет первый
-`GuiMessage`, сохраняя signature/source/tag. Счётчик `xN`, timestamp последнего повтора и
-последняя persisted history entry обновляются без нового unread. Любая другая player/system
-или client-side строка сбрасывает серию. GAME side effects, включая TP request, выполняются и
-для отменённого duplicate; overlay messages не участвуют. При disconnect/template switch
-runtime state очищается. Глобальное отключение функции также очищает текущую серию, не влияя
-на timestamps, вкладки, поиск или history.
+## Пользовательские функции
 
-`ChatChannelDetector` проверяет Discord, private markers, clan markers, global prefix, `(!)`,
-global markers и fallback `LOCAL` именно в этом порядке. Его используют вкладки и context UI.
-`WildcardMatcher` считает специальным только `*`; `CONTAINS_MATCH` используется muted words.
+`ResponderScreen` содержит вкладки «Чёрный список» и «Друзья». В заголовке находятся `?`,
+`Информация об игроке` и `⚙`. Настройки UI, истории, Discord, HUD, sound, alerts и binds
+глобальны. Нет экранов server templates, editor, import, catalog или настройки команд/parsers.
 
-## Исходящие команды
+Friends, filter settings, channel markers, teleport policy и commands берутся из одной
+Vanilla-box config. `FriendLookupManager` и `PlayerInfoService` используют compiled parsers.
+На Minecraft 26.2 `VnbxBridgeClient` принимает bounded raw UTF-8 JSON `vnbx:bridge`; payload
+не попадает в config/history или log. На 1.21.11 bridge сразу unavailable.
 
-`OutgoingChatService.MinecraftTransport` является единственным местом вызовов Minecraft
-`sendChat`/`sendCommand`. Перед постановкой отправки он проверяет active gate и connection, а
-в queued действии проверяет их повторно непосредственно перед Minecraft transport. Composition
-root создаёт сервис с no-op recorder, потому что echo guard удалён. `ServerCommandService`
-получает templates активного snapshot и валидирует аргументы непосредственно перед отправкой
-через `PlayerNameValidator`, `MessageValidator`, `AmountValidator`, `InputSanitizer` и
-`CommandTemplateValidator`. Переназначаемые F7 и `\` вызывают active-template `claimFly` и
-`enderChest` из client tick только при закрытом GUI.
+`ChatHistoryStore` и `ChatBookmarkStore` хранят данные отдельно по нормализованному разрешённому
+адресу через atomic temporary file и move. Они не создают scope в singleplayer или denied
+connection. Bookmarks независимы от history toggles.
 
-Команды Vanilla-box находятся только в `ServerCommandSettings.vanillaBoxDefaults()`. При отсутствии command template fallback не применяется, отправка не выполняется. `FriendActionService` предоставляет UI/lookup friend actions, не собирая строки команд.
+## Поддерживаемые границы
 
-`UseEntityCallback` перехватывает `Alt+ПКМ` по `Player` только при точном active ID
-`vanilla-box`, main hand и закрытом GUI. Обычное взаимодействие отменяется без server packet,
-после чего `NearbyPlayerMenuScreen` предлагает `/ps add`, `/ps remove`, `/vm trusted add`
-и `/vm trusted remove`.
-Ник повторно валидируется, а команды отправляются только через `ServerCommandService`.
-
-## Friends, lookup и HUD
-
-`FriendLookupManager` ставит в FIFO-очередь только друзей active snapshot; обход автоматически
-начинается через 30 секунд после подключения или раньше при открытии friends tab. Manager
-проверяет по пять игроков с delay 10 секунд между завершёнными ответами и паузой 60 секунд
-между группами. После завершения очереди, включая неполную последнюю группу, manager ждёт
-60 секунд и снова ставит в FIFO всех друзей active snapshot с первого. Timeout равен 15 секунд;
-background lookup без данных один раз повторяется после 60-секундной паузы. Ручной player-info
-fallback принимает любой валидный Minecraft-ник,
-идёт перед оставшейся background-очередью, но соблюдает общий cooldown. Parser использует
-compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
-автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.
-
-`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд, online confirmation 1,5 секунды и notice 4 секунды. Если друг уходит offline во время online confirmation, notice и звук отменяются. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка. Открытый `ResponderScreen` раз в 20 ticks сравнивает immutable snapshots online-друзей и `friendLastSeen` через map equality, поэтому поздний lookup refresh, включая maps с одинаковым hash, перестраивает список.
-
-`MarriageHudController` после появления доступного VnbxBridge один раз для пары connection identity +
-active template generation читает текущий Minecraft-ник и вызывает `PlayerInfoService.refresh(self)`.
-Polling и retry отсутствуют. In-flight ключ `PlayerInfoService` включает captured режим доступности
-bridge, поэтому pending fallback не coalesce с последующим bridge-backed запросом того же игрока.
-Контроллер публикует immutable `MarriageHudSnapshot` только для married-профиля с валидным partner;
-unavailable, unmarried, blank/invalid partner и устаревший callback оставляют snapshot пустым.
-Переход bridge available → unavailable один раз увеличивает controller epoch, очищает partner/snapshot
-и делает menu context и pending completion устаревшими. Повторные unavailable ticks ничего не меняют;
-возврат available разрешает один новый current refresh, включая attachment к same-mode in-flight service request.
-Disconnect и template switch очищают state. `MarriageHud.render` только рисует snapshot независимо
-от переключателя HUD друзей и располагает панель над полной occupied-высотой `FriendsHud`, включая notices.
-
-В открытом `ChatScreen` ПКМ сначала проверяет bounds панели брака и только затем контекстное меню
-сообщения. `MarriageMenuScreen` показывает три русских действия без текста команд. При открытии он
-фиксирует connection identity, generation и partner; перед каждой отправкой `MarriageHudController`
-сверяет их с текущим snapshot, а `ServerCommandService` повторно валидирует active command.
-Успешное действие закрывает экран, stale context или ошибка оставляют его открытым с сообщением.
-
-## Запрос телепорта
-
-`TeleportRequestButton` сопоставляет system message с заранее скомпилированным
-`teleportRequestPattern` active template. Политика `teleportAutoAcceptMode` принимает запросы
-от всех, друзей или выбранных друзей через `ServerCommandService.acceptTeleport`. При успешном
-автоприёме HUD и звук не создаются; при несовпадении или ошибке отправки HUD показывает кнопку
-на 60 секунд. Клик доступен в открытом чате. Timeout, disconnect, template switch и успешный
-клик очищают запрос. Ручной запрос при включённом глобальном переключателе один раз проигрывает custom sound event, ссылающийся на
-встроенный `minecraft:entity/shulker/ambient4`, из client tick. Без parser/command кнопка не появляется.
-
-## Templates, migration и import
-
-`ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move и сериализует explicit nulls для exact automation bridge round-trip. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` сохраняет compatibility-правила exact binding → exact pattern → wildcard → default → none для persisted/template-management metadata, но не участвует в connection selection и не активирует мод вне gate.
-
-`RootConfigSchemaMigration` обновляет только версию root schema, не меняя template ID или ссылки.
-`TemplateCatalogService` до начального выбора устанавливает отсутствующие bundled JSON из
-`assets/cndl_chat_plus/server_templates/catalog.json`. Descriptor также добавляет
-официальный домен существующему встроенному ID, не перезаписывая template. Внешние JSON размером до 1 MiB
-загружаются только по команде UI из `config/cndl-chat-plus-template-imports`; перед
-регистрацией проверяются ID/name, command placeholders и parser patterns.
-
-`BrandPathMigration` до config load копирует старые branded config/import/history files в
-`cndl-chat-plus-*` без удаления source или перезаписи target. Затем
-`LegacyConfigToVanillaBoxMigration` до завершения новой схемы создаёт побайтовый backup
-`cndl-chat-plus.json`, сохраняет и перечитывает `server-templates/vanilla-box.json`, затем
-последним пишет root. Совместимый config остаётся view Vanilla-box.
-
-`TemplateImportService` строит отдельный `TemplateImportPreview`; source и persisted target до confirmation не меняются. Categories импортируются выборочно, списки поддерживают REPLACE/MERGE/SKIP, existing last seen сохраняется без explicit overwrite, commands/parsers валидируются до apply. Reply/periodic categories отсутствуют; deep copy target сохраняет inert automation fields без изменений.
-
-## UI
-
-`ResponderScreen` содержит две равные вкладки: чёрный список и друзья, по умолчанию открываются
-друзья. Часть mutations/save и UI helpers вынесена в tab controllers, `PlayerSuggestionProvider`,
-`Pagination`, `ScreenStatus` и `UiConstants`; layout и orchestration остаются в screen. Верхняя
-строка содержит `?`, кнопку `Информация об игроке` и непосредственно справа от неё 24 px `⚙`
-настроек. `SettingsScreen` независимо переключает
-вкладки, поиск, timestamps, повторы, context menu, Discord, HUD и два звука; серверные шаблоны
-открываются из него кнопкой `Настройка команд для сервера`. Rules tab, periodic hotspot и password UI отсутствуют.
-
-Внизу вкладки друзей находится cycle автоприёма телепорта. Режим выбранных друзей показывает
-персональный переключатель только после выбора друга из списка. Настройки изолированы active template.
-
-Над вкладкой друзей находится кнопка `Информация об игроке`. `PlayerInfoScreen` получает
-online suggestions из текущего connection и загружает данные только по `Обновить`.
-`PlayerInfoService` хранит session cache и отбрасывает ответы старой runtime generation.
-При недоступности VnbxBridge запрос ставится в общую очередь `FriendLookupManager`; parser сначала
-извлекает named `playerInfoPatterns`, затем
-скрывает lookup block и передаёт собранные поля экрану. disconnect и switch завершают/очищают очередь. UI намеренно
-не показывает building score, placeholder скрытых контактов и pwarp без достоверного источника.
-
-На Minecraft 26.2 `PlayerInfoService` запрашивает clan/marriage через `VnbxBridge`.
-Доступный отрицательный результат считается authoritative; недоступный bridge сохраняет
-`/clan lookup` fallback. Публикация результата остаётся на client thread с проверкой
-generation/epoch.
-
-Подсказки friend actions получают templates из active `CommandSnapshot` и форматируют их
-через `CommandTemplateDisplay`; названия `/w`, `/tpa`, pay/mail не зашиты в UI.
-
-`TemplatesScreen`, `TemplateEditorScreen` и `TemplateImportScreen` используют draft/preview. Editor имеет страницы identity/address, именованных команд CNDL_chat+, каналов с Discord marker/name patterns и player info; private auto-reply prefix не показывается. Runtime меняется только после успешного save или явного временного выбора. Активный/default/единственный template защищён от небезопасного удаления.
-
-## Update checker
-
-`UpdateChecker` использует один shared `HttpClient`, redirect policy `NEVER` и explicit `CheckState`. Async callback читает GitHub REST `releases/latest`, принимает только status 200, JSON/plain Content-Type, до 64 KiB строгого UTF-8 и публикует immutable DTO. Версия извлекается из numeric tag `vX.Y.Z`; release обязан содержать точные assets `CNDL_chat+-<version>-mc1.21.11.jar` и `CNDL_chat+-<version>-mc26.2.jar` с HTTPS URL точного release path репозитория. Release body до 4 KiB формируется из `UPDATE_NOTES.md`; окно показывает помещающуюся часть и строит подтверждаемую ссылку на этот файл точного тега. `UpdateVersion` отдельно сохраняет comparison characterization. Экран с отдельной кнопкой для каждой версии открывается только из client tick; автоматической установки нет.
-
-## История чата
-
-`ChatMessageStore` хранит входящие сообщения (timestamp + JSON `Component`) в ring buffer с
-лимитом из `ResponderConfig.chatHistoryLimit`. Запись идёт из `ClientReceiveMessageEvents`
-CHAT/GAME после `ChatVisibilityFilter`: скрытые и overlay-сообщения не сохраняются.
-Сериализация — `ChatHistoryCodec` через `ComponentSerialization.CODEC` с registry access
-текущего уровня/connection; MC API изолирован от store.
-
-`ChatComponentMixin` поднимает vanilla-лимит 100 в `addMessageToQueue`/`addMessageToDisplayQueue`
-до configured limit (`@ModifyConstant`, `require=0`: при смене байткода Mojang лимит молча
-остаётся vanilla вместо падения). `ChatHistoryStore` пишет per-server JSON в
-`config/cndl-chat-plus-chat-history/<fileKey>.json` (имя файла — нормализованный адрес
-с sanitization) через sibling temp → atomic move. Save — на disconnect, load и вставка в
-`ChatComponent` — на join до прихода новых сообщений; повреждённый файл fail-open. Singleplayer
-и direct connect без `ServerData` не сохраняются. Доступ к чату различается между target'ами
-и вынесен в per-target `ChatAccess` (`src/targets/`).
-
-## Вкладки чата и timestamps
-
-`ChatTabClassifier` классифицирует входящее сообщение в `ChatTab` (ALL/GLOBAL/LOCAL/CLAN/
-PRIVATE/DISCORD/SYSTEM): Discord parser active template имеет приоритет, затем
-`ChatChannelDetector` по маркерам (маркеры важнее типа пакета — серверы могут слать чат
-системными сообщениями), и только сообщения без маркеров становятся SYSTEM (GAME-события) или
-LOCAL. `ChatTabController` хранит active tab,
-unread counters (инкремент, если chat закрыт или tab не активна; сброс при выборе/открытии) и
-identity map `Component → fromGame` (cap 16384, при переполнении чистится). Канал всегда
-вычисляется из текста + флага fromGame, поэтому счётчик и фильтр согласованы; в 26.2 флаг
-берётся из `GuiMessage.source()` (PLAYER/SYSTEM_*), в 1.21.11 — из identity map.
-`ChatComponentFilterMixin` (per-target, класс `GuiMessage`
-различается) отменяет `addMessageToDisplayQueue` для сообщений вне active tab; переключение
-вкладки вызывает private `refreshTrimmedMessages` через `@Invoker` в `ChatComponentMixin`.
-
-`ChatScreenMixin` (per-target: `render` в 1.21.11, `extractRenderState` в 26.2) рисует
-`ChatTabBar` над верхней строкой чата (позиция от private `getHeight` через `@Invoker` и
-vanilla bottom margin 40) и
-перехватывает ЛКМ по вкладкам. `ChatTimestampMixin`
-(per-target descriptor `addMessage`) подставляет серый префикс `[HH:mm]` через
-`@ModifyVariable`; префикс создаёт новый `Component`, поэтому `ChatTimestamps` вызывает
-`ChatTabController.remapComponent`, чтобы перенести флаг fromGame на prefixed instance. Восстановленные
-из истории сообщения получают префикс с исходным timestamp и заносятся в skip-set, чтобы
-mixin не добавил второй. Все новые injector'ы используют `require=0`, кроме `@Invoker`
-refreshTrimmedMessages (проверен в байткоде обоих target'ов).
-
-`ChatSearchState` хранит нормализованный lowercase query только пока открыт `ChatScreen`.
-Ctrl+F показывает native `EditBox`; изменение строки вызывает `refreshTrimmedMessages`, а
-`ChatComponentFilterMixin` применяет search predicate вместе с active tab через AND. Пустой
-query и закрытие поиска возвращают все сообщения active tab; unread counters поиск не меняет.
-
-ПКМ по видимой строке получает `ChatMessageTarget` через per-target
-`ChatMessageUnderMouseAccess`: 26.2 использует parent из `GuiMessage.Line`, 1.21.11 сопоставляет
-группу wrapped lines с visible `allMessages`. `ChatMessageSenderExtractor` применяет Discord
-parser и separators active template; SYSTEM не получает player actions. `ContextMenuBuilder`
-показывает только доступные validated command actions. Перед copy и sender extraction
-`ChatMessageTextSanitizer` удаляет synthetic accessibility labels вида `[Player head]`.
-Copy работает локально; ЛС/pay/mail
-подставляют draft в chat input, call/ignore идут через `ServerCommandService`, friend add сохраняет
-active template, player info открывает предзаполненный `PlayerInfoScreen`. Без active template
-командные действия отсутствуют.
-
-Пункт `Сохранить в закладки` доступен для любого найденного context target независимо от
-sender и active template. `ChatMessageTextSanitizer` удаляет собственный timestamp и Chat
-Heads label из bookmark text. `ChatBookmarkStore` держит отдельный список текущего разрешённого connection
-и атомарно пишет каждую явную mutation в
-`config/cndl-chat-plus-chat-bookmarks/<fileKey>.json`. Join загружает scope по тому же
-нормализованному server address, что history; disconnect сохраняет и очищает runtime list.
-Bookmarks не входят в `ChatMessageStore`, template snapshot/import и не зависят от history
-toggles. Singleplayer и connection без `ServerData` gate не активирует, поэтому UI закладок
-недоступен. Кнопка над панелью
-вкладок открытого чата открывает список: новые записи сверху, copy только text, inline editor
-сохраняет только text и оставляет ID/timestamps/channel/sender/порядок записи неизменными, есть
-delete и отдельное подтверждение перед очисткой всех.
-
-## VnbxBridge transport
-
-Minecraft 26.2 target регистрирует двунаправленный raw UTF-8 JSON payload `vnbx:bridge`.
-`PlatformBridgeNetworking` изолирует Fabric API, `VnbxBridgeClient` проверяет protocol/type/16 KiB limit
-и хранит последние сообщения только до disconnect. Player-relations requests имеют случайный
-request ID, strict bounded response parsing и timeout 5 секунд; mismatched/stale ответы
-отбрасываются, pending futures завершаются при disconnect. Payload content не логируется.
-Transport не меняет config или active template; server-specific adapters остаются на стороне
-VnbxBridge. Target 1.21.11 возвращает immediate unavailable result без отправки.
-
-## Threading и I/O invariants
-
-- UI, connection/player list, chat/command send, HUD state и sound — client thread.
-- HTTP — async; callback не открывает screen.
-- JSON I/O не выполняется в message handler или render.
-- Bookmark I/O выполняется только по явному context/UI action и на connection lifecycle.
-- HUD render не сохраняет, не запускает lookup/commands/sound и не вычисляет presence transitions.
-- Persistent regex/wildcards компилируются при публикации snapshot, а не на каждом сообщении.
-
-## Тестовые границы
-
-JUnit 5 tests находятся в `src/test`. Characterization tests фиксируют wildcard/filter/channel/config/lookup/version и legacy migration semantics; persistence/copy/import tests доказывают сохранение inert automation bridge. Unit tests покрывают templates, migration, resolver/runtime resets, commands/parsers/filters, friends, management/import UI services и update security. Minecraft rendering/Fabric event delivery остаются предметом ручных сценариев `docs/MANUAL_TESTS.md`.
+Тесты JUnit 5 находятся в `src/test/java`. Они проверяют gate, fixed config store, archive,
+storage migration и её idempotence, runtime snapshots и resets, commands, parsers, filters,
+friends, history, bookmarks и VnbxBridge. Ручные проверки обоих Minecraft targets описаны в
+[MANUAL_TESTS.md](MANUAL_TESTS.md).

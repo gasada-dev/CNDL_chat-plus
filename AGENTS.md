@@ -3,7 +3,7 @@
 ## Scope
 
 CNDL_chat+ — client-only Fabric-мод. Реализуйте только явно запрошенное поведение.
-Без отдельной задачи сохраняйте UI, config compatibility, server-template isolation и
+Без отдельной задачи сохраняйте UI, config compatibility, fixed Vanilla-box runtime isolation и
 существующие серверные команды.
 
 Автоответы и periodic automation с версии 0.8.0 принадлежат CNDL_toolkit. CNDL_chat+
@@ -13,8 +13,12 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 
 - Production: `src/client/java/ru/gasada/cndlchatplus/` (один flat package).
 - Tests: `src/test/java/ru/gasada/cndlchatplus/`; fixtures: `src/test/resources/fixtures/`.
-- Resources/templates: `src/client/resources/`; metadata: `src/client/resources/fabric.mod.json`.
+- Resources: `src/client/resources/`; metadata: `src/client/resources/fabric.mod.json`.
 - Composition root, Fabric events и tick order: `CndlChatPlusClient`.
+- Fixed config/store/runtime: `VanillaBoxConfig`, `VanillaBoxConfigStore`, `VanillaBoxRuntime`,
+  `VanillaBoxSnapshot`; reset owner: `RuntimeResetCoordinator`.
+- Storage migration/archive: `VanillaBoxStorageMigration`, `RetiredServerSupportArchive`,
+  `BrandPathMigration`.
 - Карта feature → owner → tests: `docs/FEATURE_MAP.md`.
 - Build truth: `gradle.properties`, `build.gradle`.
 
@@ -34,7 +38,6 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 |---|---|
 | Event flow, runtime, reset, threading, hot path | `docs/ARCHITECTURE.md` |
 | JSON, load/save, migration, compatibility | `docs/CONFIG.md` |
-| Template resolution, CRUD, catalog, import | `docs/SERVER_TEMPLATES.md` |
 | Commands, placeholders, validation, privacy | `docs/SERVER_COMMANDS.md` |
 | UI и ручное поведение | `docs/MANUAL_TESTS.md` |
 | Version, CI, release, JAR | `docs/RELEASE.md` |
@@ -50,13 +53,13 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 
 ## Жёсткие контракты
 
-- Без явной задачи и migration не меняйте MOD ID, config path/JSON fields, F8, template
-  IDs/paths, `ChatChannel` и UI behavior. F8 открывает менеджер чата; F9 принадлежит toolkit.
+- Без явной задачи и migration не меняйте MOD ID, config path/JSON fields, F8, fixed
+  Vanilla-box ID/path, `ChatChannel` и UI behavior. F8 открывает менеджер чата; F9 принадлежит toolkit.
 - Не удаляйте и не перезаписывайте inert automation bridge: `ResponderConfig.enabled/rules/periodic*`,
-  `ServerTemplate.responderEnabled/rules/periodicMessages`, reply prefixes и их DTO/JSON.
-- Server-specific данные применяются только через active `ActiveTemplateSnapshot`.
-- Configured default template допустим. Missing/corrupt referenced template очищает runtime;
-  никогда не подставляйте скрытый fallback `Vanilla-box`.
+  `VanillaBoxConfig.responderEnabled/rules/periodicMessages`, reply prefixes и их DTO/JSON.
+- Server-specific данные применяются только через текущий `VanillaBoxSnapshot` из `VanillaBoxRuntime`.
+- Missing/corrupt fixed Vanilla-box config или незавершённая storage migration очищает runtime;
+  никогда не активируйте Java defaults или другой скрытый fallback.
 - Сохраняйте atomic temp → move и явные ошибки I/O; не сохраняйте config из render.
 - UI, connection/player list, send, HUD state и sound работают на client thread. Async HTTP
   не открывает screen напрямую.
