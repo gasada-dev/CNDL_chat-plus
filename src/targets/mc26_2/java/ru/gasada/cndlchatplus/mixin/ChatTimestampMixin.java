@@ -27,6 +27,7 @@ public abstract class ChatTimestampMixin {
 			method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
 			at = @At("HEAD"), argsOnly = true, require = 0)
 	private Component gasada$timestampPrefix(Component message) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return message;
 		Component fixed = CndlChatPlusClient.CONFIG != null && CndlChatPlusClient.CONFIG.whitenBlackNames
 				? NicknameColorFix.whitenBlack(message) : message;
 		ChatTimestamps timestamps = CndlChatPlusClient.CHAT_TIMESTAMPS;
@@ -42,6 +43,7 @@ public abstract class ChatTimestampMixin {
 			method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
 			at = @At("RETURN"), require = 0)
 	private void gasada$observeDisplayed(CallbackInfo ci) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		ChatDuplicateCollapser duplicates = CndlChatPlusClient.CHAT_DUPLICATES;
 		if (duplicates != null && !allMessages.isEmpty()) {
 			duplicates.observeDisplayed(allMessages.getFirst().content());

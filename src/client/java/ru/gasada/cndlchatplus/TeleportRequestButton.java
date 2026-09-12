@@ -96,6 +96,7 @@ public final class TeleportRequestButton {
 	}
 
 	public boolean click(double mouseX, double mouseY, int screenWidth, Font font) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return false;
 		PendingRequest request = current();
 		if (request == null) {
 			return false;
@@ -138,6 +139,7 @@ public final class TeleportRequestButton {
 	}
 
 	private void render(CompatGraphics graphics) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		PendingRequest request = current();
 		if (request == null) {
 			return;

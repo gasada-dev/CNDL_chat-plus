@@ -40,6 +40,7 @@ public final class MarriageHud {
 
 	public boolean rightClick(double mouseX, double mouseY, int screenWidth, int screenHeight,
 			Font font, Minecraft minecraft) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return false;
 		MarriageHudSnapshot snapshot = controller.snapshot();
 		if (!snapshot.visible()) return false;
 		int contentWidth = Math.max(font.width(TITLE), font.width(snapshot.partner()));
@@ -55,7 +56,7 @@ public final class MarriageHud {
 	}
 
 	private void render(CompatGraphics graphics, MarriageHudSnapshot snapshot) {
-		if (!snapshot.visible()) return;
+		if (!CndlChatPlusClient.CONNECTION_GATE.active() || !snapshot.visible()) return;
 		Font font = Minecraft.getInstance().font;
 		int contentWidth = Math.max(font.width(TITLE), font.width(snapshot.partner()));
 		Bounds bounds = bounds(graphics.guiWidth(), graphics.guiHeight(), contentWidth,

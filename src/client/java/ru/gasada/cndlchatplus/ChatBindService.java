@@ -19,8 +19,7 @@ final class ChatBindService {
 
 	void tick(Minecraft minecraft) {
 		if (ClientUi.currentScreen(minecraft) != null || minecraft.level == null) {
-			heldKeyCodes.clear();
-			pressedKeyCodes.clear();
+			resetRuntimeState();
 			return;
 		}
 		pressedKeyCodes.clear();
@@ -34,5 +33,10 @@ final class ChatBindService {
 		}
 		heldKeyCodes.retainAll(pressedKeyCodes);
 		heldKeyCodes.addAll(pressedKeyCodes);
+	}
+
+	void resetRuntimeState() {
+		heldKeyCodes.clear();
+		pressedKeyCodes.clear();
 	}
 }

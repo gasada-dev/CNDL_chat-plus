@@ -1,13 +1,9 @@
 package ru.gasada.cndlchatplus;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ServerData;
-
 public final class TemplateSelectionService {
 	private final ServerTemplateRepository repository;
 	private final ServerTemplateRuntime runtime;
 	private final ResponderConfig configView;
-	private Object lastConnection;
 	private String currentAddress;
 
 	public TemplateSelectionService(ServerTemplateRepository repository, ServerTemplateRuntime runtime,
@@ -46,24 +42,14 @@ public final class TemplateSelectionService {
 		return select(LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID);
 	}
 
-	public void tick(Minecraft minecraft) {
-		if (minecraft.getConnection() == null) {
-			lastConnection = null;
-			currentAddress = null;
-			return;
-		}
-		if (lastConnection == minecraft.getConnection()) {
-			return;
-		}
-		lastConnection = minecraft.getConnection();
-		ServerData server = minecraft.getCurrentServer();
-		currentAddress = server == null ? null : server.ip;
-		if (currentAddress == null) {
-			return;
-		}
-		if (!select(LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID).success()) {
-			runtime.clear();
-		}
+	public TemplateOperationResult<ServerTemplate> connect(String normalizedAddress) {
+		currentAddress = normalizedAddress;
+		return select(LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID);
+	}
+
+	public void disconnect() {
+		currentAddress = null;
+		runtime.clear();
 	}
 
 	public TemplateOperationResult<ServerTemplate> select(String ignoredId) {

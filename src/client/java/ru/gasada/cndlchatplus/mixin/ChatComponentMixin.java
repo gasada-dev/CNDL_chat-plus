@@ -17,6 +17,7 @@ public abstract class ChatComponentMixin implements ChatTabFilterAccess {
 	@ModifyConstant(method = {"addMessageToQueue", "addMessageToDisplayQueue"},
 			constant = @Constant(intValue = 100), require = 0)
 	private int gasada$chatHistoryLimit(int original) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return original;
 		ResponderConfig config = CndlChatPlusClient.CONFIG;
 		if (config == null || !Boolean.TRUE.equals(config.chatHistoryEnabled)) {
 			return original;

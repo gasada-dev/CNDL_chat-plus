@@ -54,7 +54,8 @@ public final class FriendsHud {
 
 	private void render(CompatGraphics graphics, FriendHudSnapshot snapshot) {
 		lastRenderedWidth = 0;
-		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()
+				|| !snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) {
 			return;
 		}
 		Minecraft minecraft = Minecraft.getInstance();

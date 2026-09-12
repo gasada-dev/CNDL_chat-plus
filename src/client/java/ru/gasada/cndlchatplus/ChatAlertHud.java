@@ -72,7 +72,7 @@ public final class ChatAlertHud {
 	}
 
 	private void render(CompatGraphics graphics, List<Notice> snapshot) {
-		if (snapshot.isEmpty()) return;
+		if (!CndlChatPlusClient.CONNECTION_GATE.active() || snapshot.isEmpty()) return;
 		Font font = Minecraft.getInstance().font;
 		int maxWidth = Math.max(40, Math.min(360, graphics.guiWidth() - 10));
 		int y = 8;

@@ -48,6 +48,7 @@ public abstract class ChatScreenMixin {
 
 	@Inject(method = "render", at = @At("TAIL"), require = 0)
 	private void gasada$renderTabs(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		gasada$renderSelection(graphics, mouseX, mouseY);
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
 		Screen screen = (Screen) (Object) this;
@@ -66,6 +67,7 @@ public abstract class ChatScreenMixin {
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
 	private void gasada$tabClick(MouseButtonEvent event, boolean doubleClick,
 			CallbackInfoReturnable<Boolean> cir) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		Screen screen = (Screen) (Object) this;
 		if (event.button() == 0 && CndlChatPlusClient.TELEPORT_REQUEST != null
 				&& CndlChatPlusClient.TELEPORT_REQUEST.click(event.x(), event.y(), screen.width,
@@ -115,6 +117,7 @@ public abstract class ChatScreenMixin {
 
 	@Inject(method = "init()V", at = @At("TAIL"), require = 0)
 	private void gasada$chatOpened(CallbackInfo ci) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
 		if (tabs != null) {
 			tabs.chatOpened();
@@ -142,6 +145,7 @@ public abstract class ChatScreenMixin {
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
 	private void gasada$searchKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		if (event.key() == GLFW.GLFW_KEY_ESCAPE && gasada$contextMenu.close()) {
 			cir.setReturnValue(true);
 			return;
@@ -173,6 +177,7 @@ public abstract class ChatScreenMixin {
 
 	@Inject(method = "removed", at = @At("TAIL"), require = 0)
 	private void gasada$chatClosed(CallbackInfo ci) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		gasada$clearSelection();
 		gasada$contextMenu.close();
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;

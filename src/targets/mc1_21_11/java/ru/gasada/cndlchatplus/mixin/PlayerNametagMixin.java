@@ -18,7 +18,8 @@ public abstract class PlayerNametagMixin {
 			at = @At("RETURN"), cancellable = true)
 	private void gasada$whitenBlackPlayerNametag(Entity entity,
 			CallbackInfoReturnable<Component> cir) {
-		if (entity instanceof Player && CndlChatPlusClient.CONFIG != null
+		if (CndlChatPlusClient.CONNECTION_GATE.active() && entity instanceof Player
+				&& CndlChatPlusClient.CONFIG != null
 				&& CndlChatPlusClient.CONFIG.whitenBlackNames) {
 			cir.setReturnValue(NicknameColorFix.whitenBlack(cir.getReturnValue()));
 		}

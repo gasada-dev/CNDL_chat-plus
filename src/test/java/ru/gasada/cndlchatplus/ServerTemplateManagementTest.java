@@ -2,6 +2,7 @@ package ru.gasada.cndlchatplus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -101,5 +102,22 @@ final class ServerTemplateManagementTest {
 		assertFalse(selection.select("missing").success());
 		assertTrue(runtime.activeSnapshot().isEmpty());
 		assertEquals("missing", repository.loadRoot().value().defaultTemplateId);
+	}
+
+	@Test
+	void explicitConnectionLifecycleSelectsVanillaBoxAndClearsOnDisconnect() {
+		ServerTemplateRepository repository = new ServerTemplateRepository(directory);
+		ServerTemplate vanilla = ServerTemplate.empty("vanilla-box", "Vanilla-box");
+		assertTrue(repository.saveTemplate(vanilla).success());
+		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+		TemplateSelectionService selection = new TemplateSelectionService(repository, runtime, new ResponderConfig());
+
+		assertTrue(selection.connect("mc.vanilla-box.ru:25565").success());
+		assertEquals("mc.vanilla-box.ru:25565", selection.currentAddress());
+		assertEquals("vanilla-box", runtime.activeSnapshot().orElseThrow().id());
+
+		selection.disconnect();
+		assertNull(selection.currentAddress());
+		assertTrue(runtime.activeSnapshot().isEmpty());
 	}
 }

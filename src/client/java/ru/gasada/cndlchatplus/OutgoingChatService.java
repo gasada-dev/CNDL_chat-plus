@@ -1,6 +1,7 @@
 package ru.gasada.cndlchatplus;
 
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import net.minecraft.client.Minecraft;
@@ -10,14 +11,22 @@ public final class OutgoingChatService {
 
 	private final Transport transport;
 	private final Consumer<String> outgoingRecorder;
+	private final BooleanSupplier authorized;
 
 	public OutgoingChatService(Transport transport, Consumer<String> outgoingRecorder) {
+		this(transport, outgoingRecorder, () -> true);
+	}
+
+	public OutgoingChatService(Transport transport, Consumer<String> outgoingRecorder,
+			BooleanSupplier authorized) {
 		this.transport = Objects.requireNonNull(transport, "transport");
 		this.outgoingRecorder = Objects.requireNonNull(outgoingRecorder, "outgoingRecorder");
+		this.authorized = Objects.requireNonNull(authorized, "authorized");
 	}
 
 	public static OutgoingChatService forMinecraft(Consumer<String> outgoingRecorder) {
-		return new OutgoingChatService(new MinecraftTransport(), outgoingRecorder);
+		return new OutgoingChatService(new MinecraftTransport(), outgoingRecorder,
+				CndlChatPlusClient.CONNECTION_GATE::active);
 	}
 
 	public SendResult sendChat(String message) {
@@ -42,12 +51,12 @@ public final class OutgoingChatService {
 	}
 
 	private SendResult send(String payload, boolean command) {
-		if (!transport.connected()) {
+		if (!authorized.getAsBoolean() || !transport.connected()) {
 			return SendResult.failure("Нет подключения к серверу");
 		}
 		outgoingRecorder.accept(command ? "/" + payload : payload);
 		transport.execute(() -> {
-			if (!transport.connected()) {
+			if (!authorized.getAsBoolean() || !transport.connected()) {
 				return;
 			}
 			if (command) {

@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 public final class CndlChatPlusClient implements ClientModInitializer {
 	public static final String MOD_ID = "cndl_chat_plus";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final VanillaBoxConnectionGate CONNECTION_GATE = new VanillaBoxConnectionGate();
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
 	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
@@ -74,6 +75,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		switchCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
 		TELEPORT_REQUEST.register();
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
+			if (!CONNECTION_GATE.active()) return InteractionResult.PASS;
 			Minecraft minecraft = Minecraft.getInstance();
 			if (!level.isClientSide() || hand != InteractionHand.MAIN_HAND || !(entity instanceof Player target)
 					|| !altDown(minecraft) || ClientUi.currentScreen(minecraft) != null
@@ -131,7 +133,14 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				InputConstants.KEY_F8,
 				category));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
-			TEMPLATE_SELECTION.tick(minecraft);
+			if (!CONNECTION_GATE.active()) {
+				while (openScreen.consumeClick()) { }
+				chatBinds.resetRuntimeState();
+				if (ClientUi.currentScreen(minecraft) instanceof CompatScreen) {
+					ClientUi.setScreen(minecraft, null);
+				}
+				return;
+			}
 			PLAYER_INFO.tick(minecraft);
 			while (openScreen.consumeClick()) {
 				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
@@ -146,6 +155,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 
 		ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
+			if (!CONNECTION_GATE.active()) return true;
 			boolean visible = FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 					&& visibilityFilter.decide(message.getString(),
 							sender == null ? null : sender.name()).visible();
@@ -154,6 +164,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			return allowIncoming(chatMessageStore, chatHistoryCodec, message, ChatDuplicateCollapser.Source.CHAT);
 		});
 		ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
+			if (!CONNECTION_GATE.active()) return true;
 			if (overlay) return true;
 			boolean visible = FRIEND_LOOKUP.shouldShowSystemMessage(message, false)
 					&& visibilityFilter.decide(message.getString()).visible();
@@ -164,9 +175,11 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 
 		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, chatType, timestamp) -> {
+			if (!CONNECTION_GATE.active()) return;
 			recordIncoming(chatMessageStore, chatHistoryCodec, message, false);
 		});
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+			if (!CONNECTION_GATE.active()) return;
 			if (!overlay) {
 				recordIncoming(chatMessageStore, chatHistoryCodec, message, true);
 				TELEPORT_REQUEST.handleMessage(message.getString());
@@ -174,23 +187,47 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
+			ServerData server = minecraft.getCurrentServer();
+			VanillaBoxConnectionGate.State connection = CONNECTION_GATE.join(server == null ? null : server.ip);
+			if (!connection.active()) {
+				TEMPLATE_SELECTION.disconnect();
+				PlatformBridgeNetworking.disconnected();
+				chatMessageStore.clear();
+				chatAlertHud.resetRuntimeState();
+				CHAT_SEARCH.clear();
+				CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
+				chatBinds.resetRuntimeState();
+				return;
+			}
+			TEMPLATE_SELECTION.connect(connection.normalizedAddress());
 			CHAT_DUPLICATES.reset();
 			CHAT_TIMESTAMPS.resetConnectionState();
 			chatAlertHud.resetRuntimeState();
-			connectBookmarks(minecraft);
-			restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec, minecraft);
+			connectBookmarks(connection.normalizedAddress());
+			restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec,
+					connection.normalizedAddress(), minecraft);
 			PlatformBridgeNetworking.connected();
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
+			VanillaBoxConnectionGate.State connection = CONNECTION_GATE.state();
 			PLAYER_INFO.resetRuntimeState();
 			MARRIAGE_HUD.resetRuntimeState();
 			PlatformBridgeNetworking.disconnected();
-			saveChatHistory(chatMessageStore, chatHistoryStore, minecraft);
+			if (connection.active()) {
+				saveChatHistory(chatMessageStore, chatHistoryStore, connection.normalizedAddress());
+				CHAT_BOOKMARKS.disconnect();
+			} else {
+				chatMessageStore.clear();
+				CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
+			}
 			CHAT_TABS.resetRuntimeState();
+			CHAT_SEARCH.clear();
 			CHAT_TIMESTAMPS.resetConnectionState();
 			CHAT_DUPLICATES.reset();
 			chatAlertHud.resetRuntimeState();
-			CHAT_BOOKMARKS.disconnect();
+			chatBinds.resetRuntimeState();
+			TEMPLATE_SELECTION.disconnect();
+			CONNECTION_GATE.disconnect();
 		});
 	}
 
@@ -248,14 +285,11 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	}
 
 	private static void restoreChatHistory(ChatMessageStore store, ChatHistoryStore historyStore,
-			ChatHistoryCodec codec, Minecraft minecraft) {
+			ChatHistoryCodec codec, String address, Minecraft minecraft) {
 		if (!Boolean.TRUE.equals(CONFIG.chatHistoryEnabled) || !Boolean.TRUE.equals(CONFIG.chatHistoryPersist)) {
 			return;
 		}
-		String key = currentServerKey(minecraft);
-		if (key == null) {
-			return;
-		}
+		String key = ChatHistoryStore.fileKey(address);
 		List<ChatHistoryEntry> entries = historyStore.load(key);
 		if (entries.size() > CONFIG.chatHistoryLimit) {
 			entries = entries.subList(entries.size() - CONFIG.chatHistoryLimit, entries.size());
@@ -271,32 +305,17 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		}
 	}
 
-	private static void saveChatHistory(ChatMessageStore store, ChatHistoryStore historyStore, Minecraft minecraft) {
+	private static void saveChatHistory(ChatMessageStore store, ChatHistoryStore historyStore, String address) {
 		String key = Boolean.TRUE.equals(CONFIG.chatHistoryEnabled)
-				&& Boolean.TRUE.equals(CONFIG.chatHistoryPersist) ? currentServerKey(minecraft) : null;
+				&& Boolean.TRUE.equals(CONFIG.chatHistoryPersist) ? ChatHistoryStore.fileKey(address) : null;
 		if (key != null && !historyStore.save(key, store.snapshot())) {
 			LOGGER.warn("История чата для текущего сервера не сохранена");
 		}
 		store.clear();
 	}
 
-	private static String currentServerKey(Minecraft minecraft) {
-		String address = currentServerAddress(minecraft);
-		return address == null ? null : ChatHistoryStore.fileKey(address);
-	}
-
-	private static String currentServerAddress(Minecraft minecraft) {
-		ServerData server = minecraft.getCurrentServer();
-		if (server == null) {
-			return null;
-		}
-		ServerAddressNormalizer.NormalizationResult normalized = ServerAddressNormalizer.normalize(server.ip);
-		return normalized.valid() ? normalized.normalizedAddress() : null;
-	}
-
-	private static void connectBookmarks(Minecraft minecraft) {
-		String address = currentServerAddress(minecraft);
-		CHAT_BOOKMARKS.connect(address == null ? null : ChatHistoryStore.fileKey(address), address);
+	private static void connectBookmarks(String address) {
+		CHAT_BOOKMARKS.connect(ChatHistoryStore.fileKey(address), address);
 	}
 
 }

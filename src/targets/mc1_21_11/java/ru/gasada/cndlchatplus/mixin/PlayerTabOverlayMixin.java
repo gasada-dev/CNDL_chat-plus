@@ -17,7 +17,8 @@ public abstract class PlayerTabOverlayMixin {
 			at = @At("RETURN"), cancellable = true)
 	private void gasada$whitenBlackNickname(PlayerInfo playerInfo,
 			CallbackInfoReturnable<Component> cir) {
-		if (CndlChatPlusClient.CONFIG != null && CndlChatPlusClient.CONFIG.whitenBlackNames) {
+		if (CndlChatPlusClient.CONNECTION_GATE.active() && CndlChatPlusClient.CONFIG != null
+				&& CndlChatPlusClient.CONFIG.whitenBlackNames) {
 			cir.setReturnValue(NicknameColorFix.whitenBlack(cir.getReturnValue()));
 		}
 	}

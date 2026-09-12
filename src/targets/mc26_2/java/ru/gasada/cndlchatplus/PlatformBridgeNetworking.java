@@ -22,10 +22,13 @@ final class PlatformBridgeNetworking {
 		PayloadTypeRegistry.clientboundPlay().register(TYPE, CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(TYPE, CODEC);
 		ClientPlayNetworking.registerGlobalReceiver(TYPE, (payload, context) ->
-				context.client().execute(() -> CLIENT.receive(payload.data())));
+				context.client().execute(() -> {
+					if (CndlChatPlusClient.CONNECTION_GATE.active()) CLIENT.receive(payload.data());
+				}));
 	}
 
 	static void connected() {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		CLIENT.reset();
 		if (!ClientPlayNetworking.canSend(TYPE)) return;
 		ClientPlayNetworking.send(new Payload(VnbxBridgeClient.request("hello")));
@@ -37,15 +40,22 @@ final class PlatformBridgeNetworking {
 	}
 
 	static boolean available() {
-		return ClientPlayNetworking.canSend(TYPE);
+		return CndlChatPlusClient.CONNECTION_GATE.active() && ClientPlayNetworking.canSend(TYPE);
 	}
 
 	static CompletableFuture<VnbxPlayerRelationsResult> requestPlayerRelations(String requestId, String player) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) {
+			return CompletableFuture.completedFuture(VnbxPlayerRelationsResult.unavailable(requestId, player));
+		}
 		if (!ClientPlayNetworking.canSend(TYPE)) {
 			VnbxBridgeClient.logRequestFailed(requestId, player, "bridge_unavailable");
 			return CompletableFuture.completedFuture(VnbxPlayerRelationsResult.unavailable(requestId, player));
 		}
-		return CLIENT.requestPlayerRelations(requestId, player, data -> ClientPlayNetworking.send(new Payload(data)));
+		return CLIENT.requestPlayerRelations(requestId, player, data -> {
+			if (CndlChatPlusClient.CONNECTION_GATE.active() && ClientPlayNetworking.canSend(TYPE)) {
+				ClientPlayNetworking.send(new Payload(data));
+			}
+		});
 	}
 
 	private record Payload(byte[] data) implements CustomPacketPayload {

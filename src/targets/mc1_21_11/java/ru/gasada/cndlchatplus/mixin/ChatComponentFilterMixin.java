@@ -27,6 +27,7 @@ public abstract class ChatComponentFilterMixin implements ChatMessageUnderMouseA
 
 	@Inject(method = "addMessageToDisplayQueue", at = @At("HEAD"), cancellable = true, require = 0)
 	private void gasada$filterByTab(GuiMessage message, CallbackInfo ci) {
+		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
 		if (tabs != null && !tabs.isVisible(message.content(), null)
 				|| CndlChatPlusClient.CHAT_SEARCH != null
