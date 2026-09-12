@@ -15,6 +15,7 @@ public final class ResponderConfig {
 	public static final int MAX_CHAT_ALERT_NAME_LENGTH = 64;
 	public static final int MAX_CHAT_ALERT_PATTERN_LENGTH = 256;
 
+	public Integer storageVersion;
 	public boolean enabled = true;
 	public Boolean discordChatEnabled = true;
 	public List<String> discordMutedPlayers = new ArrayList<>();

@@ -35,7 +35,7 @@ public final class CompiledParserSettings {
 		this.teleportRequest = teleportRequest;
 	}
 
-	public static CompiledParserSettings compile(ActiveTemplateSnapshot.ParserSnapshot source) {
+	public static CompiledParserSettings compile(VanillaBoxSnapshot.ParserSnapshot source) {
 		return new CompiledParserSettings(
 				compileOne(source.discordMarkerPattern(), false),
 				compileOne(source.discordNamePattern(), false),
@@ -46,6 +46,19 @@ public final class CompiledParserSettings {
 				compileOne(source.timestampOnlyPattern(), false),
 				List.copyOf(source.replyCandidateSeparators()), compileAll(source.playerInfoPatterns()),
 				compileOne(source.teleportRequestPattern(), 1));
+	}
+
+	static CompiledParserSettings compileValidated(VanillaBoxSnapshot.ParserSnapshot source) {
+		return new CompiledParserSettings(
+				compileRequired(source.discordMarkerPattern(), 0),
+				compileRequired(source.discordNamePattern(), 0),
+				compileRequired(source.lastSeenPattern(), 1),
+				compileRequired(source.inactivePattern(), 1),
+				compileRequired(source.lookupEndPattern(), 0),
+				compileRequired(source.lookupOutputPattern(), 0),
+				compileRequired(source.timestampOnlyPattern(), 0),
+				List.copyOf(source.replyCandidateSeparators()), compileAllRequired(source.playerInfoPatterns()),
+				compileRequired(source.teleportRequestPattern(), 1));
 	}
 
 	public static CompiledParserSettings compile(ParserSettings source) {
@@ -70,6 +83,13 @@ public final class CompiledParserSettings {
 		return result.valid() ? Optional.of(result.pattern()) : Optional.empty();
 	}
 
+	private static Optional<Pattern> compileRequired(String source, int minimumCaptureGroups) {
+		if (source == null || source.isBlank()) return Optional.empty();
+		ParserPatternValidator.ValidationResult result = ParserPatternValidator.validate(source, minimumCaptureGroups);
+		if (!result.valid()) throw new IllegalArgumentException(result.errorMessage());
+		return Optional.of(result.pattern());
+	}
+
 	private static Map<String, Pattern> compileAll(Map<String, String> source) {
 		Map<String, Pattern> compiled = new LinkedHashMap<>();
 		if (source == null) return Map.of();
@@ -77,6 +97,16 @@ public final class CompiledParserSettings {
 			if (entry.getKey() == null || entry.getKey().isBlank()) continue;
 			ParserPatternValidator.ValidationResult result = ParserPatternValidator.validate(entry.getValue(), true);
 			if (result.valid()) compiled.put(entry.getKey(), result.pattern());
+		}
+		return Map.copyOf(compiled);
+	}
+
+	private static Map<String, Pattern> compileAllRequired(Map<String, String> source) {
+		Map<String, Pattern> compiled = new LinkedHashMap<>();
+		for (Map.Entry<String, String> entry : source.entrySet()) {
+			ParserPatternValidator.ValidationResult result = ParserPatternValidator.validate(entry.getValue(), true);
+			if (!result.valid()) throw new IllegalArgumentException(result.errorMessage());
+			compiled.put(entry.getKey(), result.pattern());
 		}
 		return Map.copyOf(compiled);
 	}

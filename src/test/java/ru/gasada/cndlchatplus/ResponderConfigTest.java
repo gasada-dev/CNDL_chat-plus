@@ -184,6 +184,20 @@ final class ResponderConfigTest {
 	}
 
 	@Test
+	void storageVersionKeepsMissingAndExplicitNullAsPreV1() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+
+		ResponderConfig missing = ResponderConfigJson.read(gson, "{\"unknownFuture\":true}");
+		ResponderConfig explicitNull = ResponderConfigJson.read(gson, "{\"storageVersion\":null}");
+		missing.sanitize();
+		explicitNull.sanitize();
+
+		assertNull(missing.storageVersion);
+		assertNull(explicitNull.storageVersion);
+		assertTrue(gson.toJson(explicitNull).contains("\"storageVersion\":null"));
+	}
+
+	@Test
 	void sanitizeRepairsAndBoundsAlertRules() {
 		ResponderConfig config = new ResponderConfig();
 		config.chatAlertRules = new ArrayList<>();
