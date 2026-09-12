@@ -97,11 +97,6 @@ public final class ResponderScreen extends CompatScreen {
 		button.setTooltip(help(target.help));
 	}
 
-	void activeTemplateChanged() {
-		selectedFriend = null;
-		friendLookupsQueued = false;
-	}
-
 	private void initBlacklistTab() {
 		int modeWidth = 100;
 		int modesX = panelX + (panelWidth - modeWidth * 2) / 2;
@@ -297,7 +292,7 @@ public final class ResponderScreen extends CompatScreen {
 		addRenderableWidget(friendMessageBox);
 		addRenderableWidget(StyledButton.create(Component.literal("Отправить ЛС"), ignored -> sendPrivateToFriend())
 				.bounds(rightX + columnWidth - actionWidth, 78, actionWidth, FIELD_HEIGHT)
-				.tooltip(help(commandHelp("Личное сообщение", ActiveTemplateSnapshot.CommandSnapshot::privateMessage)))
+				.tooltip(help(commandHelp("Личное сообщение", VanillaBoxSnapshot.CommandSnapshot::privateMessage)))
 				.build());
 
 		friendMailBox = new StyledEditBox(font, rightX, 103, columnWidth - actionWidth - 4, FIELD_HEIGHT,
@@ -309,7 +304,7 @@ public final class ResponderScreen extends CompatScreen {
 		addRenderableWidget(friendMailBox);
 		addRenderableWidget(StyledButton.create(Component.literal("Почта"), ignored -> mailFriend())
 				.bounds(rightX + columnWidth - actionWidth, 103, actionWidth, FIELD_HEIGHT)
-				.tooltip(help(commandHelp("Почта", ActiveTemplateSnapshot.CommandSnapshot::mail))).build());
+				.tooltip(help(commandHelp("Почта", VanillaBoxSnapshot.CommandSnapshot::mail))).build());
 
 		friendAmountBox = new StyledEditBox(font, rightX, 128, columnWidth - actionWidth - 4, FIELD_HEIGHT,
 				Component.literal("Сумма"));
@@ -320,11 +315,11 @@ public final class ResponderScreen extends CompatScreen {
 		addRenderableWidget(friendAmountBox);
 		addRenderableWidget(StyledButton.create(Component.literal("Деньги"), ignored -> payFriend())
 				.bounds(rightX + columnWidth - actionWidth, 128, actionWidth, FIELD_HEIGHT)
-				.tooltip(help(commandHelp("Перевод", ActiveTemplateSnapshot.CommandSnapshot::pay))).build());
+				.tooltip(help(commandHelp("Перевод", VanillaBoxSnapshot.CommandSnapshot::pay))).build());
 
 		addRenderableWidget(StyledButton.create(Component.literal("Отправить ТП"), ignored -> callFriend())
 				.bounds(rightX, 153, columnWidth, FIELD_HEIGHT)
-				.tooltip(help(commandHelp("Телепорт", ActiveTemplateSnapshot.CommandSnapshot::call))).build());
+				.tooltip(help(commandHelp("Телепорт", VanillaBoxSnapshot.CommandSnapshot::call))).build());
 
 		if (config.teleportAutoAcceptMode == TeleportAutoAcceptMode.SELECTED_FRIENDS
 				&& selectedFriend != null) {
@@ -519,17 +514,17 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private List<String> activeFriends() {
-		return CndlChatPlusClient.TEMPLATE_RUNTIME == null
+		return CndlChatPlusClient.VANILLA_BOX_RUNTIME == null
 				? config.friends
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::friends).orElse(List.of());
+				: CndlChatPlusClient.VANILLA_BOX_RUNTIME.activeSnapshot()
+						.map(VanillaBoxSnapshot::friends).orElse(List.of());
 	}
 
 	private Map<String, String> activeFriendLastSeen() {
-		return CndlChatPlusClient.TEMPLATE_RUNTIME == null
+		return CndlChatPlusClient.VANILLA_BOX_RUNTIME == null
 				? config.friendLastSeen
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::friendLastSeen).orElse(Map.of());
+				: CndlChatPlusClient.VANILLA_BOX_RUNTIME.activeSnapshot()
+						.map(VanillaBoxSnapshot::friendLastSeen).orElse(Map.of());
 	}
 
 	private void refreshSuggestions(String query) {
@@ -697,11 +692,11 @@ public final class ResponderScreen extends CompatScreen {
 	}
 
 	private String commandHelp(String action,
-			Function<ActiveTemplateSnapshot.CommandSnapshot, String> command) {
-		String template = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::commands).map(command).orElse(null);
-		return action + " — " + CommandTemplateDisplay.format(template);
+			Function<VanillaBoxSnapshot.CommandSnapshot, String> command) {
+		String commandTemplate = CndlChatPlusClient.VANILLA_BOX_RUNTIME == null ? null
+				: CndlChatPlusClient.VANILLA_BOX_RUNTIME.activeSnapshot()
+						.map(VanillaBoxSnapshot::commands).map(command).orElse(null);
+		return action + " — " + CommandTemplateDisplay.format(commandTemplate);
 	}
 
 	private boolean saveCurrentTab() {
@@ -745,7 +740,7 @@ public final class ResponderScreen extends CompatScreen {
 
 	private enum Tab {
 		BLACKLIST("Чёрный список", "Настроить мут пользователей, Discord и слов"),
-		FRIENDS("Друзья", "Сохранить друзей и использовать команды активного шаблона");
+		FRIENDS("Друзья", "Сохранить друзей и использовать команды Vanilla-box");
 
 		private final String title;
 		private final String help;
