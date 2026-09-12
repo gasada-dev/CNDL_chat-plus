@@ -9,8 +9,6 @@ import java.nio.file.StandardCopyOption;
 final class BrandPathMigration {
 	private static final String OLD_CONFIG = "gasada-chat-responder.json";
 	private static final String NEW_CONFIG = "cndl-chat-plus.json";
-	private static final String OLD_IMPORTS = "gasada-chat-responder-template-imports";
-	private static final String NEW_IMPORTS = "cndl-chat-plus-template-imports";
 	private static final String OLD_HISTORY = "gasada-chat-responder-chat-history";
 	private static final String NEW_HISTORY = "cndl-chat-plus-chat-history";
 
@@ -19,7 +17,6 @@ final class BrandPathMigration {
 
 	static void migrate(Path configDirectory) throws IOException {
 		copyIfMissing(configDirectory.resolve(OLD_CONFIG), configDirectory.resolve(NEW_CONFIG));
-		copyJsonFiles(configDirectory.resolve(OLD_IMPORTS), configDirectory.resolve(NEW_IMPORTS));
 		copyJsonFiles(configDirectory.resolve(OLD_HISTORY), configDirectory.resolve(NEW_HISTORY));
 	}
 

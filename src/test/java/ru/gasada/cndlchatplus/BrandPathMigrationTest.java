@@ -1,6 +1,7 @@
 package ru.gasada.cndlchatplus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -14,7 +15,7 @@ final class BrandPathMigrationTest {
 	Path directory;
 
 	@Test
-	void copiesLegacyDataWithoutDeletingSourcesOrReplacingNewFiles() throws Exception {
+	void copiesLegacyConfigAndHistoryButNeverRecopiesImportsOrDeletesSources() throws Exception {
 		Path oldConfig = write("gasada-chat-responder.json", "old config");
 		Path oldImport = write("gasada-chat-responder-template-imports/template.json", "old import");
 		Path oldHistory = write("gasada-chat-responder-chat-history/server.json", "old history");
@@ -24,8 +25,7 @@ final class BrandPathMigrationTest {
 		BrandPathMigration.migrate(directory);
 
 		assertEquals("old config", Files.readString(directory.resolve("cndl-chat-plus.json")));
-		assertEquals("old import", Files.readString(
-				directory.resolve("cndl-chat-plus-template-imports/template.json")));
+		assertFalse(Files.exists(directory.resolve("cndl-chat-plus-template-imports/template.json")));
 		assertEquals("new history", Files.readString(newHistory));
 		assertTrue(Files.exists(oldConfig));
 		assertTrue(Files.exists(oldImport));
