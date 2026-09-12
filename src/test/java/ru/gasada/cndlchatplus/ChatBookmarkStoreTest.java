@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.Test;
@@ -96,6 +97,57 @@ final class ChatBookmarkStoreTest {
 		store.add(ChatTab.LOCAL, null, "важное");
 		assertFalse(store.lastSaveSucceeded());
 		assertEquals("важное", store.snapshot().getFirst().text());
+	}
+
+	@Test
+	void updatesOnlyTextInPlaceAndPersistsAcrossReconnect() throws Exception {
+		Files.writeString(directory.resolve("server.json"), """
+				[
+				  {"id":"newer","savedAtMillis":2000,"messageTimestampMillis":1900,
+				   "channel":"PRIVATE","sender":"Steve","text":"старый текст"},
+				  {"id":"older","savedAtMillis":1000,"channel":"GLOBAL","sender":"Alex","text":"другой"}
+				]
+				""", StandardCharsets.UTF_8);
+		ChatBookmarkStore store = store();
+		store.connect("server", "server");
+		ChatBookmark expected = new ChatBookmark("newer", 2_000L, 1_900L, ChatTab.PRIVATE.name(), "Steve",
+				"новый текст");
+
+		assertTrue(store.updateText("newer", "  [Alex head]новый текст  "));
+		assertEquals(expected, store.snapshot().getFirst());
+		assertEquals("older", store.snapshot().get(1).id());
+		assertTrue(store.lastSaveSucceeded());
+		assertFalse(Files.exists(directory.resolve("server.json.tmp")));
+
+		store.connect("other", "other");
+		store.connect("server", "server");
+		assertEquals(expected, store.snapshot().getFirst());
+	}
+
+	@Test
+	void rejectsBlankAndUnknownUpdatesWithoutMutationOrSave() throws Exception {
+		ChatBookmarkStore store = store();
+		store.connect("server", "server");
+		ChatBookmark bookmark = store.add(ChatTab.LOCAL, "Steve", "исходный");
+		byte[] saved = Files.readAllBytes(directory.resolve("server.json"));
+
+		assertFalse(store.updateText(bookmark.id(), "   "));
+		assertFalse(store.updateText("unknown", "замена"));
+		assertEquals(List.of(bookmark), store.snapshot());
+		assertTrue(java.util.Arrays.equals(saved, Files.readAllBytes(directory.resolve("server.json"))));
+	}
+
+	@Test
+	void failedUpdateWriteKeepsRuntimeEditAndReportsFailure() throws Exception {
+		Path notDirectory = directory.resolve("file");
+		Files.writeString(notDirectory, "occupied", StandardCharsets.UTF_8);
+		ChatBookmarkStore store = new ChatBookmarkStore(notDirectory, clock::get);
+		store.connect("server", "server");
+		ChatBookmark bookmark = store.add(ChatTab.LOCAL, null, "до изменения");
+
+		assertTrue(store.updateText(bookmark.id(), "после изменения"));
+		assertEquals("после изменения", store.snapshot().getFirst().text());
+		assertFalse(store.lastSaveSucceeded());
 	}
 
 	@Test

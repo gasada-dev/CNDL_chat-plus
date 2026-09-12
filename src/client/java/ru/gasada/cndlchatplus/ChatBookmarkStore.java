@@ -81,6 +81,20 @@ public final class ChatBookmarkStore {
 		return removed;
 	}
 
+	public boolean updateText(String id, String text) {
+		String canonical = sanitizeText(text);
+		if (id == null || canonical.isBlank()) return false;
+		for (int index = 0; index < bookmarks.size(); index++) {
+			ChatBookmark bookmark = bookmarks.get(index);
+			if (!id.equals(bookmark.id())) continue;
+			bookmarks.set(index, new ChatBookmark(bookmark.id(), bookmark.savedAtMillis(),
+					bookmark.messageTimestampMillis(), bookmark.channel(), bookmark.sender(), canonical));
+			saveAfterMutation();
+			return true;
+		}
+		return false;
+	}
+
 	public void clear() {
 		if (bookmarks.isEmpty()) return;
 		bookmarks.clear();

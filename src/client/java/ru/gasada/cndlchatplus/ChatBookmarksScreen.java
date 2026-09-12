@@ -8,9 +8,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 
 public final class ChatBookmarksScreen extends CompatScreen {
 	private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd.MM.uuuu HH:mm");
@@ -23,6 +23,8 @@ public final class ChatBookmarksScreen extends CompatScreen {
 	private int panelWidth;
 	private int panelHeight;
 	private String status = "";
+	private boolean statusError;
+	private EditBox textBox;
 
 	public ChatBookmarksScreen(Screen parent, ChatBookmarkStore store) {
 		super(Component.literal("Закладки сообщений"));
@@ -50,6 +52,20 @@ public final class ChatBookmarksScreen extends CompatScreen {
 		}
 
 		boolean narrow = panelWidth < 520;
+		ChatBookmark selected = selected();
+		if (selected != null) {
+			int editorY = panelY + panelHeight - (narrow ? 104 : 82);
+			textBox = new StyledEditBox(font, panelX + 16, editorY, panelWidth - 120, FIELD_HEIGHT,
+					Component.literal("Текст закладки"));
+			textBox.setMaxLength(ChatBookmarkStore.MAX_TEXT_LENGTH);
+			textBox.setValue(selected.text());
+			textBox.setHint(Component.literal("Текст закладки"));
+			addRenderableWidget(textBox);
+			addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> save())
+					.bounds(panelX + panelWidth - 96, editorY, 80, FIELD_HEIGHT).build());
+		} else {
+			textBox = null;
+		}
 		int controlsY = panelY + panelHeight - (narrow ? 52 : 30);
 		Button previous = addRenderableWidget(StyledButton.create(Component.literal("<"), ignored -> {
 			page--;
@@ -69,8 +85,8 @@ public final class ChatBookmarksScreen extends CompatScreen {
 				ClientUi.setScreen(minecraft, new ChatBookmarksClearScreen(this, store, this::cleared)))
 				.bounds(narrow ? panelX + 16 : panelX + 280, narrow ? controlsY + 24 : controlsY,
 						narrow ? 104 : 104, FIELD_HEIGHT).build());
-		copy.active = selected() != null;
-		delete.active = selected() != null;
+		copy.active = selected != null;
+		delete.active = selected != null;
 		clear.active = !bookmarks.isEmpty();
 		addRenderableWidget(StyledButton.create(Component.literal("Готово"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 96, narrow ? controlsY + 24 : controlsY, 80, FIELD_HEIGHT).build());
@@ -105,7 +121,25 @@ public final class ChatBookmarksScreen extends CompatScreen {
 		if (selected() == null) return;
 		store.remove(selectedId);
 		status = store.lastSaveSucceeded() ? "Закладка удалена" : "Не удалось сохранить удаление";
+		statusError = !store.lastSaveSucceeded();
 		selectedId = null;
+		rebuild();
+	}
+
+	private void save() {
+		ChatBookmark selected = selected();
+		if (selected == null) {
+			status = "Закладка не найдена";
+			statusError = true;
+			return;
+		}
+		if (!store.updateText(selected.id(), textBox.getValue())) {
+			status = "Текст закладки не может быть пустым";
+			statusError = true;
+			return;
+		}
+		status = store.lastSaveSucceeded() ? "Закладка сохранена" : "Не удалось сохранить изменения";
+		statusError = !store.lastSaveSucceeded();
 		rebuild();
 	}
 
@@ -113,6 +147,7 @@ public final class ChatBookmarksScreen extends CompatScreen {
 		selectedId = null;
 		page = 0;
 		status = store.lastSaveSucceeded() ? "Все закладки удалены" : "Не удалось сохранить очистку";
+		statusError = !store.lastSaveSucceeded();
 	}
 
 	private ChatBookmark selected() {
@@ -134,19 +169,12 @@ public final class ChatBookmarksScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 12);
-		ChatBookmark selected = selected();
-		if (selected != null) {
-			List<FormattedCharSequence> lines = font.split(Component.literal(selected.text()), panelWidth - 36);
-			int previewY = panelY + panelHeight - 92;
-			for (int index = 0; index < Math.min(3, lines.size()); index++) {
-				graphics.text(font, lines.get(index), panelX + 18, previewY + index * 10, TEXT);
-			}
-		} else if (store.snapshot().isEmpty()) {
+		if (selected() == null && store.snapshot().isEmpty()) {
 			graphics.centeredText(font, "Закладок пока нет", width / 2, panelY + 92, MUTED);
 		}
 		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2,
 				panelY + panelHeight - (panelWidth < 520 ? 68 : 46),
-				store.lastSaveSucceeded() ? SUCCESS : ERROR);
+				statusError ? ERROR : SUCCESS);
 	}
 
 	@Override
