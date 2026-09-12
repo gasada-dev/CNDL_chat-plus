@@ -4,7 +4,16 @@
 
 ## Bootstrap и active template
 
-`CndlChatPlusClient` загружает совместимый `ResponderConfig`, создаёт services и регистрирует F8, client tick, ALLOW/CHAT/GAME events и HUD. F8 открывает менеджер чата; F9 и automation принадлежат CNDL_toolkit. `TemplateSelectionService` открывает repository, выбирает default template до обработки сообщений и при новом connection разрешает шаблон по фактическому `ServerData.ip`.
+`CndlChatPlusClient` загружает совместимый `ResponderConfig`, создаёт services и регистрирует F8, client tick, ALLOW/CHAT/GAME events и HUD. F8 открывает менеджер чата сразу на вкладке друзей; F9 и automation принадлежат CNDL_toolkit. `TemplateSelectionService` открывает repository и выбирает `vanilla-box` для начального compatible runtime. При разрешённом connection `connect(normalizedAddress)` сохраняет адрес для scope history/bookmarks и снова выбирает `vanilla-box`; `ServerTemplateResolver` в этом пути не вызывается.
+
+`VanillaBoxConnectionGate` на JOIN получает только `ServerData.ip`. Он активирует runtime, если
+адрес после case и одного trailing-dot normalization имеет hostname ровно `vanilla-box.ru` или
+суффикс `.vanilla-box.ru`, с необязательным valid port. DNS lookup отсутствует. Lookalike,
+IP, malformed address, singleplayer и connection без `ServerData` отклоняются. Разрешённый адрес
+нормализуется и передаётся в template, history и bookmark scope. При denied JOIN runtime
+fail-inactive: template отключается, transient chat/HUD/search/bind state очищается, F8 и binds
+не действуют, входящие сообщения проходят vanilla без обработки. DISCONNECT очищает gate и весь
+session state; JSON templates и legacy automation bridge не удаляются.
 
 `ServerTemplateRuntime` публикует immutable `ActiveTemplateSnapshot`. Перед публикацией строятся `CompiledParserSettings` и `CompiledFilterSet`; message hot path не читает JSON и не компилирует regex. Automation-поля остаются только в persisted `ServerTemplate` и не входят в runtime snapshot. `TemplateSwitchCoordinator` сначала очищает:
 
@@ -12,8 +21,9 @@
 - friend presence, notices и HUD snapshot;
 - compiled filters и parsers.
 
-Если resolver не находит template или выбранный template невозможно загрузить, runtime очищается:
-настройки другого сервера не применяются. При отсутствии connection/address tick не меняет runtime.
+Если `vanilla-box` невозможно загрузить, runtime очищается: настройки другого сервера не
+применяются. `ServerTemplateResolver` остаётся для persisted root metadata и template-management,
+но не выбирает template при connection. При отсутствии connection/address tick не меняет runtime.
 
 ## Входящие сообщения
 
@@ -62,7 +72,14 @@ global markers и fallback `LOCAL` именно в этом порядке. Ег
 
 ## Исходящие команды
 
-`OutgoingChatService.MinecraftTransport` — единственное место вызовов Minecraft `sendChat`/`sendCommand`; оно повторно проверяет connection. Composition root создаёт сервис с no-op recorder, потому что echo guard удалён. `ServerCommandService` получает templates активного snapshot и валидирует аргументы непосредственно перед отправкой через `PlayerNameValidator`, `MessageValidator`, `AmountValidator`, `InputSanitizer` и `CommandTemplateValidator`. Переназначаемые F7 и `\` вызывают active-template `claimFly` и `enderChest` из client tick только при закрытом GUI.
+`OutgoingChatService.MinecraftTransport` является единственным местом вызовов Minecraft
+`sendChat`/`sendCommand`. Перед постановкой отправки он проверяет active gate и connection, а
+в queued действии проверяет их повторно непосредственно перед Minecraft transport. Composition
+root создаёт сервис с no-op recorder, потому что echo guard удалён. `ServerCommandService`
+получает templates активного snapshot и валидирует аргументы непосредственно перед отправкой
+через `PlayerNameValidator`, `MessageValidator`, `AmountValidator`, `InputSanitizer` и
+`CommandTemplateValidator`. Переназначаемые F7 и `\` вызывают active-template `claimFly` и
+`enderChest` из client tick только при закрытом GUI.
 
 Команды Vanilla-box находятся только в `ServerCommandSettings.vanillaBoxDefaults()`. При отсутствии command template fallback не применяется, отправка не выполняется. `FriendActionService` предоставляет UI/lookup friend actions, не собирая строки команд.
 
@@ -85,7 +102,7 @@ fallback принимает любой валидный Minecraft-ник,
 compiled template patterns, отправка идёт через command service. Очереди, batch/retry и
 автозапуск очищаются при disconnect/switch. `last seen` обновляется в target template scope.
 
-`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд, online confirmation 1,5 секунды и notice 4 секунды. Если друг уходит offline во время online confirmation, notice и звук отменяются. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка.
+`FriendPresenceTracker` обновляется в client tick. Сохранены warmup 30 секунд, offline confirmation 5 секунд, online confirmation 1,5 секунды и notice 4 секунды. Если друг уходит offline во время online confirmation, notice и звук отменяются. Tracker публикует `FriendHudSnapshot`; `FriendsHud.render` только рисует snapshot. Глобальные HUD и звук включаются независимо; звук запускается из tick, не render. Reconnect/switch сбрасывает state до обработки нового списка. Открытый `ResponderScreen` раз в 20 ticks сравнивает immutable snapshots online-друзей и `friendLastSeen` через map equality, поэтому поздний lookup refresh, включая maps с одинаковым hash, перестраивает список.
 
 `MarriageHudController` после появления доступного VnbxBridge один раз для пары connection identity +
 active template generation читает текущий Minecraft-ник и вызывает `PlayerInfoService.refresh(self)`.
@@ -117,7 +134,7 @@ Disconnect и template switch очищают state. `MarriageHud.render` тол�
 
 ## Templates, migration и import
 
-`ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move и сериализует explicit nulls для exact automation bridge round-trip. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` использует приоритет exact binding → exact pattern → wildcard → default → none.
+`ServerTemplateRepository` атомарно пишет root/template JSON через sibling temp → move и сериализует explicit nulls для exact automation bridge round-trip. `ServerTemplateManager` реализует create/copy/draft rename/address patterns/default/exact binding/delete protections. `ServerTemplateResolver` сохраняет compatibility-правила exact binding → exact pattern → wildcard → default → none для persisted/template-management metadata, но не участвует в connection selection и не активирует мод вне gate.
 
 `RootConfigSchemaMigration` обновляет только версию root schema, не меняя template ID или ссылки.
 `TemplateCatalogService` до начального выбора устанавливает отсутствующие bundled JSON из
@@ -136,10 +153,11 @@ Disconnect и template switch очищают state. `MarriageHud.render` тол�
 
 ## UI
 
-`ResponderScreen` содержит две равные вкладки: чёрный список и друзья. Часть mutations/save и UI helpers вынесена в tab
-controllers, `PlayerSuggestionProvider`, `Pagination`, `ScreenStatus` и `UiConstants`; layout
-и orchestration остаются в screen. Верхняя строка содержит cycle selector active template,
-кнопки глобальных настроек и многостраничной подсказки. `SettingsScreen` независимо переключает
+`ResponderScreen` содержит две равные вкладки: чёрный список и друзья, по умолчанию открываются
+друзья. Часть mutations/save и UI helpers вынесена в tab controllers, `PlayerSuggestionProvider`,
+`Pagination`, `ScreenStatus` и `UiConstants`; layout и orchestration остаются в screen. Верхняя
+строка содержит `?`, кнопку `Информация об игроке` и непосредственно справа от неё 24 px `⚙`
+настроек. `SettingsScreen` независимо переключает
 вкладки, поиск, timestamps, повторы, context menu, Discord, HUD и два звука; серверные шаблоны
 открываются из него кнопкой `Настройка команд для сервера`. Rules tab, periodic hotspot и password UI отсутствуют.
 
@@ -229,14 +247,16 @@ active template, player info открывает предзаполненный `
 
 Пункт `Сохранить в закладки` доступен для любого найденного context target независимо от
 sender и active template. `ChatMessageTextSanitizer` удаляет собственный timestamp и Chat
-Heads label из bookmark text. `ChatBookmarkStore` держит отдельный список текущего connection
+Heads label из bookmark text. `ChatBookmarkStore` держит отдельный список текущего разрешённого connection
 и атомарно пишет каждую явную mutation в
 `config/cndl-chat-plus-chat-bookmarks/<fileKey>.json`. Join загружает scope по тому же
 нормализованному server address, что history; disconnect сохраняет и очищает runtime list.
 Bookmarks не входят в `ChatMessageStore`, template snapshot/import и не зависят от history
-toggles. Singleplayer без `ServerData` хранится только до disconnect. Кнопка над панелью
-вкладок открытого чата открывает список: новые записи сверху, copy только text, delete и отдельное
-подтверждения перед очисткой всех.
+toggles. Singleplayer и connection без `ServerData` gate не активирует, поэтому UI закладок
+недоступен. Кнопка над панелью
+вкладок открытого чата открывает список: новые записи сверху, copy только text, inline editor
+сохраняет только text и оставляет ID/timestamps/channel/sender/порядок записи неизменными, есть
+delete и отдельное подтверждение перед очисткой всех.
 
 ## VnbxBridge transport
 

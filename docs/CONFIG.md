@@ -24,7 +24,7 @@
 - `templates[]`: `id`, display `name`, `addressPatterns[]`;
 - `serverBindings`: нормализованный exact address → template ID.
 
-Адрес нормализуется к lowercase ASCII hostname и explicit port (по умолчанию `25565`). Resolver: exact binding → exact pattern → наиболее специфичный wildcard subdomain → default → безопасное отсутствие template.
+Адрес нормализуется к lowercase ASCII hostname и explicit port (по умолчанию `25565`). Resolver compatibility-правил: exact binding → exact pattern → наиболее специфичный wildcard subdomain → default → безопасное отсутствие template. Эти root metadata сохраняются для template-management и JSON compatibility. Runtime connection path не вызывает resolver: после gate `TemplateSelectionService.connect(normalizedAddress)` сохраняет адрес scope и выбирает только `vanilla-box`; metadata других templates и inert automation bridge не активируют мод на другом сервере.
 
 ## ServerTemplate
 
@@ -86,7 +86,9 @@ template с тем же ID не перезаписывается при обно
 
 - `chatHistoryEnabled` (default `true`) — запись истории и повышенный лимит чата;
 - `chatHistoryPersist` (default `true`) — сохранение истории между сессиями per server;
-- `chatHistoryLimit` (default 1000, clamp 100–16384) — лимит ring buffer и отображаемой истории;
+- `chatHistoryLimit` (default 3000, clamp 100–16384), лимит ring buffer и отображаемой истории.
+  Новый config и missing/null поле получают 3000. Существующее custom value, например 750,
+  сохраняется и только clamp'ится к диапазону;
 - `chatTabsEnabled` (default `true`) — вкладки чата (Все/Глобал/Локал/Клан/ЛС/Discord/Система)
   с непрочитанными счётчиками в открытом чате;
 - `chatTimestampsEnabled` (default `true`) — серый префикс `[HH:mm]` у каждого сообщения.
@@ -121,7 +123,13 @@ Corrupt/oversized JSON даёт пустой runtime list без crash. Запи
 sibling `.tmp` → atomic move. Данные не входят в config/template import и работают независимо
 от `chatHistoryEnabled`/`chatHistoryPersist`. Для текущей версии source message timestamp не
 сохраняется, если context target не предоставляет надёжную metadata; показывается время
-сохранения. Singleplayer без стабильного `ServerData` scope session-only.
+сохранения. Singleplayer и connection без `ServerData` не активируют runtime gate, поэтому
+закладки в UI недоступны.
+
+`ChatBookmarkStore.updateText` меняет только непустой sanitized `text` выбранной записи. ID,
+`savedAtMillis`, `messageTimestampMillis`, channel, sender и место записи в списке сохраняются.
+После успешного изменения файл текущего разрешённого multiplayer scope пишется через sibling
+`.tmp` → atomic move; после reconnect текст открывается в той же записи.
 
 При первом чтении config без `friendSoundEnabled` значение переносится из default server
 template; если template недоступен, используется `true`. После этого глобальное значение
