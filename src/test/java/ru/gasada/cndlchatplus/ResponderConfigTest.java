@@ -27,6 +27,7 @@ final class ResponderConfigTest {
 		assertTrue(config.friendSoundEnabled);
 		assertTrue(config.teleportRequestSoundEnabled);
 		assertTrue(config.chatDuplicateCollapseEnabled);
+		assertEquals(3000, config.chatHistoryLimit);
 		assertTrue(config.whitenBlackNames);
 		assertTrue(config.chatAlertsEnabled);
 		assertTrue(config.chatAlertRules.isEmpty());
@@ -168,6 +169,18 @@ final class ResponderConfigTest {
 		assertEquals(GLFW.GLFW_KEY_F6, restored.chatBinds.getFirst().keyCode);
 		assertEquals("command", restored.chatBinds.getFirst().command);
 		assertFalse(restored.whitenBlackNames);
+	}
+
+	@Test
+	void compatibleJsonPreservesConfiguredHistoryLimit() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig source = new ResponderConfig();
+		source.chatHistoryLimit = 750;
+
+		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(source));
+		restored.sanitize();
+
+		assertEquals(750, restored.chatHistoryLimit);
 	}
 
 	@Test

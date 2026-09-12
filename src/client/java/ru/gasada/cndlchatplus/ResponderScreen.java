@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -25,7 +26,7 @@ public final class ResponderScreen extends CompatScreen {
 	private final ScreenStatus status = new ScreenStatus();
 	private final List<Button> suggestionButtons = new ArrayList<>();
 	private final List<Button> friendSuggestionButtons = new ArrayList<>();
-	private Tab tab = Tab.BLACKLIST;
+	private Tab tab = Tab.FRIENDS;
 	private int panelX;
 	private int panelWidth;
 	private boolean compactHeader;
@@ -44,7 +45,7 @@ public final class ResponderScreen extends CompatScreen {
 	private String selectedFriend;
 	private int friendPage;
 	private int friendOnlineRefreshTicks;
-	private int friendLastSeenHash;
+	private Map<String, String> friendLastSeen = Map.of();
 	private boolean friendLookupsQueued;
 	private Set<String> onlineFriends = Set.of();
 	private BlacklistMode blacklistMode = BlacklistMode.NICKS;
@@ -63,21 +64,20 @@ public final class ResponderScreen extends CompatScreen {
 		compactHeader = panelWidth < 520;
 
 		int half = panelWidth / 2;
-		int infoX = panelX + half;
 		addRenderableWidget(StyledButton.create(Component.literal("?"), ignored ->
 				ClientUi.setScreen(minecraft, new HelpScreen(this)))
 				.bounds(panelX + 6, 2, 24, 18)
 				.tooltip(help("Показать возможности и управление CNDL_chat+")).build());
-		int settingsWidth = Math.min(compactHeader ? 72 : 104, panelWidth - half);
-		addRenderableWidget(StyledButton.create(Component.literal("Настройки"), ignored ->
-				ClientUi.setScreen(minecraft, new SettingsScreen(this, config)))
-				.bounds(panelX + half, 2, settingsWidth, 18)
-				.tooltip(help("Настроить функции CNDL_chat+ для всех серверов")).build());
+		int settingsWidth = 24;
+		int infoWidth = panelWidth - half - settingsWidth - 4;
 		addRenderableWidget(StyledButton.create(Component.literal(compactHeader ? "Игрок" : "Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
-				.bounds(panelX + half + settingsWidth + 4, 2,
-						panelWidth - half - settingsWidth - 4, 18)
+				.bounds(panelX + half, 2, infoWidth, 18)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
+		addRenderableWidget(StyledButton.create(Component.literal("⚙"), ignored ->
+				ClientUi.setScreen(minecraft, new SettingsScreen(this, config)))
+				.bounds(panelX + half + infoWidth + 4, 2, settingsWidth, 18)
+				.tooltip(help("Открыть настройки CNDL_chat+")).build());
 		addTabButton(Tab.BLACKLIST, panelX, 27, half);
 		addTabButton(Tab.FRIENDS, panelX + half, 27, panelWidth - half);
 
@@ -212,7 +212,7 @@ public final class ResponderScreen extends CompatScreen {
 
 	private void initFriendsTab() {
 		onlineFriends = currentOnlineFriends();
-		friendLastSeenHash = activeFriendLastSeen().hashCode();
+		friendLastSeen = Map.copyOf(activeFriendLastSeen());
 		if (!friendLookupsQueued && CndlChatPlusClient.FRIEND_LOOKUP != null) {
 			CndlChatPlusClient.FRIEND_LOOKUP.queueActiveFriends();
 			friendLookupsQueued = true;
@@ -505,12 +505,17 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		friendOnlineRefreshTicks = 0;
 		Set<String> current = currentOnlineFriends();
-		int currentLastSeenHash = activeFriendLastSeen().hashCode();
-		if (!current.equals(onlineFriends) || currentLastSeenHash != friendLastSeenHash) {
+		Map<String, String> currentLastSeen = activeFriendLastSeen();
+		if (friendStateChanged(current, onlineFriends, currentLastSeen, friendLastSeen)) {
 			onlineFriends = current;
-			friendLastSeenHash = currentLastSeenHash;
+			friendLastSeen = Map.copyOf(currentLastSeen);
 			rebuildContents();
 		}
+	}
+
+	static boolean friendStateChanged(Set<String> currentOnline, Set<String> previousOnline,
+			Map<String, String> currentLastSeen, Map<String, String> previousLastSeen) {
+		return !currentOnline.equals(previousOnline) || !currentLastSeen.equals(previousLastSeen);
 	}
 
 	private List<String> activeFriends() {
@@ -520,11 +525,11 @@ public final class ResponderScreen extends CompatScreen {
 						.map(ActiveTemplateSnapshot::friends).orElse(List.of());
 	}
 
-	private java.util.Map<String, String> activeFriendLastSeen() {
+	private Map<String, String> activeFriendLastSeen() {
 		return CndlChatPlusClient.TEMPLATE_RUNTIME == null
 				? config.friendLastSeen
 				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::friendLastSeen).orElse(java.util.Map.of());
+						.map(ActiveTemplateSnapshot::friendLastSeen).orElse(Map.of());
 	}
 
 	private void refreshSuggestions(String query) {

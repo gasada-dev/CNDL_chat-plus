@@ -10,7 +10,7 @@ import org.lwjgl.glfw.GLFW;
 public final class ResponderConfig {
 	public static final int MIN_CHAT_HISTORY_LIMIT = 100;
 	public static final int MAX_CHAT_HISTORY_LIMIT = 16384;
-	public static final int DEFAULT_CHAT_HISTORY_LIMIT = 1000;
+	public static final int DEFAULT_CHAT_HISTORY_LIMIT = 3000;
 	public static final int MAX_CHAT_ALERT_RULES = 100;
 	public static final int MAX_CHAT_ALERT_NAME_LENGTH = 64;
 	public static final int MAX_CHAT_ALERT_PATTERN_LENGTH = 256;
