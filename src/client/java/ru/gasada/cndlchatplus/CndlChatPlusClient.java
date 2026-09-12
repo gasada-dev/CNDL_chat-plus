@@ -1,9 +1,11 @@
 package ru.gasada.cndlchatplus;
 
 import java.util.List;
+import java.nio.file.Path;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -25,11 +27,9 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	public static final VanillaBoxConnectionGate CONNECTION_GATE = new VanillaBoxConnectionGate();
 	public static ResponderConfig CONFIG;
 	public static FriendLookupManager FRIEND_LOOKUP;
-	public static ServerTemplateRuntime TEMPLATE_RUNTIME;
+	static VanillaBoxRuntime VANILLA_BOX_RUNTIME;
 	public static ServerCommandService SERVER_COMMANDS;
 	public static FriendActionService FRIEND_ACTIONS;
-	public static TemplateSelectionService TEMPLATE_SELECTION;
-	public static TemplateCatalogService TEMPLATE_CATALOG;
 	public static PlayerInfoService PLAYER_INFO;
 	public static ChatTabController CHAT_TABS;
 	public static ChatTimestamps CHAT_TIMESTAMPS;
@@ -44,35 +44,19 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		PlatformBridgeNetworking.register();
-		CONFIG = ConfigManager.load();
+		ConfigManager.LoadedConfig loadedConfig = ConfigManager.loadForBootstrap();
+		CONFIG = loadedConfig.config();
 		UpdateChecker updateChecker = new UpdateChecker();
-		TemplateSwitchCoordinator switchCoordinator = new TemplateSwitchCoordinator();
-		TEMPLATE_RUNTIME = new ServerTemplateRuntime(switchCoordinator);
-		TEMPLATE_RUNTIME.switchTo(LegacyConfigToVanillaBoxMigration.fromLegacy(CONFIG));
-		ServerTemplateRepository templateRepository = ConfigManager.templateRepository();
-		TemplateOperationResult<RootConfigSchemaMigration.MigrationReport> schemaMigration =
-				new RootConfigSchemaMigration(templateRepository).migrate();
-		if (!schemaMigration.success()) {
-			LOGGER.warn("Не удалось обновить схему шаблонов: {}", schemaMigration.errorMessage());
-		} else if (!schemaMigration.value().warnings().isEmpty()) {
-			LOGGER.warn("Миграция шаблонов завершена с предупреждениями: {}",
-					String.join("; ", schemaMigration.value().warnings()));
-		}
-		TEMPLATE_CATALOG = new TemplateCatalogService(templateRepository, ConfigManager.templateImportDirectory());
-		TemplateCatalogService.ImportSummary bundled = TEMPLATE_CATALOG.installBundledTemplates();
-		if (!bundled.success()) {
-			LOGGER.warn("Не все встроенные шаблоны установлены: {}", String.join("; ", bundled.errors()));
-		}
-		TEMPLATE_SELECTION = new TemplateSelectionService(templateRepository, TEMPLATE_RUNTIME, CONFIG);
-		TemplateOperationResult<ServerTemplate> initialTemplate = TEMPLATE_SELECTION.initializeDefault();
-		if (!initialTemplate.success()) {
-			LOGGER.warn("Не удалось выбрать начальный шаблон: {}", initialTemplate.errorMessage());
-		}
-		OutgoingChatService outgoingChatService = OutgoingChatService.forMinecraft(ignored -> { });
-		SERVER_COMMANDS = new ServerCommandService(TEMPLATE_RUNTIME, outgoingChatService);
+		RuntimeResetCoordinator resetCoordinator = new RuntimeResetCoordinator();
+		VANILLA_BOX_RUNTIME = new VanillaBoxRuntime(resetCoordinator);
+		Path configDirectory = FabricLoader.getInstance().getConfigDir();
+		VanillaBoxConfigStore vanillaBoxStore = new VanillaBoxConfigStore(configDirectory);
+		OutgoingChatService outgoingChatService = OutgoingChatService.forMinecraft(
+				ignored -> { }, VANILLA_BOX_RUNTIME::generation);
+		SERVER_COMMANDS = new ServerCommandService(VANILLA_BOX_RUNTIME, outgoingChatService);
 		ChatBindService chatBinds = new ChatBindService(CONFIG, outgoingChatService);
-		TELEPORT_REQUEST = new TeleportRequestButton(TEMPLATE_RUNTIME, SERVER_COMMANDS);
-		switchCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
+		TELEPORT_REQUEST = new TeleportRequestButton(VANILLA_BOX_RUNTIME, SERVER_COMMANDS);
+		resetCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
 		TELEPORT_REQUEST.register();
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
 			if (!CONNECTION_GATE.active()) return InteractionResult.PASS;
@@ -89,22 +73,22 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			ClientUi.setScreen(minecraft, new NearbyPlayerMenuScreen(targetName));
 			return InteractionResult.FAIL;
 		});
-		FRIEND_ACTIONS = new FriendActionService(TEMPLATE_RUNTIME, SERVER_COMMANDS, CONFIG);
-		visibilityFilter = new ChatVisibilityFilter(TEMPLATE_RUNTIME,
+		FRIEND_ACTIONS = new FriendActionService(VANILLA_BOX_RUNTIME, SERVER_COMMANDS, CONFIG);
+		visibilityFilter = new ChatVisibilityFilter(VANILLA_BOX_RUNTIME,
 				() -> Boolean.TRUE.equals(CONFIG.discordChatEnabled));
 		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
-		FRIEND_LOOKUP = new FriendLookupManager(TEMPLATE_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis,
+		FRIEND_LOOKUP = new FriendLookupManager(VANILLA_BOX_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis,
 				lookupCoordinator, PlatformBridgeNetworking::available);
-		PLAYER_INFO = new PlayerInfoService(TEMPLATE_RUNTIME, PlatformBridgeNetworking::requestPlayerRelations,
+		PLAYER_INFO = new PlayerInfoService(VANILLA_BOX_RUNTIME, PlatformBridgeNetworking::requestPlayerRelations,
 				PlatformBridgeNetworking::available, FRIEND_LOOKUP,
 				runnable -> net.minecraft.client.Minecraft.getInstance().execute(runnable));
-		switchCoordinator.register(PLAYER_INFO::resetRuntimeState);
-		FriendsHud friendsHud = new FriendsHud(TEMPLATE_RUNTIME);
-		switchCoordinator.register(friendsHud::resetRuntimeState);
-		switchCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
+		resetCoordinator.register(PLAYER_INFO::resetRuntimeState);
+		FriendsHud friendsHud = new FriendsHud(VANILLA_BOX_RUNTIME);
+		resetCoordinator.register(friendsHud::resetRuntimeState);
+		resetCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		friendsHud.register();
-		MARRIAGE_HUD = new MarriageHud(TEMPLATE_RUNTIME, PLAYER_INFO, SERVER_COMMANDS, friendsHud);
-		switchCoordinator.register(MARRIAGE_HUD::resetRuntimeState);
+		MARRIAGE_HUD = new MarriageHud(VANILLA_BOX_RUNTIME, PLAYER_INFO, SERVER_COMMANDS, friendsHud);
+		resetCoordinator.register(MARRIAGE_HUD::resetRuntimeState);
 		MARRIAGE_HUD.register();
 
 		ChatMessageStore chatMessageStore = new ChatMessageStore(() -> CONFIG.chatHistoryLimit);
@@ -113,7 +97,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		CHAT_TIMESTAMPS = new ChatTimestamps(() -> Boolean.TRUE.equals(CONFIG.chatTimestampsEnabled));
 		CHAT_DUPLICATES = new ChatDuplicateCollapser(
 				() -> Boolean.TRUE.equals(CONFIG.chatDuplicateCollapseEnabled));
-		CHAT_TABS = new ChatTabController(new ChatTabClassifier(TEMPLATE_RUNTIME),
+		CHAT_TABS = new ChatTabController(new ChatTabClassifier(VANILLA_BOX_RUNTIME),
 				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled));
 		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));
 		CHAT_ALERTS = new ChatAlertService(() -> Boolean.TRUE.equals(CONFIG.chatAlertsEnabled),
@@ -121,9 +105,9 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		ChatAlertHud chatAlertHud = new ChatAlertHud();
 		chatAlertHud.register();
 		CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
-		switchCoordinator.register(CHAT_TABS::resetRuntimeState);
-		switchCoordinator.register(CHAT_TIMESTAMPS::resetRuntimeState);
-		switchCoordinator.register(CHAT_DUPLICATES::reset);
+		resetCoordinator.register(CHAT_TABS::resetRuntimeState);
+		resetCoordinator.register(CHAT_TIMESTAMPS::resetRuntimeState);
+		resetCoordinator.register(CHAT_DUPLICATES::reset);
 
 		KeyMapping.Category category = KeyMapping.Category.register(
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
@@ -133,18 +117,15 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				InputConstants.KEY_F8,
 				category));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
-			if (!CONNECTION_GATE.active()) {
-				while (openScreen.consumeClick()) { }
-				chatBinds.resetRuntimeState();
-				if (ClientUi.currentScreen(minecraft) instanceof CompatScreen) {
-					ClientUi.setScreen(minecraft, null);
-				}
-				return;
-			}
-			PLAYER_INFO.tick(minecraft);
+			boolean connectionActive = CONNECTION_GATE.active();
 			while (openScreen.consumeClick()) {
 				ClientUi.setScreen(minecraft, new ResponderScreen(CONFIG));
 			}
+			if (!connectionActive) {
+				chatBinds.resetRuntimeState();
+				return;
+			}
+			PLAYER_INFO.tick(minecraft);
 			chatBinds.tick(minecraft);
 			FRIEND_LOOKUP.tick(minecraft);
 			friendsHud.tick(minecraft);
@@ -188,9 +169,11 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
 			ServerData server = minecraft.getCurrentServer();
-			VanillaBoxConnectionGate.State connection = CONNECTION_GATE.join(server == null ? null : server.ip);
+			ConfigOperationResult<VanillaBoxConfig> persisted = loadedConfig.vanillaBox().success()
+					? vanillaBoxStore.load() : loadedConfig.vanillaBox();
+			VanillaBoxConnectionGate.State connection = activateConnection(CONNECTION_GATE,
+					VANILLA_BOX_RUNTIME, persisted, server == null ? null : server.ip);
 			if (!connection.active()) {
-				TEMPLATE_SELECTION.disconnect();
 				PlatformBridgeNetworking.disconnected();
 				chatMessageStore.clear();
 				chatAlertHud.resetRuntimeState();
@@ -199,9 +182,6 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				chatBinds.resetRuntimeState();
 				return;
 			}
-			TEMPLATE_SELECTION.connect(connection.normalizedAddress());
-			CHAT_DUPLICATES.reset();
-			CHAT_TIMESTAMPS.resetConnectionState();
 			chatAlertHud.resetRuntimeState();
 			connectBookmarks(connection.normalizedAddress());
 			restoreChatHistory(chatMessageStore, chatHistoryStore, chatHistoryCodec,
@@ -210,8 +190,6 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
 			VanillaBoxConnectionGate.State connection = CONNECTION_GATE.state();
-			PLAYER_INFO.resetRuntimeState();
-			MARRIAGE_HUD.resetRuntimeState();
 			PlatformBridgeNetworking.disconnected();
 			if (connection.active()) {
 				saveChatHistory(chatMessageStore, chatHistoryStore, connection.normalizedAddress());
@@ -220,15 +198,35 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				chatMessageStore.clear();
 				CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
 			}
-			CHAT_TABS.resetRuntimeState();
 			CHAT_SEARCH.clear();
-			CHAT_TIMESTAMPS.resetConnectionState();
-			CHAT_DUPLICATES.reset();
 			chatAlertHud.resetRuntimeState();
 			chatBinds.resetRuntimeState();
-			TEMPLATE_SELECTION.disconnect();
-			CONNECTION_GATE.disconnect();
+			disconnect(CONNECTION_GATE, VANILLA_BOX_RUNTIME);
 		});
+	}
+
+	static VanillaBoxConnectionGate.State activateConnection(VanillaBoxConnectionGate gate,
+			VanillaBoxRuntime runtime, ConfigOperationResult<VanillaBoxConfig> persisted, String address) {
+		VanillaBoxConnectionGate.State connection = gate.join(address);
+		if (!connection.active() || !persisted.success()) {
+			runtime.clear();
+			gate.disconnect();
+			return gate.state();
+		}
+		try {
+			runtime.activate(persisted.value());
+			return connection;
+		} catch (RuntimeException error) {
+			LOGGER.error("Не удалось активировать конфигурацию Vanilla-box", error);
+			runtime.clear();
+			gate.disconnect();
+			return gate.state();
+		}
+	}
+
+	static void disconnect(VanillaBoxConnectionGate gate, VanillaBoxRuntime runtime) {
+		runtime.clear();
+		gate.disconnect();
 	}
 
 	private static boolean altDown(Minecraft minecraft) {
@@ -239,7 +237,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	private static void triggerAlert(ChatAlertHud hud, Component message, boolean fromGame) {
 		String text = message.getString();
 		ChatAlertDecision decision = CHAT_ALERTS.handle(text, CHAT_TABS.classify(text, fromGame),
-				TEMPLATE_RUNTIME.compiledParsers().orElse(null));
+				VANILLA_BOX_RUNTIME.activeSnapshot().map(VanillaBoxSnapshot::compiledParsers).orElse(null));
 		hud.handle(decision, text);
 	}
 

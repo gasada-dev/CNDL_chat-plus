@@ -39,6 +39,21 @@ final class OutgoingChatServiceTest {
 		assertTrue(transport.chats.isEmpty());
 	}
 
+	@Test
+	void queuedSendRejectsCapturedRuntimeGenerationAfterDisconnect() {
+		DeferredTransport transport = new DeferredTransport();
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(VanillaBoxConfig.empty());
+		OutgoingChatService outgoing = new OutgoingChatService(
+				transport, ignored -> { }, () -> true, runtime::generation);
+
+		assertTrue(outgoing.sendCommand("claimfly").success());
+		runtime.clear();
+		transport.queued.removeFirst().run();
+
+		assertTrue(transport.commands.isEmpty());
+	}
+
 	private static final class DeferredTransport implements OutgoingChatService.Transport {
 		private final List<Runnable> queued = new ArrayList<>();
 		private final List<String> chats = new ArrayList<>();

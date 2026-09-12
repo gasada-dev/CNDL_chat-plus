@@ -9,12 +9,12 @@ public final class MarriageHud {
 	private static final String TITLE = "Брак";
 	private static final int HEIGHT = 30;
 
-	private final ServerTemplateRuntime runtime;
+	private final VanillaBoxRuntime runtime;
 	private final ServerCommandService commands;
 	private final FriendsHud friendsHud;
 	private final MarriageHudController controller;
 
-	MarriageHud(ServerTemplateRuntime runtime, PlayerInfoService playerInfo,
+	MarriageHud(VanillaBoxRuntime runtime, PlayerInfoService playerInfo,
 			ServerCommandService commands, FriendsHud friendsHud) {
 		this.runtime = runtime;
 		this.commands = commands;
@@ -23,7 +23,7 @@ public final class MarriageHud {
 	}
 
 	public void tick(Minecraft minecraft) {
-		long generation = runtime.activeSnapshot().map(ActiveTemplateSnapshot::generation).orElse(-1L);
+		long generation = runtime.activeSnapshot().map(VanillaBoxSnapshot::generation).orElse(-1L);
 		controller.tick(minecraft.getConnection(), generation, PlatformBridgeNetworking.available(),
 				() -> minecraft.getUser().getName());
 	}

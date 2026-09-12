@@ -3,6 +3,7 @@ package ru.gasada.cndlchatplus;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 
 import net.minecraft.client.Minecraft;
 
@@ -12,6 +13,7 @@ public final class OutgoingChatService {
 	private final Transport transport;
 	private final Consumer<String> outgoingRecorder;
 	private final BooleanSupplier authorized;
+	private final LongSupplier generation;
 
 	public OutgoingChatService(Transport transport, Consumer<String> outgoingRecorder) {
 		this(transport, outgoingRecorder, () -> true);
@@ -19,14 +21,20 @@ public final class OutgoingChatService {
 
 	public OutgoingChatService(Transport transport, Consumer<String> outgoingRecorder,
 			BooleanSupplier authorized) {
+		this(transport, outgoingRecorder, authorized, () -> 0L);
+	}
+
+	OutgoingChatService(Transport transport, Consumer<String> outgoingRecorder,
+			BooleanSupplier authorized, LongSupplier generation) {
 		this.transport = Objects.requireNonNull(transport, "transport");
 		this.outgoingRecorder = Objects.requireNonNull(outgoingRecorder, "outgoingRecorder");
 		this.authorized = Objects.requireNonNull(authorized, "authorized");
+		this.generation = Objects.requireNonNull(generation, "generation");
 	}
 
-	public static OutgoingChatService forMinecraft(Consumer<String> outgoingRecorder) {
+	static OutgoingChatService forMinecraft(Consumer<String> outgoingRecorder, LongSupplier generation) {
 		return new OutgoingChatService(new MinecraftTransport(), outgoingRecorder,
-				CndlChatPlusClient.CONNECTION_GATE::active);
+				CndlChatPlusClient.CONNECTION_GATE::active, generation);
 	}
 
 	public SendResult sendChat(String message) {
@@ -54,9 +62,11 @@ public final class OutgoingChatService {
 		if (!authorized.getAsBoolean() || !transport.connected()) {
 			return SendResult.failure("Нет подключения к серверу");
 		}
+		long queuedGeneration = generation.getAsLong();
 		outgoingRecorder.accept(command ? "/" + payload : payload);
 		transport.execute(() -> {
-			if (!authorized.getAsBoolean() || !transport.connected()) {
+			if (!authorized.getAsBoolean() || !transport.connected()
+					|| generation.getAsLong() != queuedGeneration) {
 				return;
 			}
 			if (command) {

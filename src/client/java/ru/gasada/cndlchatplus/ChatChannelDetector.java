@@ -1,11 +1,11 @@
 package ru.gasada.cndlchatplus;
 
 public final class ChatChannelDetector {
-	private final ActiveTemplateSnapshot template;
+	private final VanillaBoxSnapshot snapshot;
 	private final DiscordMessageParser discordParser;
 
-	public ChatChannelDetector(ActiveTemplateSnapshot template, CompiledParserSettings parsers) {
-		this.template = template;
+	public ChatChannelDetector(VanillaBoxSnapshot snapshot, CompiledParserSettings parsers) {
+		this.snapshot = snapshot;
 		this.discordParser = new DiscordMessageParser(parsers);
 	}
 
@@ -15,18 +15,18 @@ public final class ChatChannelDetector {
 		if (discordParser.parse(normalizedDisplayed).discordMessage()) {
 			return ChatChannel.GLOBAL;
 		}
-		if (containsAnyMarker(normalizedDisplayed, template.privateMarkers())) {
+		if (containsAnyMarker(normalizedDisplayed, snapshot.privateMarkers())) {
 			return ChatChannel.PRIVATE;
 		}
-		if (containsAnyMarker(normalizedDisplayed, template.clanMarkers())) {
+		if (containsAnyMarker(normalizedDisplayed, snapshot.clanMarkers())) {
 			return ChatChannel.CLAN;
 		}
-		if (!template.globalPrefix().isBlank()
-				&& normalizedContent.startsWith(ChatTextNormalizer.normalizeForMatching(template.globalPrefix()))) {
+		if (!snapshot.globalPrefix().isBlank()
+				&& normalizedContent.startsWith(ChatTextNormalizer.normalizeForMatching(snapshot.globalPrefix()))) {
 			return ChatChannel.GLOBAL;
 		}
 		if (normalizedDisplayed.contains("(!)")
-				|| containsAnyMarker(normalizedDisplayed, template.globalMarkers())) {
+				|| containsAnyMarker(normalizedDisplayed, snapshot.globalMarkers())) {
 			return ChatChannel.GLOBAL;
 		}
 		return ChatChannel.LOCAL;

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 final class MarriageHudControllerTest {
 	@Test
 	void fetchesSelfOnlyOncePerConnectionAndGenerationAfterBridgeBecomesAvailable() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> bridge = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
 		AtomicInteger usernameReads = new AtomicInteger();
@@ -53,7 +53,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void bridgeLossHidesVisiblePartnerRejectsMenuContextAndAllowsOneRecoveryRefresh() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		AtomicInteger fetches = new AtomicInteger();
 		PlayerInfoService playerInfo = new PlayerInfoService(runtime, (requestId, player) ->
 				CompletableFuture.completedFuture(relations(true,
@@ -84,7 +84,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void inFlightCompletionAfterBridgeLossCannotRepublishAndFalseTicksDoNotRequest() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
 		AtomicInteger usernameReads = new AtomicInteger();
@@ -112,7 +112,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void recoveryCanAttachOneCurrentRefreshToSameModeInFlightRequest() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
 		AtomicInteger usernameReads = new AtomicInteger();
@@ -141,7 +141,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void rejectsStaleCompletionAndFetchesAgainForNewContext() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> stale = new CompletableFuture<>();
 		CompletableFuture<VnbxPlayerRelationsResult> current = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
@@ -166,7 +166,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void resetAndNewGenerationAllowOneFreshFetch() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		AtomicInteger fetches = new AtomicInteger();
 		PlayerInfoService playerInfo = new PlayerInfoService(runtime, (requestId, player) -> {
 			fetches.incrementAndGet();
@@ -179,7 +179,7 @@ final class MarriageHudControllerTest {
 		controller.resetRuntimeState();
 		playerInfo.resetRuntimeState();
 		controller.tick(connection, generation(runtime), true, () -> "Self_1");
-		runtime.switchTo(ServerTemplate.empty("second", "Second"));
+		runtime.activate(VanillaBoxConfig.empty());
 		controller.tick(connection, generation(runtime), true, () -> "Self_1");
 
 		assertEquals(3, fetches.get());
@@ -187,7 +187,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void unavailableUnmarriedAndInvalidPartnersStayHidden() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		AtomicInteger fetches = new AtomicInteger();
 		List<VnbxPlayerRelationsResult> responses = List.of(
 				relations(false, null), relations(true, "  "), relations(true, "bad partner"));
@@ -211,7 +211,7 @@ final class MarriageHudControllerTest {
 
 	@Test
 	void dispatchesExactActionsAndFailsClosedForBlankOrStaleContext() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		PlayerInfoService playerInfo = new PlayerInfoService(runtime, (requestId, player) ->
 				CompletableFuture.completedFuture(relations(true, "Partner_1")),
 				() -> true, null, Runnable::run);
@@ -229,8 +229,8 @@ final class MarriageHudControllerTest {
 		assertTrue(controller.execute(context, MarriageAction.TP, commands).success());
 		assertEquals(List.of("marry kiss", "marry home", "marry tp"), transport.commands);
 
-		ServerTemplate blank = ServerTemplate.empty("blank", "Blank");
-		runtime.switchTo(blank);
+		VanillaBoxConfig blank = VanillaBoxConfig.empty();
+		runtime.activate(blank);
 		controller.tick(connection, generation(runtime), true, () -> "Self_1");
 		MarriageHudSnapshot.Context blankContext = controller.snapshot().context();
 		assertFalse(controller.execute(blankContext, MarriageAction.KISS, commands).success());
@@ -247,15 +247,15 @@ final class MarriageHudControllerTest {
 				java.util.Arrays.stream(MarriageAction.values()).map(MarriageAction::label).toList());
 	}
 
-	private static ServerTemplateRuntime runtime() {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		runtime.switchTo(template);
+	private static VanillaBoxRuntime runtime() {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		runtime.activate(config);
 		return runtime;
 	}
 
-	private static long generation(ServerTemplateRuntime runtime) {
+	private static long generation(VanillaBoxRuntime runtime) {
 		return runtime.activeSnapshot().orElseThrow().generation();
 	}
 

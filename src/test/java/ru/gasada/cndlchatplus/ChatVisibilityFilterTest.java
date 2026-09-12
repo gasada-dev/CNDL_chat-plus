@@ -9,89 +9,87 @@ import org.junit.jupiter.api.Test;
 final class ChatVisibilityFilterTest {
 	@Test
 	void disabledDiscordIsHiddenBeforeMutedWordEvaluation() {
-		ServerTemplate template = vanillaTemplate();
-		template.mutedWords.add("");
-		VisibilityDecision decision = new ChatVisibilityFilter(runtimeFor(template), () -> false)
+		VanillaBoxConfig config = vanillaBoxConfig();
+		config.mutedWords.add("");
+		VisibilityDecision decision = new ChatVisibilityFilter(runtimeFor(config), () -> false)
 				.decide("[Discord] User » реклама");
 		assertFalse(decision.visible());
 		assertEquals(FilterReason.DISCORD_DISABLED, decision.reason());
 	}
 
 	@Test
-	void discordToggleDoesNotDependOnActiveTemplate() {
-		ServerTemplate template = vanillaTemplate();
-		template.discordChatEnabled = false;
+	void discordToggleDoesNotDependOnVanillaBoxRuntime() {
+		VanillaBoxConfig config = vanillaBoxConfig();
+		config.discordChatEnabled = false;
 
-		assertTrue(new ChatVisibilityFilter(runtimeFor(template), () -> true)
+		assertTrue(new ChatVisibilityFilter(runtimeFor(config), () -> true)
 				.decide("[Discord] User » hello").visible());
 	}
 
 	@Test
-	void discordMuteUsesActiveTemplateAndIgnoresCase() {
-		ServerTemplate template = vanillaTemplate();
-		template.discordMutedPlayers.add("User_Name");
-		VisibilityDecision decision = filterFor(template).decide("[Discord] user_name » hello");
+	void discordMuteUsesVanillaBoxSnapshotAndIgnoresCase() {
+		VanillaBoxConfig config = vanillaBoxConfig();
+		config.discordMutedPlayers.add("User_Name");
+		VisibilityDecision decision = filterFor(config).decide("[Discord] user_name » hello");
 		assertEquals(FilterReason.DISCORD_USER_MUTED, decision.reason());
 		assertEquals("user_name", decision.matchedValue());
 	}
 
 	@Test
 	void compiledMutedFiltersPreserveFirstMatchAndWildcardSemantics() {
-		ServerTemplate template = vanillaTemplate();
-		template.mutedWords.add("первый*");
-		template.mutedWords.add("*второй*");
-		ServerTemplateRuntime runtime = runtimeFor(template);
+		VanillaBoxConfig config = vanillaBoxConfig();
+		config.mutedWords.add("первый*");
+		config.mutedWords.add("*второй*");
+		VanillaBoxRuntime runtime = runtimeFor(config);
 		VisibilityDecision decision = new ChatVisibilityFilter(runtime).decide("ПЕРВЫЙ и второй");
 		assertEquals(FilterReason.MUTED_WORD, decision.reason());
 		assertEquals("первый*", decision.matchedValue());
-		assertEquals(2, runtime.compiledFilters().orElseThrow().size());
+		assertEquals(2, runtime.activeSnapshot().orElseThrow().compiledFilters().size());
 	}
 
 	@Test
-	void switchingTemplateReplacesCompiledFiltersWithoutLeakage() {
-		ServerTemplate first = vanillaTemplate();
+	void replacingConfigReplacesCompiledFiltersWithoutLeakage() {
+		VanillaBoxConfig first = vanillaBoxConfig();
 		first.mutedWords.add("alpha");
-		ServerTemplate second = vanillaTemplate();
-		second.id = "second";
-		second.name = "Second";
+		VanillaBoxConfig second = vanillaBoxConfig();
 		second.mutedWords.add("beta");
-		ServerTemplateRuntime runtime = runtimeFor(first);
+		VanillaBoxRuntime runtime = runtimeFor(first);
 		ChatVisibilityFilter filter = new ChatVisibilityFilter(runtime);
 		assertFalse(filter.decide("alpha").visible());
-		runtime.switchTo(second);
+		runtime.activate(second);
 		assertTrue(filter.decide("alpha").visible());
 		assertFalse(filter.decide("beta").visible());
 	}
 
 	@Test
 	void minecraftMuteRequiresExplicitSenderAndDoesNotParseOrdinaryText() {
-		ServerTemplate template = vanillaTemplate();
-		template.mutedMinecraftPlayers.add("PlayerOne");
-		ChatVisibilityFilter filter = filterFor(template);
+		VanillaBoxConfig config = vanillaBoxConfig();
+		config.mutedMinecraftPlayers.add("PlayerOne");
+		ChatVisibilityFilter filter = filterFor(config);
 		assertTrue(filter.decide("PlayerOne: hello").visible());
 		assertEquals(FilterReason.MINECRAFT_PLAYER_MUTED,
 				filter.decide("hello", "playerone").reason());
 	}
 
 	@Test
-	void absenceOfActiveTemplateFailsOpen() {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
+	void inactiveRuntimeFailsOpen() {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
 		VisibilityDecision decision = new ChatVisibilityFilter(runtime).decide("hello");
 		assertTrue(decision.visible());
 		assertEquals(FilterReason.VISIBLE, decision.reason());
 	}
 
-	private static ChatVisibilityFilter filterFor(ServerTemplate template) {
-		return new ChatVisibilityFilter(runtimeFor(template));
+	private static ChatVisibilityFilter filterFor(VanillaBoxConfig config) {
+		return new ChatVisibilityFilter(runtimeFor(config));
 	}
 
-	private static ServerTemplateRuntime runtimeFor(ServerTemplate template) {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		runtime.switchTo(template);
+	private static VanillaBoxRuntime runtimeFor(VanillaBoxConfig config) {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(config);
 		return runtime;
 	}
 
-	private static ServerTemplate vanillaTemplate() {
-		return LegacyConfigToVanillaBoxMigration.fromLegacy(new ResponderConfig());
+	private static VanillaBoxConfig vanillaBoxConfig() {
+		return VanillaBoxConfig.fromCompatible(new ResponderConfig());
 	}
 }

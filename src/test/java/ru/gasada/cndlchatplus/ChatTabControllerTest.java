@@ -18,8 +18,10 @@ final class ChatTabControllerTest {
 	@BeforeEach
 	void setUp() {
 		enabled = new AtomicBoolean(true);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(VanillaBoxConfig.fromCompatible(ResponderConfig.defaults()));
 		controller = new ChatTabController(
-				new ChatTabClassifier(ServerTemplateRuntime.fromLegacyConfig(ResponderConfig.defaults())),
+				new ChatTabClassifier(runtime),
 				enabled::get);
 	}
 

@@ -61,9 +61,9 @@ final class ChatChannelDetectionTest {
 	}
 
 	private ChatChannel detect(String content, String displayed) {
-		ActiveTemplateSnapshot template = ActiveTemplateSnapshot.from(
-				LegacyConfigToVanillaBoxMigration.fromLegacy(config), 1);
-		return new ChatChannelDetector(template, CompiledParserSettings.compile(template.parsers()))
+		VanillaBoxSnapshot snapshot = VanillaBoxSnapshot.from(
+				VanillaBoxConfig.fromCompatible(config), 1);
+		return new ChatChannelDetector(snapshot, CompiledParserSettings.compile(snapshot.parsers()))
 				.detect(content, displayed);
 	}
 }

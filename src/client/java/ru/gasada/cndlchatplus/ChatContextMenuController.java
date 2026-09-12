@@ -28,8 +28,9 @@ public final class ChatContextMenuController {
 		ChatMessageTarget target = ((ChatMessageUnderMouseAccess) ChatAccess.chat(minecraft))
 				.gasada$messageUnderMouse(mouseX, mouseY, screenHeight);
 		if (target == null) return false;
-		CompiledParserSettings parsers = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? null
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.compiledParsers().orElse(null);
+		CompiledParserSettings parsers = CndlChatPlusClient.VANILLA_BOX_RUNTIME == null ? null
+				: CndlChatPlusClient.VANILLA_BOX_RUNTIME.activeSnapshot()
+						.map(VanillaBoxSnapshot::compiledParsers).orElse(null);
 		String text = ChatMessageTextSanitizer.stripSyntheticLabels(target.component().getString());
 		ChatTab channel = CndlChatPlusClient.CHAT_TABS == null ? ChatTab.SYSTEM
 				: CndlChatPlusClient.CHAT_TABS.classify(text, target.fromGame());
@@ -59,7 +60,7 @@ public final class ChatContextMenuController {
 	}
 
 	private ContextMenuBuilder.Capabilities capabilities() {
-		ServerTemplateRuntime runtime = CndlChatPlusClient.TEMPLATE_RUNTIME;
+		VanillaBoxRuntime runtime = CndlChatPlusClient.VANILLA_BOX_RUNTIME;
 		ServerCommandService commands = CndlChatPlusClient.SERVER_COMMANDS;
 		boolean active = runtime != null && runtime.activeSnapshot().isPresent() && commands != null;
 		if (!active) return new ContextMenuBuilder.Capabilities(false, false, false, false, false, false);

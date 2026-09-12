@@ -1,21 +1,30 @@
 package ru.gasada.cndlchatplus;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.nio.file.Path;
 
 public final class FriendActionService {
-	private final ServerTemplateRuntime runtime;
+	private final VanillaBoxRuntime runtime;
 	private final ServerCommandService commands;
 	private final ResponderConfig legacyConfig;
+	private final Path configPath;
 
-	public FriendActionService(ServerTemplateRuntime runtime, ServerCommandService commands,
+	public FriendActionService(VanillaBoxRuntime runtime, ServerCommandService commands,
 			ResponderConfig legacyConfig) {
+		this(runtime, commands, legacyConfig, null);
+	}
+
+	FriendActionService(VanillaBoxRuntime runtime, ServerCommandService commands,
+			ResponderConfig legacyConfig, Path configPath) {
 		this.runtime = runtime;
 		this.commands = commands;
 		this.legacyConfig = legacyConfig;
+		this.configPath = configPath;
 	}
 
 	public boolean updateLastSeen(String player, String value) {
-		ActiveTemplateSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
 		if (snapshot == null) {
 			return false;
 		}
@@ -25,24 +34,16 @@ public final class FriendActionService {
 		if (storedName == null) {
 			return false;
 		}
-		runtime.updateActiveTemplate(template -> {
-			template.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(storedName));
-			template.friendLastSeen.put(storedName, value);
-		});
-		if (legacyConfig != null) {
-			legacyConfig.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(storedName));
-			legacyConfig.friendLastSeen.put(storedName, value);
-			if (usesQueuePreservingSave(snapshot.id())) {
-				ConfigManager.saveVanillaBoxLastSeen(legacyConfig);
-			} else {
-				ConfigManager.save(legacyConfig);
-			}
-		}
-		return true;
-	}
-
-	static boolean usesQueuePreservingSave(String templateId) {
-		return LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID.equals(templateId);
+		if (legacyConfig == null) return runtime.updateLastSeen(storedName, value).isPresent();
+		LinkedHashMap<String, String> previous = new LinkedHashMap<>(legacyConfig.friendLastSeen);
+		legacyConfig.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(storedName));
+		legacyConfig.friendLastSeen.put(storedName, value);
+		boolean saved = configPath == null
+				? ConfigManager.saveLastSeen(legacyConfig, runtime, storedName, value)
+				: ConfigManager.saveLastSeen(legacyConfig, configPath, runtime, storedName, value);
+		if (saved) return true;
+		legacyConfig.friendLastSeen = previous;
+		return false;
 	}
 
 	public ServerCommandService.CommandResult lookup(String player) {
@@ -69,7 +70,7 @@ public final class FriendActionService {
 
 	public boolean addFriend(String player) {
 		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(player);
-		ActiveTemplateSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
 		if (!validation.valid() || snapshot == null
 				|| snapshot.friends().stream().anyMatch(friend -> friend.equalsIgnoreCase(player))) {
 			return false;
@@ -77,7 +78,9 @@ public final class FriendActionService {
 		ArrayList<String> previous = new ArrayList<>(legacyConfig.friends);
 		legacyConfig.friends = new ArrayList<>(snapshot.friends());
 		legacyConfig.friends.add(player);
-		if (ConfigManager.save(legacyConfig)) {
+		boolean saved = configPath == null ? ConfigManager.save(legacyConfig)
+				: ConfigManager.save(legacyConfig, configPath, runtime);
+		if (saved) {
 			return true;
 		}
 		legacyConfig.friends = previous;

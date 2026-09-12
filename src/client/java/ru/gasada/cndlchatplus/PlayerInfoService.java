@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.BiFunction;
 
 public final class PlayerInfoService {
-	private final ServerTemplateRuntime runtime;
+	private final VanillaBoxRuntime runtime;
 	private final BiFunction<String, String, CompletableFuture<VnbxPlayerRelationsResult>> bridgeFetcher;
 	private final BooleanSupplier bridgeAvailable;
 	private final FriendLookupManager lookupManager;
@@ -19,13 +19,13 @@ public final class PlayerInfoService {
 	private final Map<String, CompletableFuture<LoadResult>> inFlight = new HashMap<>();
 	private long epoch;
 
-	PlayerInfoService(ServerTemplateRuntime runtime,
+	PlayerInfoService(VanillaBoxRuntime runtime,
 			BiFunction<String, String, CompletableFuture<VnbxPlayerRelationsResult>> bridgeFetcher,
 			FriendLookupManager lookupManager, Consumer<Runnable> clientExecutor) {
 		this(runtime, bridgeFetcher, () -> false, lookupManager, clientExecutor);
 	}
 
-	PlayerInfoService(ServerTemplateRuntime runtime,
+	PlayerInfoService(VanillaBoxRuntime runtime,
 			BiFunction<String, String, CompletableFuture<VnbxPlayerRelationsResult>> bridgeFetcher,
 			BooleanSupplier bridgeAvailable, FriendLookupManager lookupManager, Consumer<Runnable> clientExecutor) {
 		this.runtime = runtime;
@@ -38,8 +38,8 @@ public final class PlayerInfoService {
 	public CompletableFuture<LoadResult> refresh(String player) {
 		PlayerNameValidator.ValidationResult validated = PlayerNameValidator.validate(player);
 		if (!validated.valid()) return CompletableFuture.completedFuture(LoadResult.failure(validated.errorMessage()));
-		ActiveTemplateSnapshot snapshot = runtime.activeSnapshot().orElse(null);
-		if (snapshot == null) return CompletableFuture.completedFuture(LoadResult.failure("Нет активного шаблона"));
+		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		if (snapshot == null) return CompletableFuture.completedFuture(LoadResult.failure("Vanilla-box неактивен"));
 		long generation = snapshot.generation();
 		long requestEpoch = epoch;
 		boolean bridgePresent = bridgeAvailable.getAsBoolean();

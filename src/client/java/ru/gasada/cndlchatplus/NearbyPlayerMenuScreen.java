@@ -57,10 +57,9 @@ public final class NearbyPlayerMenuScreen extends CompatScreen {
 	}
 
 	static boolean available() {
-		return CndlChatPlusClient.TEMPLATE_RUNTIME != null
-				&& CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(snapshot -> LegacyConfigToVanillaBoxMigration.VANILLA_BOX_ID.equals(snapshot.id()))
-						.orElse(false);
+		return CndlChatPlusClient.CONNECTION_GATE.active()
+				&& CndlChatPlusClient.VANILLA_BOX_RUNTIME != null
+				&& CndlChatPlusClient.VANILLA_BOX_RUNTIME.activeSnapshot().isPresent();
 	}
 
 	@Override

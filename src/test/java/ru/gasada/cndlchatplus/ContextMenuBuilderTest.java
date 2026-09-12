@@ -22,7 +22,7 @@ final class ContextMenuBuilderTest {
 	}
 
 	@Test
-	void playerWithoutTemplateOnlyAllowsCopying() {
+	void playerWithoutRuntimeOnlyAllowsCopying() {
 		assertEquals(List.of(ChatContextAction.COPY_NICK, ChatContextAction.COPY_MESSAGE,
 				ChatContextAction.BOOKMARK),
 				builder.build(new ChatMessageSenderExtractor.Sender("Steve", false), capabilities(false)));

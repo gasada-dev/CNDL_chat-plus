@@ -10,7 +10,9 @@ final class ChatTabClassifierTest {
 
 	@BeforeEach
 	void setUp() {
-		classifier = new ChatTabClassifier(ServerTemplateRuntime.fromLegacyConfig(ResponderConfig.defaults()));
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(VanillaBoxConfig.fromCompatible(ResponderConfig.defaults()));
+		classifier = new ChatTabClassifier(runtime);
 	}
 
 	@Test
@@ -49,8 +51,8 @@ final class ChatTabClassifierTest {
 	}
 
 	@Test
-	void missingTemplateFallsBackToLocalOrSystem() {
-		ChatTabClassifier empty = new ChatTabClassifier(new ServerTemplateRuntime(new TemplateSwitchCoordinator()));
+	void inactiveRuntimeFallsBackToLocalOrSystem() {
+		ChatTabClassifier empty = new ChatTabClassifier(new VanillaBoxRuntime(new RuntimeResetCoordinator()));
 		assertEquals(ChatTab.LOCAL, empty.classify("Player » привет", false));
 		assertEquals(ChatTab.SYSTEM, empty.classify("Сообщение сервера", true));
 	}

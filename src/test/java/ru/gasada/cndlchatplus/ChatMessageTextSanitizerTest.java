@@ -61,7 +61,7 @@ final class ChatMessageTextSanitizerTest {
 	}
 
 	@Test
-	void templateRuntimeResetKeepsOwnershipButDisconnectResetClearsIt() {
+	void runtimeReplacementKeepsOwnershipButDisconnectResetClearsIt() {
 		ChatTimestamps timestamps = new ChatTimestamps(() -> true);
 		Component stamped = timestamps.at(Component.literal("сообщение"), 0L);
 		timestamps.resetRuntimeState();

@@ -16,11 +16,11 @@ final class TeleportRequestButtonTest {
 	@Test
 	void matchesConfiguredRequestAndExpiresAfterSixtySeconds() {
 		long[] now = {1_000L};
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands.acceptTeleport = "tpaccept";
-		ParserSettings.applyTeleportDefaults(template.parsers);
-		runtime.switchTo(template);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands.acceptTeleport = "tpaccept";
+		ParserSettings.applyTeleportDefaults(config.parsers);
+		runtime.activate(config);
 		ServerCommandService commands = new ServerCommandService(runtime,
 				new OutgoingChatService(new ConnectedTransport(), ignored -> { }));
 		TeleportRequestButton button = new TeleportRequestButton(runtime, commands, () -> now[0]);
@@ -34,10 +34,10 @@ final class TeleportRequestButtonTest {
 	}
 
 	@Test
-	void ignoresMessagesWithoutActiveTemplateConfigurationAndResetsOnSwitch() {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("custom", "Custom");
-		runtime.switchTo(template);
+	void ignoresMessagesWithoutRuntimeConfigAndResetsOnReplacement() {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		runtime.activate(config);
 		ServerCommandService commands = new ServerCommandService(runtime,
 				new OutgoingChatService(new ConnectedTransport(), ignored -> { }));
 		TeleportRequestButton button = new TeleportRequestButton(runtime, commands, () -> 1_000L);
@@ -45,9 +45,9 @@ final class TeleportRequestButtonTest {
 		button.handleMessage("Player просит телепортироваться к вам.");
 		assertFalse(button.visible());
 
-		template.commands.acceptTeleport = "tpaccept";
-		ParserSettings.applyTeleportDefaults(template.parsers);
-		runtime.switchTo(template);
+		config.commands.acceptTeleport = "tpaccept";
+		ParserSettings.applyTeleportDefaults(config.parsers);
+		runtime.activate(config);
 		button.handleMessage("Player просит телепортироваться к вам.");
 		assertTrue(button.visible());
 		runtime.clear();
@@ -57,11 +57,11 @@ final class TeleportRequestButtonTest {
 	@Test
 	void schedulesOneShulkerSoundPerRequest() {
 		AtomicInteger sounds = new AtomicInteger();
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		runtime.switchTo(template);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.activate(config);
 		ServerCommandService commands = new ServerCommandService(runtime,
 				new OutgoingChatService(new ConnectedTransport(), ignored -> { }));
 		TeleportRequestButton button = new TeleportRequestButton(
@@ -77,11 +77,11 @@ final class TeleportRequestButtonTest {
 	@Test
 	void disabledRequestSoundKeepsManualButton() {
 		AtomicInteger sounds = new AtomicInteger();
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		runtime.switchTo(template);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.activate(config);
 		ServerCommandService commands = new ServerCommandService(runtime,
 				new OutgoingChatService(new ConnectedTransport(), ignored -> { }));
 		TeleportRequestButton button = new TeleportRequestButton(
@@ -96,14 +96,14 @@ final class TeleportRequestButtonTest {
 
 	@Test
 	void automaticallyAcceptsRequestsAllowedByEachModeWithoutShowingButton() {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		template.friends.addAll(List.of("Alice", "Bob"));
-		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
-		template.teleportAutoAcceptFriends.add("Alice");
-		runtime.switchTo(template);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		config.friends.addAll(List.of("Alice", "Bob"));
+		config.teleportAutoAcceptMode = TeleportAutoAcceptMode.SELECTED_FRIENDS;
+		config.teleportAutoAcceptFriends.add("Alice");
+		runtime.activate(config);
 		ConnectedTransport transport = new ConnectedTransport();
 		ServerCommandService commands = new ServerCommandService(runtime,
 				new OutgoingChatService(transport, ignored -> { }));
@@ -117,14 +117,14 @@ final class TeleportRequestButtonTest {
 		assertFalse(button.visible());
 		assertEquals(List.of("tpaccept"), transport.commands);
 
-		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.FRIENDS;
-		runtime.switchTo(template);
+		config.teleportAutoAcceptMode = TeleportAutoAcceptMode.FRIENDS;
+		runtime.activate(config);
 		button.handleMessage("Bob просит телепортироваться к вам.");
 		assertFalse(button.visible());
 		assertEquals(2, transport.commands.size());
 
-		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
-		runtime.switchTo(template);
+		config.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
+		runtime.activate(config);
 		button.handleMessage("Stranger просит телепортироваться к вам.");
 		assertFalse(button.visible());
 		assertEquals(3, transport.commands.size());
@@ -132,12 +132,12 @@ final class TeleportRequestButtonTest {
 
 	@Test
 	void failedAutomaticAcceptFallsBackToManualButton() {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		template.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
-		runtime.switchTo(template);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		config.teleportAutoAcceptMode = TeleportAutoAcceptMode.EVERYONE;
+		runtime.activate(config);
 		ConnectedTransport transport = new ConnectedTransport();
 		transport.connected = false;
 		ServerCommandService commands = new ServerCommandService(runtime,

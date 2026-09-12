@@ -170,9 +170,9 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 	@Override
 	public void tick() {
-		long generation = CndlChatPlusClient.TEMPLATE_RUNTIME == null ? -1L
-				: CndlChatPlusClient.TEMPLATE_RUNTIME.activeSnapshot()
-						.map(ActiveTemplateSnapshot::generation).orElse(-1L);
+		long generation = CndlChatPlusClient.VANILLA_BOX_RUNTIME == null ? -1L
+				: CndlChatPlusClient.VANILLA_BOX_RUNTIME.activeSnapshot()
+						.map(VanillaBoxSnapshot::generation).orElse(-1L);
 		Object connection = minecraft == null ? null : minecraft.getConnection();
 		if (!contextObserved) {
 			contextObserved = true;
@@ -186,7 +186,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 			lookupData = null;
 			selectedPlayer = null;
 			buildingPage = 0;
-			status = "Подключение или шаблон изменены; выберите игрока заново";
+			status = "Подключение или конфигурация изменены; выберите игрока заново";
 			statusColor = MUTED_COLOR;
 			loading = false;
 			rebuildContents();

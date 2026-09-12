@@ -10,9 +10,9 @@ public final class CompiledFilterSet {
 		this.mutedWords = mutedWords;
 	}
 
-	public static CompiledFilterSet compile(ActiveTemplateSnapshot snapshot) {
+	public static CompiledFilterSet compile(List<String> mutedWords) {
 		WildcardMatcher matcher = new WildcardMatcher();
-		return new CompiledFilterSet(snapshot.mutedWords().stream()
+		return new CompiledFilterSet(mutedWords.stream()
 				.map(source -> matcher.compile(source, WildcardMatchMode.CONTAINS_MATCH))
 				.toList());
 	}

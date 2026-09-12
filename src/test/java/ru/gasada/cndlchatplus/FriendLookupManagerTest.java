@@ -198,12 +198,12 @@ final class FriendLookupManagerTest {
 	}
 
 	private static TestContext context(java.util.function.BooleanSupplier bridgeAvailable, String... friends) {
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		template.friends.addAll(List.of(friends));
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		runtime.switchTo(template);
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		config.friends.addAll(List.of(friends));
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(config);
 		AtomicLong clock = new AtomicLong();
 		RecordingTransport transport = new RecordingTransport();
 		ServerCommandService commands = new ServerCommandService(runtime,

@@ -21,7 +21,7 @@ public final class FriendLookupManager {
 	private static final long BACKGROUND_BATCH_PAUSE_MS = 60_000;
 	private static final long AUTOMATIC_START_DELAY_MS = 30_000;
 	private static final int MAX_BACKGROUND_RETRIES = 1;
-	private final ServerTemplateRuntime templateRuntime;
+	private final VanillaBoxRuntime runtime;
 	private final FriendActionService actions;
 	private final LongSupplier clock;
 	private final ServerLookupCoordinator coordinator;
@@ -40,31 +40,31 @@ public final class FriendLookupManager {
 	private int commandsInBatch;
 
 	public FriendLookupManager(ResponderConfig config) {
-		this(config, null, ServerTemplateRuntime.fromLegacyConfig(config));
+		this(config, null, runtimeFromLegacy(config));
 	}
 
 	public FriendLookupManager(ResponderConfig config, ServerCommandService commandService) {
-		this(config, commandService, ServerTemplateRuntime.fromLegacyConfig(config));
+		this(config, commandService, runtimeFromLegacy(config));
 	}
 
 	public FriendLookupManager(ResponderConfig config, ServerCommandService commandService,
-			ServerTemplateRuntime templateRuntime) {
-		this(templateRuntime, new FriendActionService(templateRuntime, commandService, config),
+			VanillaBoxRuntime runtime) {
+		this(runtime, new FriendActionService(runtime, commandService, config),
 				System::currentTimeMillis);
 	}
 
-	FriendLookupManager(ServerTemplateRuntime templateRuntime, FriendActionService actions, LongSupplier clock) {
-		this(templateRuntime, actions, clock, new ServerLookupCoordinator());
+	FriendLookupManager(VanillaBoxRuntime runtime, FriendActionService actions, LongSupplier clock) {
+		this(runtime, actions, clock, new ServerLookupCoordinator());
 	}
 
-	FriendLookupManager(ServerTemplateRuntime templateRuntime, FriendActionService actions, LongSupplier clock,
+	FriendLookupManager(VanillaBoxRuntime runtime, FriendActionService actions, LongSupplier clock,
 			ServerLookupCoordinator coordinator) {
-		this(templateRuntime, actions, clock, coordinator, () -> false);
+		this(runtime, actions, clock, coordinator, () -> false);
 	}
 
-	FriendLookupManager(ServerTemplateRuntime templateRuntime, FriendActionService actions, LongSupplier clock,
+	FriendLookupManager(VanillaBoxRuntime runtime, FriendActionService actions, LongSupplier clock,
 			ServerLookupCoordinator coordinator, BooleanSupplier bridgeAvailable) {
-		this.templateRuntime = templateRuntime;
+		this.runtime = runtime;
 		this.actions = actions;
 		this.clock = clock;
 		this.coordinator = coordinator;
@@ -72,13 +72,13 @@ public final class FriendLookupManager {
 	}
 
 	public void queueFriends(Collection<String> friends) {
-		ActiveTemplateSnapshot template = templateRuntime.activeSnapshot().orElse(null);
-		if (template == null || bridgeAvailable.getAsBoolean()) {
+		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		if (snapshot == null || bridgeAvailable.getAsBoolean()) {
 			return;
 		}
 		for (String friend : friends) {
 			if (friend == null || friend.isBlank() || isAlreadyQueued(friend)
-					|| template.friends().stream().noneMatch(value -> value.equalsIgnoreCase(friend))) {
+					|| snapshot.friends().stream().noneMatch(value -> value.equalsIgnoreCase(friend))) {
 				continue;
 			}
 			queue.addLast(new LookupRequest(friend, null, 0));
@@ -98,8 +98,8 @@ public final class FriendLookupManager {
 		if (activeFriendsQueued) {
 			return;
 		}
-		templateRuntime.activeSnapshot().ifPresent(template -> {
-			queueFriends(template.friends());
+		runtime.activeSnapshot().ifPresent(snapshot -> {
+			queueFriends(snapshot.friends());
 			activeFriendsQueued = true;
 		});
 	}
@@ -234,8 +234,14 @@ public final class FriendLookupManager {
 	}
 
 	private FriendLookupParser activeParser() {
-		return new FriendLookupParser(templateRuntime.compiledParsers().orElseGet(() ->
-				CompiledParserSettings.compile(new ParserSettings())));
+		return new FriendLookupParser(runtime.activeSnapshot().map(VanillaBoxSnapshot::compiledParsers)
+				.orElseGet(() -> CompiledParserSettings.compile(new ParserSettings())));
+	}
+
+	private static VanillaBoxRuntime runtimeFromLegacy(ResponderConfig config) {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(VanillaBoxConfig.fromCompatible(config));
+		return runtime;
 	}
 
 	private void finishLookup(boolean timedOut) {

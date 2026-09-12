@@ -17,7 +17,7 @@ public final class TeleportRequestButton {
 	private static final SoundEvent REQUEST_SOUND = SoundEvent.createVariableRangeEvent(
 			Identifier.fromNamespaceAndPath(CndlChatPlusClient.MOD_ID, "teleport_request"));
 
-	private final ServerTemplateRuntime runtime;
+	private final VanillaBoxRuntime runtime;
 	private final ServerCommandService commands;
 	private final LongSupplier clock;
 	private final Runnable soundPlayer;
@@ -25,22 +25,22 @@ public final class TeleportRequestButton {
 	private PendingRequest pending;
 	private boolean playSound;
 
-	public TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands) {
+	public TeleportRequestButton(VanillaBoxRuntime runtime, ServerCommandService commands) {
 		this(runtime, commands, System::currentTimeMillis, () -> Minecraft.getInstance().getSoundManager().play(
 				SimpleSoundInstance.forUI(REQUEST_SOUND, 1.0F)),
 				() -> Boolean.TRUE.equals(CndlChatPlusClient.CONFIG.teleportRequestSoundEnabled));
 	}
 
-	TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands, LongSupplier clock) {
+	TeleportRequestButton(VanillaBoxRuntime runtime, ServerCommandService commands, LongSupplier clock) {
 		this(runtime, commands, clock, () -> { }, () -> true);
 	}
 
-	TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands, LongSupplier clock,
+	TeleportRequestButton(VanillaBoxRuntime runtime, ServerCommandService commands, LongSupplier clock,
 			Runnable soundPlayer) {
 		this(runtime, commands, clock, soundPlayer, () -> true);
 	}
 
-	TeleportRequestButton(ServerTemplateRuntime runtime, ServerCommandService commands, LongSupplier clock,
+	TeleportRequestButton(VanillaBoxRuntime runtime, ServerCommandService commands, LongSupplier clock,
 			Runnable soundPlayer, BooleanSupplier soundEnabled) {
 		this.runtime = runtime;
 		this.commands = commands;
@@ -50,11 +50,11 @@ public final class TeleportRequestButton {
 	}
 
 	public void handleMessage(String message) {
-		ActiveTemplateSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
 		if (snapshot == null || !commands.supports(CommandTemplateValidator.CommandType.ACCEPT_TELEPORT)) {
 			return;
 		}
-		Matcher matcher = runtime.compiledParsers().flatMap(CompiledParserSettings::teleportRequest)
+		Matcher matcher = snapshot.compiledParsers().teleportRequest()
 				.map(pattern -> pattern.matcher(ChatMessageTextSanitizer.stripSyntheticLabels(message).trim()))
 				.orElse(null);
 		if (matcher == null || !matcher.find()) {
@@ -73,7 +73,7 @@ public final class TeleportRequestButton {
 		playSound = true;
 	}
 
-	private static boolean shouldAutoAccept(ActiveTemplateSnapshot snapshot, String requester) {
+	private static boolean shouldAutoAccept(VanillaBoxSnapshot snapshot, String requester) {
 		return switch (snapshot.teleportAutoAcceptMode()) {
 			case OFF -> false;
 			case EVERYONE -> true;
@@ -159,7 +159,7 @@ public final class TeleportRequestButton {
 		if (request == null || request.expiresAt() <= clock.getAsLong()) {
 			return null;
 		}
-		long generation = runtime.activeSnapshot().map(ActiveTemplateSnapshot::generation).orElse(-1L);
+		long generation = runtime.activeSnapshot().map(VanillaBoxSnapshot::generation).orElse(-1L);
 		return request.generation() == generation ? request : null;
 	}
 

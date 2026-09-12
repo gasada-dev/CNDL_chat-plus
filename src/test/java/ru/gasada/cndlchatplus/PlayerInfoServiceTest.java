@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 final class PlayerInfoServiceTest {
 	@Test
 	void coalescesConcurrentRefreshesForSamePlayerIgnoringCase() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
 		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> {
@@ -40,7 +40,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void availableBridgeRefreshDoesNotCoalesceWithPendingUnavailableFallback() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
 		AtomicBoolean bridgeAvailable = new AtomicBoolean();
 		AtomicInteger fetches = new AtomicInteger();
@@ -70,7 +70,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void resetDoesNotLetStaleInFlightRequestBlockOrPopulateNextContext() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> staleBridge = new CompletableFuture<>();
 		CompletableFuture<VnbxPlayerRelationsResult> currentBridge = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
@@ -94,8 +94,8 @@ final class PlayerInfoServiceTest {
 	}
 
 	@Test
-	void cachesBridgeProfileOnlyInsideCurrentTemplateGeneration() {
-		ServerTemplateRuntime runtime = runtime();
+	void cachesBridgeProfileOnlyInsideCurrentRuntimeGeneration() {
+		VanillaBoxRuntime runtime = runtime();
 		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", true,
 				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
 				new VnbxPlayerRelationsResult.Marriage(true, "uuid", "Partner"));
@@ -111,15 +111,15 @@ final class PlayerInfoServiceTest {
 	}
 
 	@Test
-	void rejectsResponseAfterTemplateSwitch() {
-		ServerTemplateRuntime runtime = runtime();
+	void rejectsResponseAfterRuntimeReplacement() {
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> staleBridge = new CompletableFuture<>();
 		CompletableFuture<VnbxPlayerRelationsResult> currentBridge = new CompletableFuture<>();
 		AtomicInteger fetches = new AtomicInteger();
 		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) ->
 				fetches.getAndIncrement() == 0 ? staleBridge : currentBridge, null, Runnable::run);
 		CompletableFuture<PlayerInfoService.LoadResult> stale = service.refresh("Player_1");
-		runtime.switchTo(ServerTemplate.empty("second", "Second"));
+		runtime.activate(VanillaBoxConfig.empty());
 		CompletableFuture<PlayerInfoService.LoadResult> current = service.refresh("player_1");
 		assertEquals(2, fetches.get());
 
@@ -136,7 +136,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void treatsAvailableNegativeMarriageAsAuthoritativeWithoutClanFallback() throws Exception {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "Player_1", false,
 				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
 				new VnbxPlayerRelationsResult.Marriage(false, null, null));
@@ -152,7 +152,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void publishesBridgeProfileOnClientExecutor() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> bridgeFuture = new CompletableFuture<>();
 		Deque<Runnable> clientTasks = new ArrayDeque<>();
 		PlayerInfoService service = new PlayerInfoService(runtime, (requestId, ignored) -> bridgeFuture, null, clientTasks::addLast);
@@ -171,7 +171,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void queuesManualLookupWhenBridgeIsUnavailable() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
 		PlayerInfoService service = new PlayerInfoService(runtime,
 				(requestId, ignored) -> CompletableFuture.completedFuture(VnbxPlayerRelationsResult.unavailable(requestId, ignored)), lookupManager,
@@ -186,7 +186,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void retainsCallerRequestIdWhenBridgeFutureFails() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
 		AtomicReference<String> requestId = new AtomicReference<>();
 		AtomicReference<String> target = new AtomicReference<>();
@@ -207,7 +207,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void publishesExtendedBridgeFieldsWithoutLookup() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
 		VnbxPlayerRelationsResult bridge = new VnbxPlayerRelationsResult(true, "id-1", "Player_1", true,
 				new VnbxPlayerRelationsResult.Clan(true, "TAG", "Clan", "Офицер", "Leader_1"), true,
@@ -230,7 +230,7 @@ final class PlayerInfoServiceTest {
 
 	@Test
 	void skipsChatLookupFallbackWhenBridgeIsPresent() {
-		ServerTemplateRuntime runtime = runtime();
+		VanillaBoxRuntime runtime = runtime();
 		FriendLookupManager lookupManager = new FriendLookupManager(new ResponderConfig());
 		PlayerInfoService service = new PlayerInfoService(runtime,
 				(requestId, player) -> CompletableFuture.completedFuture(
@@ -244,13 +244,13 @@ final class PlayerInfoServiceTest {
 		assertEquals(0, lookupManager.queuedCount());
 	}
 
-	private static PlayerInfoService service(ServerTemplateRuntime runtime, VnbxPlayerRelationsResult bridge) {
+	private static PlayerInfoService service(VanillaBoxRuntime runtime, VnbxPlayerRelationsResult bridge) {
 		return new PlayerInfoService(runtime, (requestId, ignored) -> CompletableFuture.completedFuture(bridge), null, Runnable::run);
 	}
 
-	private static ServerTemplateRuntime runtime() {
-		ServerTemplateRuntime runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		runtime.switchTo(ServerTemplate.empty("vanilla-box", "Vanilla-box"));
+	private static VanillaBoxRuntime runtime() {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(VanillaBoxConfig.empty());
 		return runtime;
 	}
 }

@@ -22,9 +22,9 @@ public final class FriendPresenceTracker {
 	private Object activeConnection;
 	private long notificationsEnabledAt;
 
-	public FriendHudSnapshot update(ActiveTemplateSnapshot template, Set<String> onlinePlayerNames,
+	public FriendHudSnapshot update(VanillaBoxSnapshot snapshot, Set<String> onlinePlayerNames,
 			Object connection, long now, boolean hudEnabled, boolean soundEnabled) {
-		if (template == null || connection == null) {
+		if (snapshot == null || connection == null) {
 			reset();
 			return FriendHudSnapshot.empty();
 		}
@@ -38,7 +38,7 @@ public final class FriendPresenceTracker {
 		onlinePlayerNames.forEach(name -> normalizedOnlinePlayers.add(name.toLowerCase(Locale.ROOT)));
 		List<String> online = new ArrayList<>();
 		Set<String> currentOnline = new HashSet<>();
-		for (String friend : template.friends()) {
+		for (String friend : snapshot.friends()) {
 			String normalized = friend.toLowerCase(Locale.ROOT);
 			if (normalizedOnlinePlayers.contains(normalized)) {
 				online.add(friend);
@@ -49,14 +49,14 @@ public final class FriendPresenceTracker {
 		boolean friendCameOnline = false;
 		if (!notificationsArmed && now >= notificationsEnabledAt) {
 			notificationsArmed = true;
-			for (String friend : template.friends()) {
+			for (String friend : snapshot.friends()) {
 				String normalized = friend.toLowerCase(Locale.ROOT);
 				if (!currentOnline.contains(normalized)) {
 					offlineSince.put(normalized, now);
 				}
 			}
 		} else if (notificationsArmed) {
-			for (String friend : template.friends()) {
+			for (String friend : snapshot.friends()) {
 				String normalized = friend.toLowerCase(Locale.ROOT);
 				if (!currentOnline.contains(normalized)) {
 					onlineSince.remove(normalized);

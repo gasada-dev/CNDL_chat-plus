@@ -4,10 +4,10 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class ServerCommandService {
-	private final ServerTemplateRuntime runtime;
+	private final VanillaBoxRuntime runtime;
 	private final OutgoingChatService outgoing;
 
-	public ServerCommandService(ServerTemplateRuntime runtime, OutgoingChatService outgoing) {
+	public ServerCommandService(VanillaBoxRuntime runtime, OutgoingChatService outgoing) {
 		this.runtime = runtime;
 		this.outgoing = outgoing;
 	}
@@ -189,7 +189,7 @@ public final class ServerCommandService {
 	private CommandResult expandAndSend(CommandTemplateValidator.CommandType type, Optional<String> template,
 			Map<String, String> values) {
 		if (template.isEmpty() || template.get().isBlank()) {
-			return CommandResult.failure("Команда отсутствует в активном шаблоне");
+			return CommandResult.failure("Команда отсутствует в конфигурации Vanilla-box");
 		}
 		CommandTemplateValidator.ValidationResult validation = CommandTemplateValidator.validate(template.get(), type);
 		if (!validation.valid()) {
@@ -204,7 +204,7 @@ public final class ServerCommandService {
 	}
 
 	private Optional<String> command(String name) {
-		return runtime.activeSnapshot().map(ActiveTemplateSnapshot::commands).map(commands -> switch (name) {
+		return runtime.activeSnapshot().map(VanillaBoxSnapshot::commands).map(commands -> switch (name) {
 			case "ignorePlayer" -> commands.ignorePlayer();
 			case "lookupFriend" -> commands.lookupFriend();
 			case "privateMessage" -> commands.privateMessage();

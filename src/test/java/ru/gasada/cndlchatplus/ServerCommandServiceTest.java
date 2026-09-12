@@ -12,23 +12,23 @@ import org.junit.jupiter.api.Test;
 
 final class ServerCommandServiceTest {
 	private FakeTransport transport;
-	private ServerTemplateRuntime runtime;
+	private VanillaBoxRuntime runtime;
 	private ServerCommandService commands;
 
 	@BeforeEach
 	void setUp() {
 		transport = new FakeTransport();
 		OutgoingChatService outgoing = new OutgoingChatService(transport, ignored -> { });
-		runtime = new ServerTemplateRuntime(new TemplateSwitchCoordinator());
-		ServerTemplate template = ServerTemplate.empty("vanilla-box", "Vanilla-box");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		runtime.switchTo(template);
+		runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.activate(config);
 		commands = new ServerCommandService(runtime, outgoing);
 	}
 
 	@Test
-	void buildsEveryVanillaBoxCommandFromActiveTemplate() {
+	void buildsEveryCommandFromVanillaBoxSnapshot() {
 		assertTrue(commands.ignorePlayer("Player_1").success());
 		assertTrue(commands.lookupFriend("Player_1").success());
 		assertTrue(commands.privateMessage("Player_1", "hello").success());
@@ -67,9 +67,9 @@ final class ServerCommandServiceTest {
 
 	@Test
 	void missingCommandNeverFallsBackToVanillaBox() {
-		ServerTemplate empty = ServerTemplate.empty("empty", "Empty");
+		VanillaBoxConfig empty = VanillaBoxConfig.empty();
 		empty.parsers = ParserSettings.vanillaBoxDefaults();
-		runtime.switchTo(empty);
+		runtime.activate(empty);
 		ServerCommandService.CommandResult result = commands.call("Player_1");
 		assertFalse(result.success());
 		assertTrue(result.errorMessage().contains("отсутствует"));
@@ -78,9 +78,9 @@ final class ServerCommandServiceTest {
 
 	@Test
 	void placeholderFreeCommandsUseOnlyTheActiveSnapshot() {
-		ServerTemplate custom = ServerTemplate.empty("custom", "Custom");
+		VanillaBoxConfig custom = VanillaBoxConfig.empty();
 		custom.commands.claimFly = "customfly";
-		runtime.switchTo(custom);
+		runtime.activate(custom);
 
 		assertTrue(commands.claimFly().success());
 		assertFalse(commands.enderChest().success());
@@ -99,14 +99,14 @@ final class ServerCommandServiceTest {
 	}
 
 	@Test
-	void rejectsInvalidTemplateAndDisconnectedTransport() {
-		ServerTemplate invalid = ServerTemplate.empty("invalid", "Invalid");
+	void rejectsInvalidCommandTemplateAndDisconnectedTransport() {
+		VanillaBoxConfig invalid = VanillaBoxConfig.empty();
 		invalid.commands.call = "call {unknown}";
 		invalid.parsers = ParserSettings.vanillaBoxDefaults();
-		runtime.switchTo(invalid);
+		runtime.activate(invalid);
 		assertFalse(commands.call("Player").success());
 		transport.connected = false;
-		runtime.switchTo(templateWithCommands());
+		runtime.activate(configWithCommands());
 		assertFalse(commands.call("Player").success());
 		assertTrue(transport.commands.isEmpty());
 	}
@@ -125,9 +125,9 @@ final class ServerCommandServiceTest {
 
 	@Test
 	void acceptsTeleportThroughConfiguredCommand() {
-		ServerTemplate template = templateWithCommands();
-		template.commands.acceptTeleport = "tpaccept";
-		runtime.switchTo(template);
+		VanillaBoxConfig config = configWithCommands();
+		config.commands.acceptTeleport = "tpaccept";
+		runtime.activate(config);
 
 		assertTrue(commands.acceptTeleport().success());
 		assertEquals(List.of("tpaccept"), transport.commands);
@@ -142,9 +142,9 @@ final class ServerCommandServiceTest {
 	}
 
 	@Test
-	void missingOrInvalidDraftTemplateFailsClosed() {
-		ServerTemplate empty = ServerTemplate.empty("empty", "Empty");
-		runtime.switchTo(empty);
+	void missingOrInvalidDraftCommandTemplateFailsClosed() {
+		VanillaBoxConfig empty = VanillaBoxConfig.empty();
+		runtime.activate(empty);
 
 		assertTrue(commands.privateMessageDraft("Player_1").isEmpty());
 		assertTrue(commands.payDraft("bad player").isEmpty());
@@ -153,19 +153,19 @@ final class ServerCommandServiceTest {
 
 	@Test
 	void draftRequiresInputPlaceholderAtEnd() {
-		ServerTemplate template = templateWithCommands();
-		template.commands.privateMessage = "tell {message} to {player}";
-		runtime.switchTo(template);
+		VanillaBoxConfig config = configWithCommands();
+		config.commands.privateMessage = "tell {message} to {player}";
+		runtime.activate(config);
 
 		assertTrue(commands.privateMessageDraft("Player_1").isEmpty());
 		assertFalse(commands.supportsDraft(CommandTemplateValidator.CommandType.PRIVATE_MESSAGE));
 	}
 
-	private static ServerTemplate templateWithCommands() {
-		ServerTemplate template = ServerTemplate.empty("commands", "Commands");
-		template.commands = ServerCommandSettings.vanillaBoxDefaults();
-		template.parsers = ParserSettings.vanillaBoxDefaults();
-		return template;
+	private static VanillaBoxConfig configWithCommands() {
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		return config;
 	}
 
 	private static final class FakeTransport implements OutgoingChatService.Transport {

@@ -10,7 +10,7 @@ public final class ContextMenuBuilder {
 		actions.add(ChatContextAction.COPY_NICK);
 		actions.add(ChatContextAction.COPY_MESSAGE);
 		actions.add(ChatContextAction.BOOKMARK);
-		if (sender.discord() || capabilities == null || !capabilities.activeTemplate()) {
+		if (sender.discord() || capabilities == null || !capabilities.activeRuntime()) {
 			return List.copyOf(actions);
 		}
 		if (capabilities.privateMessage()) actions.add(ChatContextAction.PRIVATE_MESSAGE);
@@ -23,7 +23,7 @@ public final class ContextMenuBuilder {
 		return List.copyOf(actions);
 	}
 
-	public record Capabilities(boolean activeTemplate, boolean privateMessage, boolean ignore,
+	public record Capabilities(boolean activeRuntime, boolean privateMessage, boolean ignore,
 			boolean pay, boolean call, boolean mail) {
 	}
 }

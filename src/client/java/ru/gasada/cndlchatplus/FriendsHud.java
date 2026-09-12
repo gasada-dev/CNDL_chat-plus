@@ -13,12 +13,12 @@ import net.minecraft.sounds.SoundEvents;
 
 public final class FriendsHud {
 	private static final int MAX_DISPLAYED_ONLINE_FRIENDS = 15;
-	private final ServerTemplateRuntime runtime;
+	private final VanillaBoxRuntime runtime;
 	private final FriendPresenceTracker tracker = new FriendPresenceTracker();
 	private volatile FriendHudSnapshot snapshot = FriendHudSnapshot.empty();
 	private int lastRenderedWidth;
 
-	public FriendsHud(ServerTemplateRuntime runtime) {
+	public FriendsHud(VanillaBoxRuntime runtime) {
 		this.runtime = runtime;
 	}
 

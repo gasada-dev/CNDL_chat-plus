@@ -4,22 +4,22 @@ public final class ChatTabClassifier {
 	// как hardcoded "(!)" в ChatChannelDetector: распространённые маркеры локального чата
 	private static final String LOCAL_MARKERS = "(л),[л],〈л〉,‹л›";
 
-	private final ServerTemplateRuntime templateRuntime;
+	private final VanillaBoxRuntime runtime;
 
-	public ChatTabClassifier(ServerTemplateRuntime templateRuntime) {
-		this.templateRuntime = templateRuntime;
+	public ChatTabClassifier(VanillaBoxRuntime runtime) {
+		this.runtime = runtime;
 	}
 
 	public ChatTab classify(String displayed, boolean fromGame) {
-		ActiveTemplateSnapshot template = templateRuntime.activeSnapshot().orElse(null);
-		CompiledParserSettings parsers = templateRuntime.compiledParsers().orElse(null);
+		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
+		CompiledParserSettings parsers = snapshot == null ? null : snapshot.compiledParsers();
 		String normalized = ChatTextNormalizer.normalizeForMatching(displayed);
-		if (template != null && parsers != null) {
+		if (snapshot != null && parsers != null) {
 			if (new DiscordMessageParser(parsers).parse(normalized).discordMessage()) {
 				return ChatTab.DISCORD;
 			}
 			// Маркеры важнее типа пакета: серверы могут слать чат системными сообщениями
-			ChatTab tab = switch (new ChatChannelDetector(template, parsers).detect(displayed, displayed)) {
+			ChatTab tab = switch (new ChatChannelDetector(snapshot, parsers).detect(displayed, displayed)) {
 				case GLOBAL -> ChatTab.GLOBAL;
 				case CLAN -> ChatTab.CLAN;
 				case PRIVATE -> ChatTab.PRIVATE;
