@@ -23,7 +23,6 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
 public final class ChatBookmarkStore {
-	public static final int MAX_BOOKMARKS = 5_000;
 	public static final int MAX_TEXT_LENGTH = 8_192;
 	public static final int MAX_SENDER_LENGTH = 64;
 	private static final int MAX_ID_LENGTH = 128;
@@ -37,6 +36,7 @@ public final class ChatBookmarkStore {
 	private String scopeLabel = "Текущая сессия";
 	private boolean dirty;
 	private boolean lastSaveSucceeded = true;
+	private boolean preserveBeforeSave;
 
 	public ChatBookmarkStore(Path directory) {
 		this(directory, System::currentTimeMillis);
@@ -70,7 +70,6 @@ public final class ChatBookmarkStore {
 		ChatBookmark bookmark = new ChatBookmark(UUID.randomUUID().toString(), clock.getAsLong(), null,
 				sanitizeChannel(channel == null ? null : channel.name()), sanitizeSender(sender), canonical);
 		bookmarks.addFirst(bookmark);
-		if (bookmarks.size() > MAX_BOOKMARKS) bookmarks.removeLast();
 		saveAfterMutation();
 		return bookmark;
 	}
@@ -123,6 +122,7 @@ public final class ChatBookmarkStore {
 
 	private List<ChatBookmark> load(String key) {
 		Path path = pathFor(key);
+		preserveBeforeSave = false;
 		if (!Files.exists(path)) return List.of();
 		try {
 			if (Files.size(path) > MAX_FILE_BYTES) throw new IOException("bookmark file is too large");
@@ -132,13 +132,21 @@ public final class ChatBookmarkStore {
 			try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
 				JsonReader json = new JsonReader(reader);
 				json.beginArray();
-				for (int count = 0; count < MAX_BOOKMARKS && json.hasNext(); count++) {
+				while (json.hasNext()) {
 					JsonElement element = JsonParser.parseReader(json);
-					if (!element.isJsonObject()) continue;
+					if (!element.isJsonObject()) {
+						preserveBeforeSave = true;
+						continue;
+					}
 					try {
 						ChatBookmark sanitized = sanitize(GSON.fromJson(element, ChatBookmark.class));
-						if (sanitized != null && ids.add(sanitized.id())) valid.add(sanitized);
+						if (sanitized != null && ids.add(sanitized.id())) {
+							valid.add(sanitized);
+						} else {
+							preserveBeforeSave = true;
+						}
 					} catch (RuntimeException error) {
+						preserveBeforeSave = true;
 						if (!malformedEntryLogged) {
 							CndlChatPlusClient.LOGGER.warn("Повреждённая запись закладок {} пропущена",
 									path.getFileName());
@@ -150,6 +158,7 @@ public final class ChatBookmarkStore {
 			valid.sort(Comparator.comparingLong(ChatBookmark::savedAtMillis).reversed());
 			return valid;
 		} catch (Exception exception) {
+			preserveBeforeSave = true;
 			CndlChatPlusClient.LOGGER.warn("Не удалось прочитать закладки {}: {}",
 					path.getFileName(), exception.toString());
 			return List.of();
@@ -161,6 +170,7 @@ public final class ChatBookmarkStore {
 		Path temporaryPath = path.resolveSibling(path.getFileName() + ".tmp");
 		try {
 			Files.createDirectories(directory);
+			if (preserveBeforeSave && Files.exists(path)) preserveUnreadableFile(path);
 			byte[] serialized = GSON.toJson(bookmarks, BOOKMARK_LIST_TYPE).getBytes(StandardCharsets.UTF_8);
 			if (serialized.length > MAX_FILE_BYTES) throw new IOException("bookmark file is too large");
 			Files.write(temporaryPath, serialized);
@@ -171,6 +181,7 @@ public final class ChatBookmarkStore {
 				Files.move(temporaryPath, path, StandardCopyOption.REPLACE_EXISTING);
 			}
 			dirty = false;
+			preserveBeforeSave = false;
 			return true;
 		} catch (IOException exception) {
 			try {
@@ -180,6 +191,15 @@ public final class ChatBookmarkStore {
 			}
 			CndlChatPlusClient.LOGGER.error("Не удалось сохранить закладки {}", path.getFileName(), exception);
 			return false;
+		}
+	}
+
+	private static void preserveUnreadableFile(Path path) throws IOException {
+		Path backup = path.resolveSibling(path.getFileName() + ".unreadable-" + UUID.randomUUID() + ".bak");
+		try {
+			Files.move(path, backup, StandardCopyOption.ATOMIC_MOVE);
+		} catch (AtomicMoveNotSupportedException unsupported) {
+			Files.move(path, backup);
 		}
 	}
 

@@ -1,5 +1,6 @@
 package ru.gasada.cndlchatplus;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -89,6 +90,29 @@ final class ChatBookmarkStoreTest {
 	}
 
 	@Test
+	void corruptFileIsPreservedWhenNewBookmarkIsAdded() throws Exception {
+		Path path = directory.resolve("broken.json");
+		byte[] corrupt = "{broken".getBytes(StandardCharsets.UTF_8);
+		Files.write(path, corrupt);
+		ChatBookmarkStore store = store();
+		store.connect("broken", "broken");
+
+		store.add(ChatTab.LOCAL, null, "новая закладка");
+
+		assertTrue(store.lastSaveSucceeded());
+		ChatBookmarkStore reloaded = store();
+		reloaded.connect("broken", "broken");
+		assertEquals("новая закладка", reloaded.snapshot().getFirst().text());
+		List<Path> backups;
+		try (var files = Files.list(directory)) {
+			backups = files.filter(file -> file.getFileName().toString().startsWith("broken.json.unreadable-"))
+					.toList();
+		}
+		assertEquals(1, backups.size());
+		assertArrayEquals(corrupt, Files.readAllBytes(backups.getFirst()));
+	}
+
+	@Test
 	void failedWriteKeepsRuntimeDataAndReportsFailure() throws Exception {
 		Path notDirectory = directory.resolve("file");
 		Files.writeString(notDirectory, "occupied", StandardCharsets.UTF_8);
@@ -151,24 +175,26 @@ final class ChatBookmarkStoreTest {
 	}
 
 	@Test
-	void truncatesOversizedTextAndBoundsStore() {
+	void truncatesOversizedTextWithoutDroppingBookmarks() {
 		ChatBookmarkStore store = store();
 		store.connect(null, null);
 		ChatBookmark oversized = store.add(ChatTab.LOCAL, "S".repeat(100),
 				"x".repeat(ChatBookmarkStore.MAX_TEXT_LENGTH + 20));
 		assertEquals(ChatBookmarkStore.MAX_TEXT_LENGTH, oversized.text().length());
 		assertEquals(ChatBookmarkStore.MAX_SENDER_LENGTH, oversized.sender().length());
-		for (int index = 0; index < ChatBookmarkStore.MAX_BOOKMARKS + 2; index++) {
+		int bookmarkCount = 5_003;
+		for (int index = 0; index < bookmarkCount - 1; index++) {
 			clock.incrementAndGet();
 			store.add(ChatTab.LOCAL, null, "message " + index);
 		}
-		assertEquals(ChatBookmarkStore.MAX_BOOKMARKS, store.snapshot().size());
+		assertEquals(bookmarkCount, store.snapshot().size());
 	}
 
 	@Test
-	void streamingLoadRetainsAtMostFiveThousandEntries() throws Exception {
+	void streamingLoadRetainsEveryEntryFromBoundedFile() throws Exception {
 		StringBuilder json = new StringBuilder("[");
-		for (int index = 0; index < ChatBookmarkStore.MAX_BOOKMARKS + 20; index++) {
+		int bookmarkCount = 5_020;
+		for (int index = 0; index < bookmarkCount; index++) {
 			if (index > 0) json.append(',');
 			json.append("{\"id\":\"").append(index).append("\",\"savedAtMillis\":")
 					.append(index + 1).append(",\"text\":\"message\"}");
@@ -177,7 +203,7 @@ final class ChatBookmarkStoreTest {
 		Files.writeString(directory.resolve("large.json"), json, StandardCharsets.UTF_8);
 		ChatBookmarkStore store = store();
 		store.connect("large", "large");
-		assertEquals(ChatBookmarkStore.MAX_BOOKMARKS, store.snapshot().size());
+		assertEquals(bookmarkCount, store.snapshot().size());
 	}
 
 	private ChatBookmarkStore store() {
