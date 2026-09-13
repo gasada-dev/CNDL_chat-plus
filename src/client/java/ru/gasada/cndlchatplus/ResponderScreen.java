@@ -16,6 +16,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 public final class ResponderScreen extends CompatScreen {
@@ -68,15 +69,16 @@ public final class ResponderScreen extends CompatScreen {
 				ClientUi.setScreen(minecraft, new HelpScreen(this)))
 				.bounds(panelX + 6, 2, 24, 18)
 				.tooltip(help("Показать возможности и управление CNDL_chat+")).build());
-		int settingsWidth = 24;
+		int settingsWidth = 36;
 		int infoWidth = panelWidth - half - settingsWidth - 4;
 		addRenderableWidget(StyledButton.create(Component.literal(compactHeader ? "Игрок" : "Информация об игроке"), ignored ->
 				ClientUi.setScreen(minecraft, new PlayerInfoScreen(this)))
-				.bounds(panelX + half, 2, infoWidth, 18)
+				.bounds(panelX + half, 1, infoWidth, 20)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
-		addRenderableWidget(StyledButton.create(Component.literal("⚙"), ignored ->
+		addRenderableWidget(StyledButton.create(Component.literal("⚙").withStyle(ChatFormatting.BOLD)
+				.withColor(ACCENT_SOFT), ignored ->
 				ClientUi.setScreen(minecraft, new SettingsScreen(this, config)))
-				.bounds(panelX + half + infoWidth + 4, 2, settingsWidth, 18)
+				.bounds(panelX + half + infoWidth + 4, 1, settingsWidth, 20)
 				.tooltip(help("Открыть настройки CNDL_chat+")).build());
 		addTabButton(Tab.BLACKLIST, panelX, 27, half);
 		addTabButton(Tab.FRIENDS, panelX + half, 27, panelWidth - half);

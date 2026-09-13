@@ -14,6 +14,10 @@ public final class ResponderConfig {
 	public static final int MAX_CHAT_ALERT_RULES = 100;
 	public static final int MAX_CHAT_ALERT_NAME_LENGTH = 64;
 	public static final int MAX_CHAT_ALERT_PATTERN_LENGTH = 256;
+	public static final int MAX_CUSTOM_CHAT_TABS = 32;
+	public static final int MAX_CUSTOM_CHAT_TAB_ID_LENGTH = 64;
+	public static final int MAX_CUSTOM_CHAT_TAB_NAME_LENGTH = 64;
+	public static final int MAX_CUSTOM_CHAT_TAB_PREFIX_LENGTH = 128;
 
 	public Integer storageVersion;
 	public boolean enabled = true;
@@ -42,6 +46,8 @@ public final class ResponderConfig {
 	public Boolean chatHistoryPersist = true;
 	public Integer chatHistoryLimit = DEFAULT_CHAT_HISTORY_LIMIT;
 	public Boolean chatTabsEnabled = true;
+	public List<CustomChatTab> customChatTabs = new ArrayList<>(List.of(CustomChatTab.defaultVoice()));
+	public List<String> hiddenBuiltInTabs = new ArrayList<>();
 	public Boolean chatTimestampsEnabled = true;
 	public Boolean chatSearchEnabled = true;
 	public Boolean chatContextMenuEnabled = true;
@@ -69,6 +75,8 @@ public final class ResponderConfig {
 		chatHistoryPersist = source.chatHistoryPersist;
 		chatHistoryLimit = source.chatHistoryLimit;
 		chatTabsEnabled = source.chatTabsEnabled;
+		customChatTabs = source.customChatTabs.stream().map(CustomChatTab::copy).toList();
+		hiddenBuiltInTabs = List.copyOf(source.hiddenBuiltInTabs);
 		chatTimestampsEnabled = source.chatTimestampsEnabled;
 		chatSearchEnabled = source.chatSearchEnabled;
 		chatContextMenuEnabled = source.chatContextMenuEnabled;
@@ -150,6 +158,8 @@ public final class ResponderConfig {
 		if (chatTabsEnabled == null) {
 			chatTabsEnabled = true;
 		}
+		customChatTabs = ChatTabConfigSanitizer.customTabs(customChatTabs);
+		hiddenBuiltInTabs = ChatTabConfigSanitizer.hiddenBuiltIns(hiddenBuiltInTabs);
 		if (chatTimestampsEnabled == null) {
 			chatTimestampsEnabled = true;
 		}

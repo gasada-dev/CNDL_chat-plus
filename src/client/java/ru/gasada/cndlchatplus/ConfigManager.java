@@ -18,7 +18,8 @@ public final class ConfigManager {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 	private static final java.util.List<String> GLOBAL_FIELDS = java.util.List.of(
 			"discordChatEnabled", "friendHudEnabled", "friendSoundEnabled", "teleportRequestSoundEnabled",
-			"chatHistoryEnabled", "chatHistoryPersist", "chatHistoryLimit", "chatTabsEnabled",
+			"chatHistoryEnabled", "chatHistoryPersist", "chatHistoryLimit", "chatTabsEnabled", "customChatTabs",
+			"hiddenBuiltInTabs",
 			"chatTimestampsEnabled", "chatSearchEnabled", "chatContextMenuEnabled",
 			"chatDuplicateCollapseEnabled", "whitenBlackNames", "chatAlertsEnabled", "chatAlertRules",
 			"chatBinds");

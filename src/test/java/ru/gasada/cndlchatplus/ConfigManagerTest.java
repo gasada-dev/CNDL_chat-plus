@@ -51,6 +51,8 @@ final class ConfigManagerTest {
 		JsonObject before = JsonParser.parseString(persisted).getAsJsonObject();
 		ResponderConfig edited = ResponderConfig.defaults();
 		edited.chatTabsEnabled = false;
+		edited.customChatTabs = new ArrayList<>();
+		edited.hiddenBuiltInTabs = new ArrayList<>(List.of("GLOBAL"));
 		edited.friendHudEnabled = false;
 		edited.friends = new ArrayList<>(List.of("WrongFriend"));
 		edited.mutedWords = new ArrayList<>(List.of("wrong-word"));
@@ -62,6 +64,8 @@ final class ConfigManagerTest {
 		JsonObject after = JsonParser.parseString(Files.readString(main)).getAsJsonObject();
 		assertFalse(after.get("chatTabsEnabled").getAsBoolean());
 		assertFalse(after.get("friendHudEnabled").getAsBoolean());
+		assertEquals(0, after.getAsJsonArray("customChatTabs").size());
+		assertEquals("GLOBAL", after.getAsJsonArray("hiddenBuiltInTabs").get(0).getAsString());
 		assertEquals(before.get("storageVersion"), after.get("storageVersion"));
 		assertEquals(before.get("unknownFuture"), after.get("unknownFuture"));
 		assertEquals(before.get("enabled"), after.get("enabled"));

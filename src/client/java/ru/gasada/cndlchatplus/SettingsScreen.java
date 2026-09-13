@@ -42,7 +42,7 @@ public final class SettingsScreen extends CompatScreen {
 		int left = panelX + 18;
 		int right = left + columnWidth + gap;
 		int firstY = panelY + (narrow ? 64 : 52);
-		int rowGap = narrow ? 22 : 25;
+		int rowGap = narrow ? 20 : 25;
 
 		if (narrow) {
 			int pageWidth = (panelWidth - 36) / 3;
@@ -56,7 +56,7 @@ public final class SettingsScreen extends CompatScreen {
 			} else if (page == Page.DISPLAY) {
 				addDisplaySettings(left, panelWidth - 36, firstY, rowGap);
 			} else {
-				addChatBinds(left, panelWidth - 36, firstY, buttonY(panelY));
+				addChatBinds(left, panelWidth - 36, firstY, buttonY(panelY) - 24);
 			}
 		} else if (page == Page.BINDS) {
 			addChatBinds(left, panelWidth - 36, firstY, buttonY(panelY) - 25);
@@ -67,12 +67,12 @@ public final class SettingsScreen extends CompatScreen {
 
 		int buttonY = buttonY(panelY);
 		int backWidth = narrow ? 50 : 80;
-		if (!narrow && page == Page.BINDS) {
-			addPageButton(Page.CHAT, left, buttonY, 120);
-		} else if (!narrow) {
-			int bindsButtonWidth = 74;
-			addPageButton(Page.BINDS, left, buttonY, bindsButtonWidth);
-		}
+		int navWidth = narrow ? 54 : page == Page.BINDS ? 120 : 74;
+		addPageButton(page == Page.BINDS ? Page.CHAT : Page.BINDS, left, buttonY, navWidth);
+		addRenderableWidget(StyledButton.create(Component.literal("Chat Alerts"), ignored ->
+				ClientUi.setScreen(minecraft, new ChatAlertsScreen(this, config)))
+				.bounds(left + navWidth + 4, buttonY, narrow ? 82 : 92, FIELD_HEIGHT)
+				.tooltip(Tooltip.create(Component.literal("Настроить уведомления о сообщениях"))).build());
 		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 18 - backWidth, buttonY, backWidth, FIELD_HEIGHT).build());
 	}
@@ -118,6 +118,11 @@ public final class SettingsScreen extends CompatScreen {
 		addToggle("Меню сообщений по ПКМ", Boolean.TRUE.equals(config.chatContextMenuEnabled), x,
 				firstY + rowGap * 4, buttonWidth, "Открывать действия по ПКМ на сообщении",
 				value -> config.chatContextMenuEnabled = value);
+		addRenderableWidget(StyledButton.create(Component.literal("Настройка вкладок"), ignored ->
+				ClientUi.setScreen(minecraft, new ChatTabsScreen(this, config)))
+				.bounds(x, firstY + rowGap * 5, buttonWidth, FIELD_HEIGHT)
+				.tooltip(Tooltip.create(Component.literal("Показывать встроенные и редактировать свои вкладки")))
+				.build());
 	}
 
 	private void addDisplaySettings(int x, int buttonWidth, int firstY, int rowGap) {
@@ -134,10 +139,6 @@ public final class SettingsScreen extends CompatScreen {
 		addToggle("Белые ники вместо чёрных", config.whitenBlackNames, x, firstY + rowGap * 4,
 				buttonWidth, "Заменять чёрный цвет ников на белый",
 				value -> config.whitenBlackNames = value);
-		addRenderableWidget(StyledButton.create(Component.literal("Chat Alerts"), ignored ->
-				ClientUi.setScreen(minecraft, new ChatAlertsScreen(this, config)))
-				.bounds(x, firstY + rowGap * 5, buttonWidth, FIELD_HEIGHT)
-				.tooltip(Tooltip.create(Component.literal("Настроить уведомления о сообщениях"))).build());
 	}
 
 	private void addChatBinds(int x, int buttonWidth, int firstY, int controlsY) {

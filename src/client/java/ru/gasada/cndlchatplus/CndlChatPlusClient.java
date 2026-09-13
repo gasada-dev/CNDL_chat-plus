@@ -8,6 +8,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.client.KeyMapping;
@@ -98,7 +99,10 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		CHAT_DUPLICATES = new ChatDuplicateCollapser(
 				() -> Boolean.TRUE.equals(CONFIG.chatDuplicateCollapseEnabled));
 		CHAT_TABS = new ChatTabController(new ChatTabClassifier(VANILLA_BOX_RUNTIME),
-				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled));
+				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled), CONFIG, CHAT_TIMESTAMPS);
+		CustomChatOutgoingService customChatOutgoing = new CustomChatOutgoingService(CHAT_TABS,
+				outgoingChatService);
+		ClientSendMessageEvents.ALLOW_CHAT.register(message -> !customChatOutgoing.route(message));
 		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));
 		CHAT_ALERTS = new ChatAlertService(() -> Boolean.TRUE.equals(CONFIG.chatAlertsEnabled),
 				CONFIG.chatAlertRules);
@@ -296,7 +300,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 			Component component = codec.fromJson(entry.json());
 			if (component != null) {
 				Component stamped = CHAT_TIMESTAMPS.restored(component, entry.timestamp());
-				CHAT_TABS.mapSource(stamped, entry.tab() == ChatTab.SYSTEM);
+				CHAT_TABS.mapRestoredSource(stamped, entry.tab() == ChatTab.SYSTEM);
 				ChatAccess.addMessage(ChatAccess.chat(minecraft), stamped);
 				store.add(entry);
 			}

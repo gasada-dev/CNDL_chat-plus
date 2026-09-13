@@ -48,6 +48,140 @@ final class ResponderConfigTest {
 		assertFalse(config.periodicMessages.getFirst().enabled);
 		assertEquals("", config.periodicMessages.getFirst().message);
 		assertEquals(5, config.periodicMessages.getFirst().intervalMinutes);
+		assertEquals(1, config.customChatTabs.size());
+		CustomChatTab voice = config.customChatTabs.getFirst();
+		assertEquals(CustomChatTab.DEFAULT_VOICE_ID, voice.id);
+		assertEquals("ГС чат", voice.name);
+		assertEquals(List.of(ChatTabSource.VOICE), voice.sources);
+		assertEquals("/gc", voice.outgoingPrefix);
+		assertTrue(config.hiddenBuiltInTabs.isEmpty());
+	}
+
+	@Test
+	void sanitizeRepairsCustomTabsAndHiddenBuiltInsWithoutReplacingExplicitEmpty() {
+		ResponderConfig config = new ResponderConfig();
+		config.customChatTabs = new ArrayList<>();
+		config.customChatTabs.add(null);
+		config.customChatTabs.add(new CustomChatTab("same", "  ",
+				new ArrayList<>(List.of(ChatTabSource.VOICE, ChatTabSource.VOICE)), " /voice "));
+		config.customChatTabs.add(new CustomChatTab("same", "Second", List.of(ChatTabSource.GLOBAL), null));
+		config.customChatTabs.add(new CustomChatTab(null, "Blank", List.of(), "/ignored"));
+		config.hiddenBuiltInTabs = mutableList(" global ", "GLOBAL", "all", "missing", null);
+
+		config.sanitize();
+
+		assertEquals(2, config.customChatTabs.size());
+		assertEquals("same", config.customChatTabs.getFirst().id);
+		assertEquals("Вкладка", config.customChatTabs.getFirst().name);
+		assertEquals(List.of(ChatTabSource.VOICE), config.customChatTabs.getFirst().sources);
+		assertEquals("/voice", config.customChatTabs.getFirst().outgoingPrefix);
+		assertFalse(config.customChatTabs.get(1).id.isBlank());
+		assertFalse(config.customChatTabs.getFirst().id.equals(config.customChatTabs.get(1).id));
+		assertEquals(List.of(ChatTabSource.GLOBAL), config.customChatTabs.get(1).sources);
+		assertEquals("", config.customChatTabs.get(1).outgoingPrefix);
+		assertEquals(List.of("GLOBAL"), config.hiddenBuiltInTabs);
+
+		config.customChatTabs.clear();
+		config.sanitize();
+		assertTrue(config.customChatTabs.isEmpty());
+	}
+
+	@Test
+	void customTabsMissingNullEmptyLegacyCopyAndRoundTripRemainCompatible() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig missing = ResponderConfigJson.read(gson, "{}");
+		ResponderConfig explicitNull = ResponderConfigJson.read(gson, "{\"customChatTabs\":null}");
+		ResponderConfig explicitEmpty = ResponderConfigJson.read(gson, "{\"customChatTabs\":[]}");
+		ResponderConfig legacyVoice = ResponderConfigJson.read(gson, """
+				{ "customChatTabs": [
+				  {"id":"default-voice-chat","name":"ГС чат","marker":"(Войс)","outgoingPrefix":"/gc"}
+				] }
+				""");
+		assertEquals(CustomChatTab.DEFAULT_VOICE_ID, missing.customChatTabs.getFirst().id);
+		assertNull(explicitNull.customChatTabs);
+		assertTrue(explicitEmpty.customChatTabs.isEmpty());
+		missing.sanitize();
+		explicitNull.sanitize();
+		explicitEmpty.sanitize();
+		legacyVoice.sanitize();
+
+		assertEquals(CustomChatTab.DEFAULT_VOICE_ID, missing.customChatTabs.getFirst().id);
+		assertEquals(CustomChatTab.DEFAULT_VOICE_ID, explicitNull.customChatTabs.getFirst().id);
+		assertTrue(explicitEmpty.customChatTabs.isEmpty());
+		assertEquals(List.of(ChatTabSource.VOICE), legacyVoice.customChatTabs.getFirst().sources);
+
+		ResponderConfig target = new ResponderConfig();
+		target.applyGlobalSettingsFrom(missing);
+		missing.customChatTabs.getFirst().name = "Changed";
+		assertEquals("ГС чат", target.customChatTabs.getFirst().name);
+
+		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(target));
+		restored.sanitize();
+		assertEquals(gson.toJson(target.customChatTabs), gson.toJson(restored.customChatTabs));
+	}
+
+	@Test
+	void tolerantJsonSkipsMalformedCustomTabsWithoutLosingGlobalOrAutomationFields() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig config = ResponderConfigJson.read(gson, """
+				{
+				  "enabled": false,
+				  "friendHudEnabled": false,
+				  "rules": [{"trigger": null, "response": "reply", "channel": null}],
+				  "periodicMessages": null,
+				  "customChatTabs": [
+				    {"id":"valid","name":"Custom","sources":["GLOBAL","VOICE"],"outgoingPrefix":"/c"},
+				    {"id":"broken","name":{"not":"text"},"sources":["LOCAL"],"outgoingPrefix":"/b"},
+				    "wrong"
+				  ]
+				}
+				""");
+		config.sanitize();
+
+		assertFalse(config.enabled);
+		assertFalse(config.friendHudEnabled);
+		assertEquals(1, config.rules.size());
+		assertNull(config.rules.getFirst().trigger);
+		assertNull(config.rules.getFirst().channel);
+		assertNull(config.periodicMessages);
+		assertEquals(List.of("valid"), config.customChatTabs.stream().map(tab -> tab.id).toList());
+		assertEquals(List.of(ChatTabSource.GLOBAL, ChatTabSource.VOICE),
+				config.customChatTabs.getFirst().sources);
+	}
+
+	@Test
+	void tolerantJsonKeepsOnlyStringHiddenTabsWithoutLosingGlobalOrAutomationFields() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig config = ResponderConfigJson.read(gson, """
+				{
+				  "enabled": false,
+				  "friendHudEnabled": false,
+				  "rules": [{"trigger": null, "response": "reply", "channel": null}],
+				  "hiddenBuiltInTabs": ["GLOBAL", {"bad":true}, 3, true, null, "PRIVATE"]
+				}
+				""");
+		config.sanitize();
+
+		assertFalse(config.enabled);
+		assertFalse(config.friendHudEnabled);
+		assertEquals(1, config.rules.size());
+		assertNull(config.rules.getFirst().trigger);
+		assertNull(config.rules.getFirst().channel);
+		assertEquals(List.of("GLOBAL", "PRIVATE"), config.hiddenBuiltInTabs);
+	}
+
+	@Test
+	void hiddenBuiltInsMissingNullAndEmptyRetainDistinctJsonSemantics() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig missing = ResponderConfigJson.read(gson, "{}");
+		ResponderConfig explicitNull = ResponderConfigJson.read(gson, "{\"hiddenBuiltInTabs\":null}");
+		ResponderConfig explicitEmpty = ResponderConfigJson.read(gson, "{\"hiddenBuiltInTabs\":[]}");
+
+		assertTrue(missing.hiddenBuiltInTabs.isEmpty());
+		assertNull(explicitNull.hiddenBuiltInTabs);
+		assertTrue(explicitEmpty.hiddenBuiltInTabs.isEmpty());
+		explicitNull.sanitize();
+		assertTrue(explicitNull.hiddenBuiltInTabs.isEmpty());
 	}
 
 	@Test
