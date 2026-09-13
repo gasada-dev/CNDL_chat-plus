@@ -53,17 +53,35 @@ duplicate collapse и teleport handling, затем history/tabs и vanilla disp
 не записываются. При inactive runtime фильтр fail-open, то есть vanilla message остаётся видимым.
 Global Chat Alerts обрабатывают только принятые сообщения.
 
+Встроенный `ChatTab` остаётся identity для classifier, history и Chat Alerts. Пользовательские
+вкладки являются только view overlays: каждая выбирает один или несколько фиксированных
+`ChatTabSource`, а `ChatTabController` сопоставляет результат существующего classifier. Источник
+`VOICE` дополнительно определяется по фиксированному `(Войс)`; произвольные пользовательские
+фильтры не исполняются. Одно сообщение может попасть в несколько пользовательских вкладок.
+При восстановлении истории сохранённый источник имеет приоритет над target-specific GUI source,
+поэтому `LOCAL` и `SYSTEM` не меняются местами на Minecraft 26.2. Пользовательские ID не
+становятся identity истории, закладок или alerts.
+`hiddenBuiltInTabs` скрывает только кнопку встроенной вкладки, а не меняет её классификацию.
+
 `OutgoingChatService.MinecraftTransport` является единственным вызовом Minecraft send API. Он
 повторно проверяет gate, connection и generation перед transport. `ServerCommandService` строит
 только команды Vanilla-box, валидирует placeholders и аргументы непосредственно перед send.
 F7, `\`, friend actions, teleport и marriage actions не работают вне active runtime. Private
 messages, email, reply payloads и amounts не логируются.
 
+`CndlChatPlusClient` регистрирует custom-tab route в shared `ClientSendMessageEvents.ALLOW_CHAT`.
+Непустой текст без начального `/` в активной пользовательской вкладке с префиксом отправляется
+через `OutgoingChatService` как команда с этим префиксом. Явная slash-команда не меняется и
+остаётся vanilla command path. Если runtime inactive или shared send проверка отклоняет команду,
+маршрут поглощает это сообщение без vanilla fallback.
+
 ## Пользовательские функции
 
 `ResponderScreen` содержит вкладки «Чёрный список» и «Друзья». В заголовке находятся `?`,
-`Информация об игроке` и `⚙`. Настройки UI, истории, Discord, HUD, sound, alerts и binds
-глобальны. Нет экранов server templates, editor, import, catalog или настройки команд/parsers.
+`Информация об игроке` и увеличенная `⚙`. `SettingsScreen` открывает настройки вкладок, а в
+нижней строке размещает `Chat Alerts` рядом с переходом к «Биндам». Настройки UI, истории,
+Discord, HUD, sound, alerts, binds и пользовательских вкладок глобальны. Нет экранов server
+templates, import, catalog или настройки fixed commands/parsers.
 
 Friends, filter settings, channel markers, teleport policy и commands берутся из одной
 Vanilla-box config. `FriendLookupManager` и `PlayerInfoService` используют compiled parsers.
