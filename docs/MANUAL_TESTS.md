@@ -35,14 +35,16 @@ history/bookmark scope, HUD actions и hidden fallback.
 
 ## 3. Граница Vanilla-box
 
-1. Подключитесь к `vanilla-box.ru`, `mc.vanilla-box.ru:25566` и `VANILLA-BOX.RU.`.
+1. Подключитесь к `vanilla-box.ru`, `mc.vanilla-box.ru:25566`, `h.vnbx.ru`,
+   `deep.h.vnbx.ru:25566`, `VANILLA-BOX.RU.` и `213.171.18.139:25345`.
 2. На каждом адресе проверьте F8, одну безопасную команду, chat filter и history/bookmark scope.
 3. Подключитесь к `vanilla-box.ru.example.org`, `notvanilla-box.ru`, `127.0.0.1`, `[::1]`,
    `vanilla-box.ru:0`, адресу с пробелом и адресу с двумя конечными точками.
 4. Повторите в singleplayer и при direct connection без `ServerData`.
 
-Ожидается: разрешены apex и настоящие subdomain с корректным optional port. Case и одна trailing
-dot нормализуются. Lookalike, unrelated host, IP, malformed input и singleplayer inactive.
+Ожидается: разрешены apex и настоящие subdomain `vanilla-box.ru` и `vnbx.ru` с корректным optional
+port, а также точный IP `213.171.18.139:25345`. Case и одна trailing dot нормализуются. Lookalike,
+unrelated host, другие IP, malformed input и singleplayer inactive.
 На denied path F8 server functions не открываются, F7 и `\` ничего не отправляют, сообщения
 проходят vanilla и мод не создаёт history/bookmark scope.
 
@@ -54,7 +56,10 @@ dot нормализуются. Lookalike, unrelated host, IP, malformed input �
 3. Измените безопасный global toggle, закройте экран, перезапустите клиент и проверьте значение.
 4. Откройте `⚙`, проверьте увеличенную кнопку в заголовке, затем проверьте, что `Chat Alerts`
    расположен рядом с переходом к «Биндам» и на широком, и на узком экране.
-5. Откройте «Настройка вкладок»: скройте и снова покажите встроенную вкладку, добавьте,
+5. Откройте «Настройка вкладок»: введите размер текста от 50 до 200 процентов, сохраните его,
+   снова откройте экран и проверьте показ текущего значения. Откройте чат и проверьте размер,
+   переключение вкладок и paging. Перезапустите клиент и проверьте сохранение выбранного размера.
+   Затем скройте и снова покажите встроенную вкладку, добавьте,
    измените и удалите пользовательскую вкладку. В редакторе выберите один или несколько
    фиксированных каналов и убедитесь, что произвольного поля-маркера нет. Закройте экран,
    перезапустите клиент и проверьте сохранение списка и видимости.
@@ -62,11 +67,14 @@ dot нормализуются. Lookalike, unrelated host, IP, malformed input �
    затем сузьте окно или используйте длинные названия и проверьте paging над чатом.
 7. Проверьте, что нет кнопки template/import/catalog, выбора другой конфигурации,
    default/binding или настройки server commands/parsers.
-8. Нажмите F7 и `\` с закрытым GUI, затем с открытым GUI.
+8. В «Биндах» назначьте безопасной команде `Ctrl+Shift+F7`, перезапустите клиент и проверьте
+   сохранённую подпись. Нажмите `Ctrl+Shift+F7`, затем F7 и `\` с закрытым GUI, а потом с
+   открытым GUI.
 
 Ожидается: global settings, пользовательские вкладки и видимость встроенных вкладок сохраняются.
-`Chat Alerts` остаётся рядом с «Биндами» на обоих target. F7 и `\` отправляют не более одной
-Vanilla-box команды при закрытом GUI и не отправляют её при открытом. Никакой UI route не
+`Chat Alerts` остаётся рядом с «Биндами» на обоих target. Комбинация с Ctrl, Shift и Alt
+отправляет только назначенную команду, а F7 и `\` отправляют не более одной Vanilla-box команды
+при закрытом GUI и не отправляют её при открытом. Никакой UI route не
 создаёт, не копирует, не выбирает, не импортирует и не редактирует альтернативную server
 configuration.
 
@@ -98,10 +106,13 @@ bookmarks или Chat Alerts. При inactive runtime её outgoing prefix не 
 3. Проверьте private message, mail, pay, call, ignore и `Alt+ПКМ` по player entity.
 4. Получите teleport request, проверьте manual button, timeout и режимы автоприёма.
 5. Во время lookup или teleport request отключитесь либо перейдите на denied address.
+6. В «Настройки CNDL_chat+» откройте «Расширенные настройки», отключите «Клан-поиск» и проверьте,
+   что новые friend/profile lookup не ставятся в очередь и `/clan lookup` не отправляется. Включите
+   переключатель обратно и проверьте обычный lookup.
 
 Ожидается: все server actions используют fixed Vanilla-box commands и validators. Stale queues,
-buttons, notices и callbacks очищаются. Invalid input не отправляется. Private text и суммы не
-попадают в log.
+buttons, notices и callbacks очищаются. При отключённом «Клан-поиске» очередь и команда отсутствуют.
+Invalid input не отправляется. Private text и суммы не попадают в log.
 
 ## 7. VnbxBridge и оба target
 

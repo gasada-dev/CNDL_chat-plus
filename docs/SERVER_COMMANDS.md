@@ -52,6 +52,8 @@ template import, alternate server configuration или маршрута выбо
 ## Lookup, телепорт и privacy
 
 Friend lookup использует одну конфигурацию Vanilla-box и заранее скомпилированные parsers.
+Глобальный переключатель `clanLookupEnabled` в «Расширенных настройках» отключает ручную и фоновую
+очереди, а также непосредственную отправку `/clan lookup`; при отключении запрос не ставится в очередь.
 `teleportRequestPattern` требует capture group 1 с валидным ником, а политика автоприёма
 использует друзей из той же конфигурации. Очереди и pending results очищаются при disconnect,
 denied join и замене runtime.

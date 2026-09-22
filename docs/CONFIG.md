@@ -25,6 +25,16 @@ Vanilla-box JSON в JAR отсутствуют. После инициализа�
 Chat Alerts, бинды, `customChatTabs`, `hiddenBuiltInTabs` и совместимое видимое представление
 Vanilla-box. Сохранение использует atomic temporary file и move.
 
+`chatTabTextScalePercent` задаёт общий размер текста вкладок над чатом от `50` до `200` процентов.
+Отсутствующее или некорректное значение означает `100`. Legacy `chatTabTextSize` со значениями
+ `SMALL`, `NORMAL` или `LARGE` остаётся migration bridge и при отсутствии процента даёт 80, 100 или 120.
+
+`clanLookupEnabled` — глобальный переключатель запросов `/clan lookup`; отсутствующее или `null`
+значение означает `true` для совместимости. Он не меняет command template в fixed Vanilla-box config.
+
+Каждый бинд содержит основную клавишу и необязательные Ctrl, Shift и Alt. Отсутствующие в старом
+JSON поля модификаторов означают обычный одиночный бинд.
+
 `customChatTabs` является глобальным списком пользовательских вкладок с полями `id`, `name`,
 `sources` и необязательным `outgoingPrefix`. `sources` содержит один или несколько фиксированных
 типов: `GLOBAL`, `LOCAL`, `CLAN`, `PRIVATE`, `DISCORD`, `SYSTEM`, `VOICE`. Произвольного текстового

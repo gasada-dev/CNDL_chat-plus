@@ -8,10 +8,11 @@ connection, player list, send, HUD и sound выполняются на client t
 
 `CndlChatPlusClient` загружает `ResponderConfig`, выполняет `VanillaBoxStorageMigration`,
 создаёт сервисы и регистрирует Fabric events. `VanillaBoxConnectionGate` является единственной
-границей server activation. Он принимает только `ServerData.ip` с hostname `vanilla-box.ru` или
-настоящим поддоменом, с корректным optional port. Регистр и одна trailing dot нормализуются.
-Lookalike, unrelated hostname, IP, malformed input, singleplayer и connection без `ServerData`
-отклоняются без DNS lookup.
+границей server activation. Он принимает только `ServerData.ip` с hostname `vanilla-box.ru`,
+`vnbx.ru`, настоящим поддоменом одного из них или точным адресом `213.171.18.139:25345`.
+Регистр и одна trailing dot нормализуются.
+Lookalike, unrelated hostname, другой IP, malformed input, singleplayer и connection без
+`ServerData` отклоняются без DNS lookup.
 
 При разрешённом join `VanillaBoxConfigStore` загружает только
 `server-templates/vanilla-box.json`, а `VanillaBoxRuntime` публикует immutable
