@@ -139,6 +139,9 @@ public final class SettingsScreen extends CompatScreen {
 		addToggle("Белые ники вместо чёрных", config.whitenBlackNames, x, firstY + rowGap * 4,
 				buttonWidth, "Заменять чёрный цвет ников на белый",
 				value -> config.whitenBlackNames = value);
+		addRenderableWidget(StyledButton.create(Component.literal("Расширенные настройки"), ignored ->
+				ClientUi.setScreen(minecraft, new AdvancedSettingsScreen(this, config)))
+				.bounds(x, firstY + rowGap * 5, buttonWidth, FIELD_HEIGHT).build());
 	}
 
 	private void addChatBinds(int x, int buttonWidth, int firstY, int controlsY) {
@@ -160,7 +163,7 @@ public final class SettingsScreen extends CompatScreen {
 				persistChatBindIfComplete(bind);
 			});
 			addRenderableWidget(command);
-			String keyLabel = capturedBind == bind ? "Нажмите клавишу..." : keyName(bind.keyCode);
+			String keyLabel = capturedBind == bind ? "Нажмите комбинацию..." : keyName(bind);
 			addRenderableWidget(StyledButton.create(Component.literal(keyLabel), ignored -> {
 				capturedBind = bind;
 				rebuild();
@@ -198,6 +201,11 @@ public final class SettingsScreen extends CompatScreen {
 		if (bind.keyCode > 0 && !bind.command.isBlank()) persistChatBinds();
 	}
 
+	private static String keyName(ChatBind bind) {
+		return (bind.control ? "Ctrl+" : "") + (bind.shift ? "Shift+" : "")
+				+ (bind.alt ? "Alt+" : "") + keyName(bind.keyCode);
+	}
+
 	private static String keyName(int keyCode) {
 		return keyCode <= 0 ? "Назначить" : InputConstants.Type.KEYSYM.getOrCreate(keyCode)
 				.getDisplayName().getString();
@@ -228,7 +236,7 @@ public final class SettingsScreen extends CompatScreen {
 			rebuild();
 			return true;
 		}
-		capturedBind.keyCode = event.key();
+		if (!capturedBind.capture(event.key(), event.modifiers())) return true;
 		persistChatBindIfComplete(capturedBind);
 		capturedBind = null;
 		rebuild();
