@@ -17,8 +17,9 @@ import net.fabricmc.loader.api.FabricLoader;
 public final class ConfigManager {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 	private static final java.util.List<String> GLOBAL_FIELDS = java.util.List.of(
-			"discordChatEnabled", "friendHudEnabled", "friendSoundEnabled", "teleportRequestSoundEnabled",
-			"chatHistoryEnabled", "chatHistoryPersist", "chatHistoryLimit", "chatTabsEnabled", "customChatTabs",
+			"discordChatEnabled", "friendHudEnabled", "friendSoundEnabled", "clanLookupEnabled", "teleportRequestSoundEnabled",
+			"chatHistoryEnabled", "chatHistoryPersist", "chatHistoryLimit", "chatTabsEnabled", "chatTabTextSize",
+			"chatTabTextScalePercent", "customChatTabs",
 			"hiddenBuiltInTabs",
 			"chatTimestampsEnabled", "chatSearchEnabled", "chatContextMenuEnabled",
 			"chatDuplicateCollapseEnabled", "whitenBlackNames", "chatAlertsEnabled", "chatAlertRules",
@@ -190,10 +191,6 @@ public final class ConfigManager {
 			CndlChatPlusClient.LOGGER.error("Не удалось сохранить настройки CNDL_chat+", exception);
 			return ConfigOperationResult.failure("Не удалось сохранить настройки CNDL_chat+", exception);
 		}
-	}
-
-	private static boolean writeConfig(ResponderConfig config) {
-		return writeConfig(configPath(), GSON.toJsonTree(config));
 	}
 
 	private static boolean writeConfig(Path configPath, JsonElement config) {

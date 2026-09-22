@@ -18,6 +18,8 @@ public final class ResponderConfig {
 	public static final int MAX_CUSTOM_CHAT_TAB_ID_LENGTH = 64;
 	public static final int MAX_CUSTOM_CHAT_TAB_NAME_LENGTH = 64;
 	public static final int MAX_CUSTOM_CHAT_TAB_PREFIX_LENGTH = 128;
+	public static final int MIN_CHAT_TAB_TEXT_SCALE_PERCENT = 50;
+	public static final int MAX_CHAT_TAB_TEXT_SCALE_PERCENT = 200;
 
 	public Integer storageVersion;
 	public boolean enabled = true;
@@ -28,6 +30,7 @@ public final class ResponderConfig {
 	public Map<String, String> friendLastSeen = new LinkedHashMap<>();
 	public Boolean friendHudEnabled = true;
 	public Boolean friendSoundEnabled = true;
+	public Boolean clanLookupEnabled = true;
 	public Boolean teleportRequestSoundEnabled = true;
 	public TeleportAutoAcceptMode teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
 	public List<String> teleportAutoAcceptFriends = new ArrayList<>();
@@ -46,6 +49,9 @@ public final class ResponderConfig {
 	public Boolean chatHistoryPersist = true;
 	public Integer chatHistoryLimit = DEFAULT_CHAT_HISTORY_LIMIT;
 	public Boolean chatTabsEnabled = true;
+	/** Legacy preset retained for existing JSON; chatTabTextScalePercent takes precedence. */
+	public ChatTabTextSize chatTabTextSize = ChatTabTextSize.NORMAL;
+	public Integer chatTabTextScalePercent = 100;
 	public List<CustomChatTab> customChatTabs = new ArrayList<>(List.of(CustomChatTab.defaultVoice()));
 	public List<String> hiddenBuiltInTabs = new ArrayList<>();
 	public Boolean chatTimestampsEnabled = true;
@@ -70,11 +76,14 @@ public final class ResponderConfig {
 		discordChatEnabled = source.discordChatEnabled;
 		friendHudEnabled = source.friendHudEnabled;
 		friendSoundEnabled = source.friendSoundEnabled;
+		clanLookupEnabled = source.clanLookupEnabled;
 		teleportRequestSoundEnabled = source.teleportRequestSoundEnabled;
 		chatHistoryEnabled = source.chatHistoryEnabled;
 		chatHistoryPersist = source.chatHistoryPersist;
 		chatHistoryLimit = source.chatHistoryLimit;
 		chatTabsEnabled = source.chatTabsEnabled;
+		chatTabTextSize = source.chatTabTextSize;
+		chatTabTextScalePercent = source.chatTabTextScalePercent;
 		customChatTabs = source.customChatTabs.stream().map(CustomChatTab::copy).toList();
 		hiddenBuiltInTabs = List.copyOf(source.hiddenBuiltInTabs);
 		chatTimestampsEnabled = source.chatTimestampsEnabled;
@@ -108,6 +117,9 @@ public final class ResponderConfig {
 		}
 		if (friendSoundEnabled == null) {
 			friendSoundEnabled = true;
+		}
+		if (clanLookupEnabled == null) {
+			clanLookupEnabled = true;
 		}
 		if (teleportRequestSoundEnabled == null) {
 			teleportRequestSoundEnabled = true;
@@ -158,6 +170,14 @@ public final class ResponderConfig {
 		if (chatTabsEnabled == null) {
 			chatTabsEnabled = true;
 		}
+		if (chatTabTextSize == null) {
+			chatTabTextSize = ChatTabTextSize.NORMAL;
+		}
+		if (chatTabTextScalePercent == null) {
+			chatTabTextScalePercent = chatTabTextSize.percent();
+		}
+		chatTabTextScalePercent = Math.clamp(chatTabTextScalePercent,
+				MIN_CHAT_TAB_TEXT_SCALE_PERCENT, MAX_CHAT_TAB_TEXT_SCALE_PERCENT);
 		customChatTabs = ChatTabConfigSanitizer.customTabs(customChatTabs);
 		hiddenBuiltInTabs = ChatTabConfigSanitizer.hiddenBuiltIns(hiddenBuiltInTabs);
 		if (chatTimestampsEnabled == null) {

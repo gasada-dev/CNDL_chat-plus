@@ -254,6 +254,8 @@ final class ResponderConfigTest {
 	void sanitizeRestoresChatUiDefaults() {
 		ResponderConfig config = new ResponderConfig();
 		config.chatTabsEnabled = null;
+		config.chatTabTextSize = null;
+		config.chatTabTextScalePercent = null;
 		config.chatTimestampsEnabled = null;
 		config.chatSearchEnabled = null;
 		config.chatContextMenuEnabled = null;
@@ -265,6 +267,8 @@ final class ResponderConfigTest {
 		config.sanitize();
 
 		assertTrue(config.chatTabsEnabled);
+		assertEquals(ChatTabTextSize.NORMAL, config.chatTabTextSize);
+		assertEquals(100, config.chatTabTextScalePercent);
 		assertTrue(config.chatTimestampsEnabled);
 		assertTrue(config.chatSearchEnabled);
 		assertTrue(config.chatContextMenuEnabled);
@@ -272,6 +276,28 @@ final class ResponderConfigTest {
 		assertTrue(config.chatAlertsEnabled);
 		assertTrue(config.chatAlertRules.isEmpty());
 		assertTrue(config.chatBinds.isEmpty());
+	}
+
+	@Test
+	void chatTabTextScalePercentRoundTripsThroughCompatibleJsonReader() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig source = new ResponderConfig();
+		source.chatTabTextScalePercent = 135;
+
+		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(source));
+		restored.sanitize();
+
+		assertEquals(135, restored.chatTabTextScalePercent);
+	}
+
+	@Test
+	void legacyTabTextSizePresetsInitializeCustomPercentage() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig restored = ResponderConfigJson.read(gson, "{\"chatTabTextSize\":\"LARGE\"}");
+
+		restored.sanitize();
+
+		assertEquals(120, restored.chatTabTextScalePercent);
 	}
 
 	@Test
@@ -294,13 +320,16 @@ final class ResponderConfigTest {
 	void chatBindsRoundTripThroughCompatibleJsonReader() {
 		Gson gson = new GsonBuilder().serializeNulls().create();
 		ResponderConfig source = new ResponderConfig();
-		source.chatBinds = List.of(new ChatBind(GLFW.GLFW_KEY_F6, "command"));
+		source.chatBinds = List.of(new ChatBind(GLFW.GLFW_KEY_F6, true, false, true, "command"));
 		source.whitenBlackNames = false;
 
 		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(source));
 		restored.sanitize();
 
 		assertEquals(GLFW.GLFW_KEY_F6, restored.chatBinds.getFirst().keyCode);
+		assertTrue(restored.chatBinds.getFirst().control);
+		assertFalse(restored.chatBinds.getFirst().shift);
+		assertTrue(restored.chatBinds.getFirst().alt);
 		assertEquals("command", restored.chatBinds.getFirst().command);
 		assertFalse(restored.whitenBlackNames);
 	}

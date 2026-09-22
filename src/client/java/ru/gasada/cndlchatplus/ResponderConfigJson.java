@@ -19,8 +19,10 @@ final class ResponderConfigJson {
 		JsonElement rules = compatible.remove("chatAlertRules");
 		JsonElement customTabs = compatible.remove("customChatTabs");
 		JsonElement hiddenTabs = compatible.remove("hiddenBuiltInTabs");
+		boolean missingTabTextScalePercent = !compatible.has("chatTabTextScalePercent");
 		ResponderConfig config = gson.fromJson(compatible, ResponderConfig.class);
 		if (config == null) return null;
+		if (missingTabTextScalePercent) config.chatTabTextScalePercent = null;
 		config.chatAlertsEnabled = enabled != null && enabled.isJsonPrimitive()
 				&& enabled.getAsJsonPrimitive().isBoolean() ? enabled.getAsBoolean() : true;
 		config.chatAlertRules = new ArrayList<>();
