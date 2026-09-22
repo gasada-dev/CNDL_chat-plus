@@ -24,6 +24,7 @@ public final class ChatTabController {
 	private final ChatTimestamps timestamps;
 	private final IdentityHashMap<Component, Boolean> gameMessages = new IdentityHashMap<>();
 	private final IdentityHashMap<Component, Boolean> restoredMessages = new IdentityHashMap<>();
+	private final IdentityHashMap<Component, Component> originalMessages = new IdentityHashMap<>();
 	private final Map<ChatTab, Integer> unread = new EnumMap<>(ChatTab.class);
 	private final Map<String, Integer> customUnread = new HashMap<>();
 	private List<ChatTabDefinition> customTabs = List.of();
@@ -102,6 +103,8 @@ public final class ChatTabController {
 	}
 
 	public void remapComponent(Component original, Component prefixed) {
+		if (originalMessages.size() >= MAX_TRACKED) originalMessages.clear();
+		originalMessages.put(prefixed, original);
 		Boolean fromGame = gameMessages.remove(original);
 		if (fromGame != null) {
 			gameMessages.put(prefixed, fromGame);
@@ -116,7 +119,7 @@ public final class ChatTabController {
 		}
 		if (activeCustomId != null) {
 			boolean fromGame = fromGame(component, systemSource);
-			ChatTabSource source = source(component, classifier.classify(component.getString(), fromGame));
+			ChatTabSource source = source(component, classifier.classify(classificationText(component), fromGame));
 			for (ChatTabDefinition tab : customTabs) {
 				if (tab.id().equals(activeCustomId)) {
 					return tab.sources().contains(source);
@@ -125,7 +128,7 @@ public final class ChatTabController {
 			return true;
 		}
 		boolean fromGame = fromGame(component, systemSource);
-		return classifier.classify(component.getString(), fromGame) == active;
+		return classifier.classify(classificationText(component), fromGame) == active;
 	}
 
 	public boolean fromGame(Component component, Boolean systemSource) {
@@ -217,6 +220,7 @@ public final class ChatTabController {
 	public void resetRuntimeState() {
 		gameMessages.clear();
 		restoredMessages.clear();
+		originalMessages.clear();
 		unread.clear();
 		customUnread.clear();
 		active = ChatTab.ALL;
@@ -228,6 +232,11 @@ public final class ChatTabController {
 		String canonical = ChatMessageTextSanitizer.canonicalMessageText(component, timestamps);
 		return ChatTabSource.classify(classified,
 				ChatMessageTextSanitizer.stripDisplayFormatting(canonical));
+	}
+
+	private String classificationText(Component component) {
+		Component original = originalMessages.get(component);
+		return (original == null ? component : original).getString();
 	}
 
 	private static <K> void increment(Map<K, Integer> counts, K key) {

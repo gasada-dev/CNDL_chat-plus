@@ -104,6 +104,17 @@ final class ChatTabControllerTest {
 	}
 
 	@Test
+	void remappedDiscordSymbolKeepsOriginalClassification() {
+		Component original = Component.literal("(Discord) Player_1 » привет");
+		controller.recordMessage(original, false);
+		Component compact = DiscordMarkerDisplay.compact(original);
+		controller.remapComponent(original, compact);
+
+		controller.selectTab(ChatTab.DISCORD, null);
+		assertTrue(controller.isVisible(compact, null));
+	}
+
+	@Test
 	void disabledControllerShowsEverything() {
 		enabled.set(false);
 		controller.selectTab(ChatTab.SYSTEM, null);

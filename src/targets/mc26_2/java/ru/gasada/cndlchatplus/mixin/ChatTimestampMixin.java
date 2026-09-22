@@ -17,6 +17,7 @@ import ru.gasada.cndlchatplus.ChatDuplicateCollapser;
 import ru.gasada.cndlchatplus.ChatTabController;
 import ru.gasada.cndlchatplus.ChatTimestamps;
 import ru.gasada.cndlchatplus.CndlChatPlusClient;
+import ru.gasada.cndlchatplus.DiscordMarkerDisplay;
 import ru.gasada.cndlchatplus.NicknameColorFix;
 
 @Mixin(ChatComponent.class)
@@ -31,7 +32,7 @@ public abstract class ChatTimestampMixin {
 		Component fixed = CndlChatPlusClient.CONFIG != null && CndlChatPlusClient.CONFIG.whitenBlackNames
 				? NicknameColorFix.whitenBlack(message) : message;
 		ChatTimestamps timestamps = CndlChatPlusClient.CHAT_TIMESTAMPS;
-		Component displayed = timestamps == null ? fixed : timestamps.apply(fixed);
+		Component displayed = DiscordMarkerDisplay.compact(timestamps == null ? fixed : timestamps.apply(fixed));
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
 		if (tabs != null) {
 			tabs.remapComponent(message, displayed);
