@@ -1,6 +1,7 @@
 package ru.gasada.cndlchatplus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -193,11 +194,28 @@ final class FriendLookupManagerTest {
 		assertTrue(context.commands.isEmpty());
 	}
 
+	@Test
+	void disabledLookupNeverQueuesOrSendsClanCommands() {
+		TestContext context = context(() -> false, () -> false, "Alice");
+		context.lookup.queueActiveFriends();
+
+		assertFalse(context.lookup.queueManualLookup("ManualOne", ignored -> { }));
+		assertEquals(0, context.lookup.queuedCount());
+		context.clock.set(30_000);
+		context.lookup.tick(true);
+		assertTrue(context.commands.isEmpty());
+	}
+
 	private static TestContext context(String... friends) {
 		return context(() -> false, friends);
 	}
 
 	private static TestContext context(java.util.function.BooleanSupplier bridgeAvailable, String... friends) {
+		return context(bridgeAvailable, () -> true, friends);
+	}
+
+	private static TestContext context(java.util.function.BooleanSupplier bridgeAvailable,
+			java.util.function.BooleanSupplier lookupEnabled, String... friends) {
 		VanillaBoxConfig config = VanillaBoxConfig.empty();
 		config.commands = ServerCommandSettings.vanillaBoxDefaults();
 		config.parsers = ParserSettings.vanillaBoxDefaults();
@@ -210,7 +228,7 @@ final class FriendLookupManagerTest {
 				new OutgoingChatService(transport, ignored -> { }));
 		FriendLookupManager lookup = new FriendLookupManager(runtime,
 				new FriendActionService(runtime, commands, null), clock::get, new ServerLookupCoordinator(),
-				bridgeAvailable);
+				bridgeAvailable, lookupEnabled);
 		return new TestContext(lookup, clock, transport.commands);
 	}
 

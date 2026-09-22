@@ -2,14 +2,22 @@ package ru.gasada.cndlchatplus;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 public final class ServerCommandService {
 	private final VanillaBoxRuntime runtime;
 	private final OutgoingChatService outgoing;
+	private final BooleanSupplier lookupEnabled;
 
 	public ServerCommandService(VanillaBoxRuntime runtime, OutgoingChatService outgoing) {
+		this(runtime, outgoing, () -> true);
+	}
+
+	public ServerCommandService(VanillaBoxRuntime runtime, OutgoingChatService outgoing,
+			BooleanSupplier lookupEnabled) {
 		this.runtime = runtime;
 		this.outgoing = outgoing;
+		this.lookupEnabled = lookupEnabled;
 	}
 
 	public CommandResult ignorePlayer(String player) {
@@ -17,6 +25,9 @@ public final class ServerCommandService {
 	}
 
 	public CommandResult lookupFriend(String player) {
+		if (!lookupEnabled.getAsBoolean()) {
+			return CommandResult.failure("Клан-поиск отключён в настройках");
+		}
 		return playerCommand(CommandTemplateValidator.CommandType.LOOKUP_FRIEND, command("lookupFriend"), player);
 	}
 

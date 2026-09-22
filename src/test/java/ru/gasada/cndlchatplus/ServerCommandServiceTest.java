@@ -77,6 +77,26 @@ final class ServerCommandServiceTest {
 	}
 
 	@Test
+	void deniedServerNeverSendsClanLookup() {
+		VanillaBoxConnectionGate gate = new VanillaBoxConnectionGate();
+		gate.join("example.org");
+		OutgoingChatService outgoing = new OutgoingChatService(transport, ignored -> { }, gate::active);
+		commands = new ServerCommandService(runtime, outgoing);
+
+		assertFalse(commands.lookupFriend("Player_1").success());
+		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
+	void disabledLookupNeverSendsClanLookup() {
+		OutgoingChatService outgoing = new OutgoingChatService(transport, ignored -> { });
+		ServerCommandService disabled = new ServerCommandService(runtime, outgoing, () -> false);
+
+		assertFalse(disabled.lookupFriend("Player_1").success());
+		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
 	void placeholderFreeCommandsUseOnlyTheActiveSnapshot() {
 		VanillaBoxConfig custom = VanillaBoxConfig.empty();
 		custom.commands.claimFly = "customfly";

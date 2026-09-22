@@ -26,6 +26,7 @@ public final class FriendLookupManager {
 	private final LongSupplier clock;
 	private final ServerLookupCoordinator coordinator;
 	private final BooleanSupplier bridgeAvailable;
+	private final BooleanSupplier lookupEnabled;
 	private final Deque<LookupRequest> queue = new ArrayDeque<>();
 	private final Deque<LookupRequest> manualQueue = new ArrayDeque<>();
 	private LookupRequest pendingRequest;
@@ -50,7 +51,8 @@ public final class FriendLookupManager {
 	public FriendLookupManager(ResponderConfig config, ServerCommandService commandService,
 			VanillaBoxRuntime runtime) {
 		this(runtime, new FriendActionService(runtime, commandService, config),
-				System::currentTimeMillis);
+				System::currentTimeMillis, new ServerLookupCoordinator(), () -> false,
+				() -> Boolean.TRUE.equals(config.clanLookupEnabled));
 	}
 
 	FriendLookupManager(VanillaBoxRuntime runtime, FriendActionService actions, LongSupplier clock) {
@@ -64,14 +66,21 @@ public final class FriendLookupManager {
 
 	FriendLookupManager(VanillaBoxRuntime runtime, FriendActionService actions, LongSupplier clock,
 			ServerLookupCoordinator coordinator, BooleanSupplier bridgeAvailable) {
+		this(runtime, actions, clock, coordinator, bridgeAvailable, () -> true);
+	}
+
+	FriendLookupManager(VanillaBoxRuntime runtime, FriendActionService actions, LongSupplier clock,
+			ServerLookupCoordinator coordinator, BooleanSupplier bridgeAvailable, BooleanSupplier lookupEnabled) {
 		this.runtime = runtime;
 		this.actions = actions;
 		this.clock = clock;
 		this.coordinator = coordinator;
 		this.bridgeAvailable = bridgeAvailable;
+		this.lookupEnabled = lookupEnabled;
 	}
 
 	public void queueFriends(Collection<String> friends) {
+		if (!lookupEnabled.getAsBoolean()) return;
 		VanillaBoxSnapshot snapshot = runtime.activeSnapshot().orElse(null);
 		if (snapshot == null || bridgeAvailable.getAsBoolean()) {
 			return;
@@ -86,7 +95,7 @@ public final class FriendLookupManager {
 	}
 
 	public boolean queueManualLookup(String player, Consumer<PlayerLookupData> completion) {
-		if (bridgeAvailable.getAsBoolean() || !PlayerNameValidator.validate(player).valid() || completion == null
+		if (!lookupEnabled.getAsBoolean() || bridgeAvailable.getAsBoolean() || !PlayerNameValidator.validate(player).valid() || completion == null
 				|| isAlreadyQueued(player)) {
 			return false;
 		}
@@ -95,6 +104,7 @@ public final class FriendLookupManager {
 	}
 
 	public void queueActiveFriends() {
+		if (!lookupEnabled.getAsBoolean()) return;
 		if (activeFriendsQueued) {
 			return;
 		}
@@ -126,6 +136,10 @@ public final class FriendLookupManager {
 	}
 
 	void tick(boolean connected) {
+		if (!lookupEnabled.getAsBoolean()) {
+			resetRuntimeState();
+			return;
+		}
 		if (!connected) {
 			resetRuntimeState();
 			return;

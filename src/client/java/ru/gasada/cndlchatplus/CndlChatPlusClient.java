@@ -54,7 +54,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		VanillaBoxConfigStore vanillaBoxStore = new VanillaBoxConfigStore(configDirectory);
 		OutgoingChatService outgoingChatService = OutgoingChatService.forMinecraft(
 				ignored -> { }, VANILLA_BOX_RUNTIME::generation);
-		SERVER_COMMANDS = new ServerCommandService(VANILLA_BOX_RUNTIME, outgoingChatService);
+		SERVER_COMMANDS = new ServerCommandService(VANILLA_BOX_RUNTIME, outgoingChatService,
+				() -> Boolean.TRUE.equals(CONFIG.clanLookupEnabled));
 		ChatBindService chatBinds = new ChatBindService(CONFIG, outgoingChatService);
 		TELEPORT_REQUEST = new TeleportRequestButton(VANILLA_BOX_RUNTIME, SERVER_COMMANDS);
 		resetCoordinator.register(TELEPORT_REQUEST::resetRuntimeState);
@@ -79,7 +80,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				() -> Boolean.TRUE.equals(CONFIG.discordChatEnabled));
 		ServerLookupCoordinator lookupCoordinator = new ServerLookupCoordinator();
 		FRIEND_LOOKUP = new FriendLookupManager(VANILLA_BOX_RUNTIME, FRIEND_ACTIONS, System::currentTimeMillis,
-				lookupCoordinator, PlatformBridgeNetworking::available);
+				lookupCoordinator, PlatformBridgeNetworking::available,
+				() -> Boolean.TRUE.equals(CONFIG.clanLookupEnabled));
 		PLAYER_INFO = new PlayerInfoService(VANILLA_BOX_RUNTIME, PlatformBridgeNetworking::requestPlayerRelations,
 				PlatformBridgeNetworking::available, FRIEND_LOOKUP,
 				runnable -> net.minecraft.client.Minecraft.getInstance().execute(runnable));
