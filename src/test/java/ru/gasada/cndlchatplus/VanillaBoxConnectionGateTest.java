@@ -27,7 +27,11 @@ final class VanillaBoxConnectionGateTest {
 	private static Stream<Arguments> allowedAddresses() {
 		return Stream.of(
 				Arguments.of("vanilla-box.ru", "vanilla-box.ru:25565"),
+				Arguments.of("213.171.18.139:25345", "213.171.18.139:25345"),
 				Arguments.of("VANILLA-BOX.RU.", "vanilla-box.ru:25565"),
+				Arguments.of("vnbx.ru", "vnbx.ru:25565"),
+				Arguments.of("H.VNBX.RU.", "h.vnbx.ru:25565"),
+				Arguments.of("deep.h.vnbx.ru:1", "deep.h.vnbx.ru:1"),
 				Arguments.of("mc.vanilla-box.ru:1", "mc.vanilla-box.ru:1"),
 				Arguments.of("deep.mc.vanilla-box.ru.:65535", "deep.mc.vanilla-box.ru:65535"),
 				Arguments.of("deep。mc.vanilla-box.ru:00065535", "deep.mc.vanilla-box.ru:65535"),
@@ -39,6 +43,7 @@ final class VanillaBoxConnectionGateTest {
 	@ValueSource(strings = {
 			" ", " vanilla-box.ru", "vanilla-box.ru ", "vanilla-box.ru\u0000evil",
 			"example.org", "vanilla-box.ru.example.org", "notvanilla-box.ru", "vanilla-box.ru.evil",
+			"vnbx.ru.example.org", "notvnbx.ru", "vnbx.ru.evil",
 			"*.vanilla-box.ru", "vanilla-bоx.ru", "127.0.0.1", "[::1]", "::1",
 			"vanilla-box.ru..", "vanilla-box.ru..:25565", "vanilla-box.ru。", ".vanilla-box.ru",
 			"vanilla-box.ru:", "vanilla-box.ru:0", "vanilla-box.ru:65536",

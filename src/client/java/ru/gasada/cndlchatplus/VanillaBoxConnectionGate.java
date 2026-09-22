@@ -1,7 +1,9 @@
 package ru.gasada.cndlchatplus;
 
 public final class VanillaBoxConnectionGate {
-	private static final String DOMAIN = "vanilla-box.ru";
+	private static final String VANILLA_BOX_DOMAIN = "vanilla-box.ru";
+	private static final String VNBX_DOMAIN = "vnbx.ru";
+	private static final String VANILLA_BOX_IP = "213.171.18.139:25345";
 	private static final State INACTIVE = new State(false, null);
 	private volatile State state = INACTIVE;
 
@@ -40,10 +42,16 @@ public final class VanillaBoxConnectionGate {
 		if (!normalized.valid()) return Decision.denied();
 		String normalizedHost = normalized.normalizedAddress().substring(
 				0, normalized.normalizedAddress().lastIndexOf(':'));
-		if (!normalizedHost.equals(DOMAIN) && !normalizedHost.endsWith("." + DOMAIN)) {
+		if (!normalized.normalizedAddress().equals(VANILLA_BOX_IP)
+				&& !matchesDomain(normalizedHost, VANILLA_BOX_DOMAIN)
+				&& !matchesDomain(normalizedHost, VNBX_DOMAIN)) {
 			return Decision.denied();
 		}
 		return new Decision(true, normalized.normalizedAddress());
+	}
+
+	private static boolean matchesDomain(String host, String domain) {
+		return host.equals(domain) || host.endsWith("." + domain);
 	}
 
 	public State join(String address) {
