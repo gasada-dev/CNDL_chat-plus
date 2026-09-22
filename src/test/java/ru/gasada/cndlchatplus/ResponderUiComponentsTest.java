@@ -64,6 +64,18 @@ final class ResponderUiComponentsTest {
 	}
 
 	@Test
+	void bookmarkPlacementUsesVisibleSearchControlAndClampsToScreen() {
+		assertEquals(new ChatTabBar.BookmarkRect(88, 11, 148, 26),
+				ChatTabBar.bookmarkRect(true, 80, 200, 60, 300, 10, 15));
+		assertEquals(new ChatTabBar.BookmarkRect(206, 11, 266, 26),
+				ChatTabBar.bookmarkRect(false, 80, 200, 60, 300, 10, 15));
+		assertEquals(new ChatTabBar.BookmarkRect(38, 11, 98, 26),
+				ChatTabBar.bookmarkRect(true, 90, 70, 60, 100, 10, 15));
+		assertEquals(new ChatTabBar.BookmarkRect(2, 10, 78, 28),
+				ChatTabBar.bookmarkRect(false, 80, 200, 120, 80, 10, 18));
+	}
+
+	@Test
 	void customTabValidationRequiresUniqueNameAndSourceButAllowsOwnName() {
 		List<CustomChatTab> tabs = List.of(new CustomChatTab("voice", "ГС чат",
 				List.of(ChatTabSource.VOICE), "/gc"));
@@ -74,5 +86,10 @@ final class ResponderUiComponentsTest {
 		assertEquals("Вкладка с таким названием уже существует",
 				ChatTabEditorValidation.error("гс ЧАТ", List.of(ChatTabSource.VOICE), null, tabs));
 		assertNull(ChatTabEditorValidation.error("ГС чат", List.of(ChatTabSource.VOICE), "voice", tabs));
+	}
+
+	@Test
+	void chatTabTextSizeInputHasVisibleRussianLabel() {
+		assertEquals("Размер вкладок в процентах", ChatTabsScreen.textSizeLabel().getString());
 	}
 }

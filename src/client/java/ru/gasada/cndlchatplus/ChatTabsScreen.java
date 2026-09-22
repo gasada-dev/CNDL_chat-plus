@@ -34,13 +34,14 @@ public final class ChatTabsScreen extends CompatScreen {
 		panelY = (height - panelHeight) / 2;
 		int left = panelX + 16;
 		int usable = panelWidth - 32;
-		int pageSize = Math.max(2, (panelHeight - 112) / 25);
+		addTextSize(left, usable);
+		int pageSize = Math.max(2, (panelHeight - 122) / 25);
 		List<Entry> entries = entries();
 		page = Pagination.clampPage(page, entries.size(), pageSize);
 		int start = page * pageSize;
 		for (int row = 0; row < pageSize && start + row < entries.size(); row++) {
 			Entry entry = entries.get(start + row);
-			int y = panelY + 48 + row * 25;
+			int y = panelY + 58 + row * 25;
 			if (entry.builtIn() != null) addBuiltIn(entry.builtIn(), left, y, usable);
 			else addCustom(entry.custom(), left, y, usable);
 		}
@@ -61,6 +62,38 @@ public final class ChatTabsScreen extends CompatScreen {
 		add.active = config.customChatTabs.size() < ResponderConfig.MAX_CUSTOM_CHAT_TABS;
 		addRenderableWidget(StyledButton.create(Component.literal("Готово"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 96, controlsY, 80, FIELD_HEIGHT).build());
+	}
+
+	private void addTextSize(int x, int rowWidth) {
+		int saveWidth = 88;
+		int labelWidth = font.width(textSizeLabel()) + 6;
+		StyledEditBox field = new StyledEditBox(font, x + labelWidth, panelY + 34,
+				rowWidth - saveWidth - labelWidth - 4, FIELD_HEIGHT, textSizeLabel());
+		field.setMaxLength(4);
+		field.setValue(config.chatTabTextScalePercent.toString());
+		field.setHint(Component.literal("50–200%"));
+		addRenderableWidget(field);
+		addRenderableWidget(StyledButton.create(Component.literal("Сохранить"), ignored -> {
+			Integer percent = ChatTabTextSize.parsePercent(field.getValue());
+			if (percent == null || percent < ResponderConfig.MIN_CHAT_TAB_TEXT_SCALE_PERCENT
+					|| percent > ResponderConfig.MAX_CHAT_TAB_TEXT_SCALE_PERCENT) {
+				status.set("Введите размер от 50 до 200%", ERROR);
+				return;
+			}
+			Integer previous = config.chatTabTextScalePercent;
+			config.chatTabTextScalePercent = percent;
+			if (!ConfigManager.saveGlobalSettings(config)) {
+				config.chatTabTextScalePercent = previous;
+				status.set("Не удалось сохранить размер текста вкладок", ERROR);
+				return;
+			}
+			status.set("Размер текста вкладок сохранён", SUCCESS);
+			rebuild();
+		}).bounds(x + rowWidth - saveWidth, panelY + 34, saveWidth, FIELD_HEIGHT).build());
+	}
+
+	static Component textSizeLabel() {
+		return Component.literal("Размер вкладок в процентах");
 	}
 
 	private void addBuiltIn(ChatTab tab, int x, int y, int rowWidth) {
@@ -171,6 +204,7 @@ public final class ChatTabsScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 14);
+		graphics.text(font, textSizeLabel().getString(), panelX + 16, panelY + 40, TEXT);
 		if (!status.empty()) graphics.centeredText(font, status.text(), width / 2,
 				panelY + panelHeight - 46, status.color());
 	}

@@ -8,10 +8,12 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 
 public final class ChatTabBar {
-	private static final int BAR_HEIGHT = 12;
+	private static final int BASE_BAR_HEIGHT = 12;
+	private static final int TEXT_HEIGHT = 9;
 	private static final int PAD_X = 4;
 	private static final int GAP = 2;
 	private static final int LEFT = 2;
+	private static final int SEARCH_ROW_HEIGHT = 18;
 	private static final int PAGE_BUTTON_WIDTH = 12;
 	// vanilla: нижняя граница чата = screenHeight - 40, а не у input-строки
 	private static final int BOTTOM_MARGIN = 40;
@@ -50,15 +52,15 @@ public final class ChatTabBar {
 		ChatTabFilterAccess access = (ChatTabFilterAccess) ChatAccess.chat(minecraft);
 		int chatHeight = (int) Math.ceil(access.gasada$chatHeight() * access.gasada$chatScale());
 		int chatTop = screenHeight - BOTTOM_MARGIN - chatHeight;
-		return Math.max(chatTop - 2, BAR_HEIGHT);
+		return Math.max(chatTop - 2, barHeight());
 	}
 
 	public static int searchBoxY(Minecraft minecraft, int screenHeight) {
-		return Math.max(2, barBottom(minecraft, screenHeight) - BAR_HEIGHT - 20);
+		return Math.max(2, barBottom(minecraft, screenHeight) - barHeight() - 20);
 	}
 
 	public static int searchBoxWidth(Font font, int screenWidth) {
-		return Math.max(40, Math.min(240, screenWidth - font.width(BOOKMARKS) - 14));
+		return Math.max(40, Math.min(240, screenWidth - scaled(font.width(BOOKMARKS)) - 14));
 	}
 
 	static List<Integer> pageStarts(List<Integer> widths, int availableWidth) {
@@ -95,7 +97,7 @@ public final class ChatTabBar {
 	private static BarLayout layout(Font font, ChatTabController tabs, int screenWidth, int barBottom) {
 		List<TabRect> rects = new ArrayList<>();
 		List<ChatTabDefinition> definitions = tabs.definitions();
-		int y0 = barBottom - BAR_HEIGHT;
+		int y0 = barBottom - barHeight();
 		int x = LEFT;
 		if (definitions.isEmpty()) return new BarLayout(rects, null, null);
 		List<Integer> widths = definitions.stream().map(definition -> tabWidth(font, tabs, definition)).toList();
@@ -153,7 +155,7 @@ public final class ChatTabBar {
 	}
 
 	private static int tabWidth(Font font, ChatTabController tabs, ChatTabDefinition definition) {
-		return font.width(label(tabs, definition)) + PAD_X * 2;
+		return scaled(font.width(label(tabs, definition))) + PAD_X * 2;
 	}
 
 	private static String label(ChatTabController tabs, ChatTabDefinition definition) {
@@ -173,24 +175,49 @@ public final class ChatTabBar {
 				graphics.outline(rect.x0(), rect.y0(), rect.x1() - rect.x0(), rect.y1() - rect.y0(),
 						COLOR_ACTIVE_OUTLINE);
 			}
-			int innerWidth = Math.max(0, rect.x1() - rect.x0() - PAD_X * 2);
+			float scale = textScale();
+			int innerWidth = Math.max(0, (int) Math.floor((rect.x1() - rect.x0() - PAD_X * 2) / scale));
 			int unread = rect.definition().builtIn() == ChatTab.ALL ? 0 : tabs.unread(rect.definition());
 			String displayName = rect.definition().displayName();
 			String badge = unread > 0 ? " " + unread : "";
 			if (font.width(displayName + badge) <= innerWidth) {
-				graphics.text(font, displayName, rect.x0() + PAD_X, rect.y0() + 2,
-						activeTab ? COLOR_TEXT_ACTIVE : COLOR_TEXT);
+				renderTabText(graphics, font, displayName, rect.x0() + PAD_X, rect.y0(),
+						activeTab ? COLOR_TEXT_ACTIVE : COLOR_TEXT, scale);
 				if (unread > 0) {
-					graphics.text(font, badge,
-							rect.x0() + PAD_X + font.width(displayName), rect.y0() + 2, COLOR_BADGE);
+					renderTabText(graphics, font, badge, rect.x0() + PAD_X + font.width(displayName),
+							rect.y0(), COLOR_BADGE, scale);
 				}
 			} else {
-				graphics.text(font, font.plainSubstrByWidth(displayName + badge, innerWidth),
-						rect.x0() + PAD_X, rect.y0() + 2, activeTab ? COLOR_TEXT_ACTIVE : COLOR_TEXT);
+				renderTabText(graphics, font, font.plainSubstrByWidth(displayName + badge, innerWidth),
+						rect.x0() + PAD_X, rect.y0(), activeTab ? COLOR_TEXT_ACTIVE : COLOR_TEXT, scale);
 			}
 		}
 		renderControl(graphics, font, layout.previous(), "<", mouseX, mouseY);
 		renderControl(graphics, font, layout.next(), ">", mouseX, mouseY);
+	}
+
+	private static int barHeight() {
+		return scaled(TEXT_HEIGHT) + BASE_BAR_HEIGHT - TEXT_HEIGHT;
+	}
+
+	private static float textScale() {
+		ResponderConfig config = CndlChatPlusClient.CONFIG;
+		int percent = config == null || config.chatTabTextScalePercent == null ? 100
+				: config.chatTabTextScalePercent;
+		return percent / 100F;
+	}
+
+	private static int scaled(int value) {
+		return (int) Math.ceil(value * textScale());
+	}
+
+	private static void renderTabText(CompatGraphics graphics, Font font, String text, int x, int tabTop,
+			int color, float scale) {
+		graphics.pushPose();
+		graphics.translatePose(x, tabTop + (barHeight() - scaled(TEXT_HEIGHT)) / 2F);
+		graphics.scalePose(scale);
+		graphics.text(font, text, 0, 0, color);
+		graphics.popPose();
 	}
 
 	private static void renderControl(CompatGraphics graphics, Font font, ControlRect rect, String label,
@@ -217,7 +244,10 @@ public final class ChatTabBar {
 				rect.contains(mouseX, mouseY) ? COLOR_BG_HOVER : COLOR_BG);
 		graphics.outline(rect.x0(), rect.y0(), rect.x1() - rect.x0(), rect.y1() - rect.y0(),
 				COLOR_ACTIVE_OUTLINE);
-		graphics.text(font, BOOKMARKS, rect.x0() + PAD_X, rect.y0() + 3, COLOR_TEXT_ACTIVE);
+		float scale = textScale();
+		int innerWidth = Math.max(0, (int) Math.floor((rect.x1() - rect.x0() - PAD_X * 2) / scale));
+		renderTabText(graphics, font, font.plainSubstrByWidth(BOOKMARKS, innerWidth),
+				rect.x0() + PAD_X, rect.y0(), COLOR_TEXT_ACTIVE, scale);
 	}
 
 	public static boolean clickBookmarks(Screen parent, Font font, int screenWidth, int screenHeight,
@@ -231,13 +261,22 @@ public final class ChatTabBar {
 	}
 
 	private static BookmarkRect bookmarkRect(Font font, int screenWidth, int screenHeight, Minecraft minecraft) {
-		int width = font.width(BOOKMARKS) + PAD_X * 2;
-		int x = Math.min(searchBoxWidth(font, screenWidth) + 6, screenWidth - width - 2);
-		int y = searchBoxY(minecraft, screenHeight) + 2;
-		return new BookmarkRect(Math.max(2, x), y, Math.max(2, x) + width, y + 14);
+		ChatSearchState search = CndlChatPlusClient.CHAT_SEARCH;
+		return bookmarkRect(search != null && search.enabled() && !search.active(), font.width(SEARCH_HINT),
+				searchBoxWidth(font, screenWidth), scaled(font.width(BOOKMARKS)) + PAD_X * 2,
+				screenWidth, searchBoxY(minecraft, screenHeight), barHeight());
 	}
 
-	private record BookmarkRect(int x0, int y0, int x1, int y1) {
+	static BookmarkRect bookmarkRect(boolean searchHintVisible, int searchHintWidth, int searchBoxWidth,
+			int preferredWidth, int screenWidth, int rowY, int height) {
+		int width = Math.min(preferredWidth, Math.max(0, screenWidth - LEFT * 2));
+		int preferredX = searchHintVisible ? 6 + searchHintWidth + GAP : searchBoxWidth + 6;
+		int x = Math.max(LEFT, Math.min(preferredX, screenWidth - LEFT - width));
+		int y = rowY + (SEARCH_ROW_HEIGHT - height) / 2;
+		return new BookmarkRect(x, y, x + width, y + height);
+	}
+
+	record BookmarkRect(int x0, int y0, int x1, int y1) {
 		private boolean contains(double x, double y) {
 			return x >= x0 && x < x1 && y >= y0 && y < y1;
 		}
