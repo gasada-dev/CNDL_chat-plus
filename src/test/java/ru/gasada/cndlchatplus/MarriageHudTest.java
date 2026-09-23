@@ -13,7 +13,7 @@ final class MarriageHudTest {
 		MarriageHud.PartnerStatus online = MarriageHud.partnerStatus("Partner_1", Set.of("partner_1"));
 
 		assertEquals("оффлайн", offline.text());
-		assertEquals(UiConstants.MUTED, offline.color());
+		assertEquals(ThemeTokens.textMuted(), offline.color());
 		assertEquals("", online.text());
 	}
 }

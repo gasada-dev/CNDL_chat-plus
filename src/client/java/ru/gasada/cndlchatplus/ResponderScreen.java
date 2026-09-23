@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -76,7 +76,7 @@ public final class ResponderScreen extends CompatScreen {
 				.bounds(panelX + half, 1, infoWidth, 20)
 				.tooltip(help("Открыть профиль игрока активного сервера")).build());
 		addRenderableWidget(StyledButton.create(Component.literal("⚙").withStyle(ChatFormatting.BOLD)
-				.withColor(ACCENT_SOFT), ignored ->
+				.withColor(accentSoft()), ignored ->
 				ClientUi.setScreen(minecraft, new SettingsScreen(this, config)))
 				.bounds(panelX + half + infoWidth + 4, 1, settingsWidth, 20)
 				.tooltip(help("Открыть настройки CNDL_chat+")).build());
@@ -259,10 +259,10 @@ public final class ResponderScreen extends CompatScreen {
 			String selection = friend.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend) ? "▶ " : "";
 			String lastSeen = lastSeenFor(friend);
 			String label = selection + friend + (online ? " — онлайн" : " — был: " + lastSeen);
-			Component labelComponent = Component.literal(label).withColor(online ? 0x55FF55 : 0xA0A0A0);
+			Component labelComponent = Component.literal(label).withColor(online ? online() : textMuted());
 			addRenderableWidget(StyledButton.create(labelComponent, ignored -> {
 				selectedFriend = friend;
-				setStatus("Выбран друг: " + friend, SUCCESS);
+				setStatus("Выбран друг: " + friend, success());
 				rebuildContents();
 			}).bounds(leftX, y, columnWidth - 26, FIELD_HEIGHT)
 					.tooltip(help(online ? "Друг сейчас онлайн"
@@ -367,11 +367,11 @@ public final class ResponderScreen extends CompatScreen {
 		String name = friendNameBox.getValue().trim();
 		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(name);
 		if (!validation.valid()) {
-			setStatus(validation.errorMessage(), ERROR);
+			setStatus(validation.errorMessage(), danger());
 			return;
 		}
 		if (config.friends.stream().anyMatch(value -> value.equalsIgnoreCase(name))) {
-			setStatus(name + " уже находится в друзьях", WARNING);
+			setStatus(name + " уже находится в друзьях", warning());
 			return;
 		}
 		friendsController.add(name);
@@ -380,7 +380,7 @@ public final class ResponderScreen extends CompatScreen {
 		if (CndlChatPlusClient.FRIEND_LOOKUP != null) {
 			CndlChatPlusClient.FRIEND_LOOKUP.queueFriends(List.of(name));
 		}
-		setStatus("Добавлен друг: " + name, SUCCESS);
+		setStatus("Добавлен друг: " + name, success());
 		rebuildContents();
 	}
 
@@ -389,7 +389,7 @@ public final class ResponderScreen extends CompatScreen {
 		if (name.equalsIgnoreCase(selectedFriend == null ? "" : selectedFriend)) {
 			selectedFriend = null;
 		}
-		setStatus("Друг удалён: " + name, SUCCESS);
+		setStatus("Друг удалён: " + name, success());
 		rebuildContents();
 	}
 
@@ -399,18 +399,18 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		String message = friendMessageBox.getValue().trim();
 		if (message.isEmpty()) {
-			setStatus("Введите текст личного сообщения", ERROR);
+			setStatus("Введите текст личного сообщения", danger());
 			return;
 		}
 		ServerCommandService.CommandResult result = CndlChatPlusClient.FRIEND_ACTIONS
 				.privateMessage(selectedFriend, message);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), ERROR);
+			setStatus(result.errorMessage(), danger());
 			return;
 		}
 		friendMessageValue = "";
 		friendMessageBox.setValue("");
-		setStatus("ЛС отправлено: " + selectedFriend, SUCCESS);
+		setStatus("ЛС отправлено: " + selectedFriend, success());
 	}
 
 	private void payFriend() {
@@ -419,16 +419,16 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		AmountValidator.AmountValidationResult amountResult = AmountValidator.validate(friendAmountBox.getValue());
 		if (!amountResult.valid()) {
-			setStatus(amountResult.errorMessage(), ERROR);
+			setStatus(amountResult.errorMessage(), danger());
 			return;
 		}
 		ServerCommandService.CommandResult result = CndlChatPlusClient.FRIEND_ACTIONS
 				.pay(selectedFriend, amountResult.normalizedAmount());
 		if (!result.success()) {
-			setStatus(result.errorMessage(), ERROR);
+			setStatus(result.errorMessage(), danger());
 			return;
 		}
-		setStatus("Перевод отправлен: " + selectedFriend, SUCCESS);
+		setStatus("Перевод отправлен: " + selectedFriend, success());
 	}
 
 	private void callFriend() {
@@ -437,10 +437,10 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		ServerCommandService.CommandResult result = CndlChatPlusClient.FRIEND_ACTIONS.call(selectedFriend);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), ERROR);
+			setStatus(result.errorMessage(), danger());
 			return;
 		}
-		setStatus("Запрос телепорта отправлен: " + selectedFriend, SUCCESS);
+		setStatus("Запрос телепорта отправлен: " + selectedFriend, success());
 	}
 
 	private void mailFriend() {
@@ -449,17 +449,17 @@ public final class ResponderScreen extends CompatScreen {
 		}
 		String message = friendMailBox.getValue().trim();
 		if (message.isEmpty()) {
-			setStatus("Введите текст сообщения на почту", ERROR);
+			setStatus("Введите текст сообщения на почту", danger());
 			return;
 		}
 		ServerCommandService.CommandResult result = CndlChatPlusClient.FRIEND_ACTIONS.mail(selectedFriend, message);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), ERROR);
+			setStatus(result.errorMessage(), danger());
 			return;
 		}
 		friendMailValue = "";
 		friendMailBox.setValue("");
-		setStatus("Почта отправлена: " + selectedFriend, SUCCESS);
+		setStatus("Почта отправлена: " + selectedFriend, success());
 	}
 
 	private String lastSeenFor(String friend) {
@@ -472,11 +472,11 @@ public final class ResponderScreen extends CompatScreen {
 
 	private boolean checkFriendAction() {
 		if (selectedFriend == null) {
-			setStatus("Сначала выберите друга из списка", ERROR);
+			setStatus("Сначала выберите друга из списка", danger());
 			return false;
 		}
 		if (minecraft.getConnection() == null) {
-			setStatus("Нет подключения к серверу", ERROR);
+			setStatus("Нет подключения к серверу", danger());
 			return false;
 		}
 		return true;
@@ -567,59 +567,59 @@ public final class ResponderScreen extends CompatScreen {
 		String nickname = nicknameBox.getValue().trim();
 		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(nickname);
 		if (!validation.valid()) {
-			setStatus(validation.errorMessage(), ERROR);
+			setStatus(validation.errorMessage(), danger());
 			return;
 		}
 
 		if (minecraft.getConnection() == null) {
-			setStatus("Нет подключения к серверу", ERROR);
+			setStatus("Нет подключения к серверу", danger());
 			return;
 		}
 
 		ServerCommandService.CommandResult result = CndlChatPlusClient.SERVER_COMMANDS.ignorePlayer(nickname);
 		if (!result.success()) {
-			setStatus(result.errorMessage(), ERROR);
+			setStatus(result.errorMessage(), danger());
 			return;
 		}
-		setStatus("Отправлено: /ignoreplayer " + nickname, SUCCESS);
+		setStatus("Отправлено: /ignoreplayer " + nickname, success());
 	}
 
 	private void addDiscordMutedPlayer() {
 		if (nicknameBox == null) {
-			setStatus("Откройте вкладку «Ники»", ERROR);
+			setStatus("Откройте вкладку «Ники»", danger());
 			return;
 		}
 		String nickname = nicknameBox.getValue().trim();
 		DiscordNameValidator.ValidationResult validation = DiscordNameValidator.validate(nickname);
 		if (!validation.valid()) {
-			setStatus(validation.errorMessage(), ERROR);
+			setStatus(validation.errorMessage(), danger());
 			return;
 		}
 		if (config.discordMutedPlayers.stream().anyMatch(value -> value.equalsIgnoreCase(nickname))) {
-			setStatus(nickname + " уже находится в Discord-муте", WARNING);
+			setStatus(nickname + " уже находится в Discord-муте", warning());
 			return;
 		}
 
 		blacklistController.addDiscord(nickname);
 		nicknameValue = "";
-		setStatus("Добавлен: " + nickname + " (discord)", SUCCESS);
+		setStatus("Добавлен: " + nickname + " (discord)", success());
 		rebuildContents();
 	}
 
 	private void addMutedWord() {
 		String word = wordBox.getValue().trim();
 		if (word.isEmpty()) {
-			setStatus("Введите слово или фразу", ERROR);
+			setStatus("Введите слово или фразу", danger());
 			return;
 		}
 		if (config.mutedWords.stream().anyMatch(value -> value.equalsIgnoreCase(word))) {
-			setStatus("Это слово уже находится в списке", WARNING);
+			setStatus("Это слово уже находится в списке", warning());
 			return;
 		}
 
 		blacklistController.addWord(word);
 		wordValue = "";
-		setStatus("Слово добавлено в чёрный список", SUCCESS);
+		setStatus("Слово добавлено в чёрный список", success());
 		rebuildContents();
 	}
 
@@ -652,33 +652,33 @@ public final class ResponderScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, 22, panelWidth, height - 26);
 		int infoX = panelX + panelWidth / 2;
-		if (!compactHeader) graphics.text(font, title, infoX - font.width(title) - 4, 8, TEXT_COLOR);
+		if (!compactHeader) graphics.text(font, title, infoX - font.width(title) - 4, 8, text());
 		int half = panelWidth / 2;
 		int tabIndex = tab.ordinal();
 		int tabX = panelX + half * tabIndex;
 		int tabWidth = tabIndex == 1 ? panelWidth - half : half;
-		graphics.fill(tabX + 3, 47, tabX + tabWidth - 3, 49, ACCENT);
+		graphics.fill(tabX + 3, 47, tabX + tabWidth - 3, 49, accent());
 		if (tab == Tab.BLACKLIST) {
 			if (blacklistMode == BlacklistMode.NICKS) {
 				int columnWidth = (panelWidth - 46) / 2;
-				graphics.text(font, "Подсказки игроков сервера", panelX + 18, 106, MUTED_COLOR);
-				graphics.text(font, "Локальный мут Discord", panelX + 28 + columnWidth, 106, MUTED_COLOR);
+				graphics.text(font, "Подсказки игроков сервера", panelX + 18, 106, textMuted());
+				graphics.text(font, "Локальный мут Discord", panelX + 28 + columnWidth, 106, textMuted());
 			} else {
 				graphics.text(font, "*-любое количество символов, например *нордпорт* работает что любое сообщение,",
-						panelX + 18, 106, MUTED_COLOR);
+						panelX + 18, 106, textMuted());
 				graphics.text(font, "где есть слово нордпорт не отобразится у вас в чате",
-						panelX + 18, 116, MUTED_COLOR);
+						panelX + 18, 116, textMuted());
 			}
 		} else {
 			int columnWidth = (panelWidth - 46) / 2;
 			int rightX = panelX + 28 + columnWidth;
-			graphics.text(font, "Список друзей", panelX + 18, 139, MUTED_COLOR);
+			graphics.text(font, "Список друзей", panelX + 18, 139, textMuted());
 			graphics.text(font, selectedFriend == null ? "Друг не выбран" : "Выбран: " + selectedFriend,
-					rightX, 60, selectedFriend == null ? MUTED_COLOR : SUCCESS);
+					rightX, 60, selectedFriend == null ? textMuted() : success());
 			if (selectedFriend != null) {
 				boolean online = onlineFriends.contains(selectedFriend.toLowerCase(Locale.ROOT));
 				graphics.text(font, online ? "Сейчас онлайн" : "Последний вход: " + lastSeenFor(selectedFriend),
-						rightX, 68, online ? ONLINE : MUTED_COLOR);
+						rightX, 68, online ? online() : textMuted());
 			}
 		}
 
@@ -686,7 +686,7 @@ public final class ResponderScreen extends CompatScreen {
 			int statusY = height - 53;
 			graphics.centeredText(font, status.text(), width / 2, statusY, status.color());
 		}
-		CreditRenderer.draw(graphics, font, panelX + 4, height - 13, MUTED_COLOR);
+		CreditRenderer.draw(graphics, font, panelX + 4, height - 13, textMuted());
 	}
 
 	private static Tooltip help(String text) {

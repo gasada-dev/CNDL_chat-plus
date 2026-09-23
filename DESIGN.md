@@ -7,10 +7,10 @@ and a single violet accent preserve the game's visual language while keeping den
 
 ## 2. Color
 
-All UI colors come from `UiConstants`: `BACKGROUND` for screen wash; `SURFACE`, `SURFACE_ALT`,
-and `SURFACE_HOVER` for depth; `BORDER` for outlines; `ACCENT` and `ACCENT_SOFT` for selection,
-focus, and headings; `TEXT` and `MUTED` for hierarchy; `SUCCESS`, `WARNING`, and `ERROR` for status.
-Chat-overlay controls retain their established high-contrast black, gray, white, and red palette.
+All UI colors come from `ThemeTokens`, backed by current `ThemeManager` theme: background for
+screen wash; surfaces for depth; borders for outlines; accent for selection, focus, and headings;
+text for hierarchy; success, warning, and danger for status. Default-theme values reproduce previous
+palette, including high-contrast black, gray, white, and red chat-overlay controls.
 
 ## 3. Typography
 
@@ -32,6 +32,7 @@ width. Compact mode begins near 520px and replaces side-by-side content with pag
 - `StyledEditBox`: native edit behavior with border and accent focus outline.
 - Pagination: adjacent `<` and `>` buttons with disabled boundary states; content remains reachable.
 - Status text: centered success/warning/error feedback; failed mutations stay on the current screen.
+- `ThemeScreen`: owo-ui theme selector on Minecraft 26.2 only; 1.21.11 does not open it.
 
 ## 6. Motion & Interaction
 
@@ -40,8 +41,9 @@ states are communicated by existing surface, border, text, and accent changes; n
 
 ## 7. Depth & Surface
 
-Use mixed tonal shift and one-pixel borders. `BACKGROUND` sits behind `SURFACE`; widgets use
-`SURFACE_ALT` and `SURFACE_HOVER`. Do not add shadows, textures, gradients, or new materials.
+Use mixed tonal shift and one-pixel borders. Background sits behind surfaces; widgets use secondary
+and hover surfaces. owo-ui uses theme radius tokens; vanilla panels retain flat fills. Do not add
+shadows, textures, gradients, or new materials.
 
 ## 8. Accessibility Constraints & Accepted Debt
 

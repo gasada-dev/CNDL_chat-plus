@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.List;
 
@@ -100,16 +100,16 @@ public final class HelpScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		Page current = PAGES.get(page);
-		graphics.centeredText(font, current.title(), width / 2, panelY + 14, ACCENT_SOFT);
-		graphics.fill(panelX + 18, panelY + 28, panelX + panelWidth - 18, panelY + 29, BORDER);
+		graphics.centeredText(font, current.title(), width / 2, panelY + 14, accentSoft());
+		graphics.fill(panelX + 18, panelY + 28, panelX + panelWidth - 18, panelY + 29, border());
 		int y = panelY + 42;
 		for (String line : current.lines()) {
-			graphics.text(font, "•", panelX + 18, y, ACCENT);
-			graphics.text(font, line, panelX + 32, y, TEXT);
+			graphics.text(font, "•", panelX + 18, y, accent());
+			graphics.text(font, line, panelX + 32, y, text());
 			y += 14;
 		}
 		graphics.centeredText(font, (page + 1) + " / " + PAGES.size(), width / 2,
-				panelY + panelHeight - 22, MUTED);
+				panelY + panelHeight - 22, textMuted());
 	}
 
 	@Override

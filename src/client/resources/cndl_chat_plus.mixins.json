@@ -10,7 +10,8 @@
 		"PlayerNametagMixin",
 		"PlayerTabOverlayMixin",
 		"ScreenMixin",
-		"ChatComponentSelectionMixin"
+		"ChatComponentSelectionMixin",
+		"ChatBackgroundMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -7,10 +7,6 @@ import net.minecraft.client.gui.Font;
 public final class ChatContextMenu {
 	private static final int ROW_HEIGHT = 14;
 	private static final int PAD_X = 5;
-	private static final int BG = 0xE0101010;
-	private static final int HOVER = 0xE0404040;
-	private static final int BORDER = 0xFFAAAAAA;
-	private static final int TEXT = 0xFFFFFFFF;
 
 	private String message;
 	private ChatMessageSenderExtractor.Sender sender;
@@ -48,14 +44,17 @@ public final class ChatContextMenu {
 
 	public void render(CompatGraphics graphics, Font font, int mouseX, int mouseY) {
 		if (!open()) return;
+		int height = actions.size() * ROW_HEIGHT;
+		graphics.roundedRect(x, y, x + width, y + height, ThemeTokens.safeRadiusMedium(),
+				ThemeTokens.safeBorderWidth(), ThemeTokens.border(), ThemeTokens.surface());
 		for (int index = 0; index < actions.size(); index++) {
 			int rowY = y + index * ROW_HEIGHT;
 			boolean hovered = mouseX >= x && mouseX < x + width
 					&& mouseY >= rowY && mouseY < rowY + ROW_HEIGHT;
-			graphics.fill(x, rowY, x + width, rowY + ROW_HEIGHT, hovered ? HOVER : BG);
-			graphics.text(font, actions.get(index).label(), x + PAD_X, rowY + 3, TEXT);
+			if (hovered) graphics.roundedFill(x, rowY, x + width, rowY + ROW_HEIGHT,
+					ThemeTokens.safeRadiusMedium(), ThemeTokens.surfaceHover());
+			graphics.text(font, actions.get(index).label(), x + PAD_X, rowY + 3, ThemeTokens.text());
 		}
-		graphics.outline(x, y, width, actions.size() * ROW_HEIGHT, BORDER);
 	}
 
 	public ChatContextAction actionAt(double mouseX, double mouseY) {

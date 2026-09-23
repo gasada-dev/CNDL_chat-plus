@@ -1,0 +1,73 @@
+{
+	"meta": {
+		"id": "vanilla",
+		"name": "Vanilla",
+		"author": "CNDL_chat+",
+		"version": 1
+	},
+
+	"_readme": [
+		"Файл темы CNDL_chat+; храните его в config/cndl-chat-plus-themes/.",
+		"Имя файла — ID темы: например, my-theme.json для темы my-theme.",
+		"Цвета записываются как #RRGGBB или #AARRGGBB.",
+		"Пропущенные ключи используют значения встроенной темы.",
+		"overrideBackground включает фон строк чата.",
+		"Итоговая прозрачность фона: alpha(chatBackground) × backgroundOpacity при значении opacity от 0 до 1.",
+		"padding меняет отступ текста, фон и hit-testing; messageSpacing меняет шаг строк и выделение.",
+		"width и height задаются в пикселях до scale; 0 или меньше оставляет vanilla размер.",
+		"geometry.borderWidth влияет на рамки панелей, кнопок и полей ввода.",
+		"geometry.radius* пока применяется только к owo-компонентам; vanilla-отрисовка скруглений не поддерживает."
+	],
+
+	"colors": {
+		"background": "#C0101010",
+		"surface": "#D0202020",
+		"surfaceSecondary": "#D0181818",
+		"hover": "#D0303030",
+		"pressed": "#D0101010",
+		"border": "#FF808080",
+		"borderFocused": "#FFFFFF55",
+		"accent": "#FFFFFF55",
+		"accentSoft": "#FFFFFFAA",
+		"text": "#FFFFFFFF",
+		"textMuted": "#FFAAAAAA",
+		"success": "#FF55FF55",
+		"warning": "#FFFFFF55",
+		"danger": "#FFFF5555",
+		"online": "#FF55FF55",
+		"hudSurface": "#B0000000",
+		"noticeSurface": "#D0202020",
+		"marriageSurface": "#E0552233",
+		"marriageBorder": "#FFFFA0B8",
+		"marriageAccent": "#FFFF7099",
+		"marriageText": "#FFFFFFFF",
+		"chatBackground": "#A0101010",
+		"chatTabBackground": "#A0000000",
+		"chatTabBackgroundHover": "#C0404040",
+		"chatTabOutline": "#FFFFFFFF",
+		"chatTabText": "#FFAAAAAA",
+		"chatTabTextActive": "#FFFFFFFF",
+		"chatBadge": "#FFFF5555"
+	},
+
+	"geometry": {
+		"radiusSmall": 0,
+		"radiusMedium": 0,
+		"radiusLarge": 0,
+		"borderWidth": 1,
+		"spacingSmall": 4,
+		"spacingMedium": 8,
+		"spacingLarge": 16
+	},
+
+	"chat": {
+		"padding": 4,
+		"messageSpacing": 1,
+		"width": 0,
+		"height": 0,
+		"backgroundOpacity": 1.0,
+		"tabHeight": 12,
+		"tabGap": 2,
+		"overrideBackground": false
+	}
+}

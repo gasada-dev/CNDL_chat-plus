@@ -75,10 +75,10 @@ public final class MarriageHud {
 		Bounds bounds = bounds(graphics.guiWidth(), graphics.guiHeight(), contentWidth,
 				friendsHud.occupiedHeight(), friendsHud.renderedWidth());
 		graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(),
-				UiConstants.MARRIAGE_SURFACE);
-		graphics.outline(bounds.x(), bounds.y(), bounds.width(), bounds.height(), UiConstants.MARRIAGE_BORDER);
-		graphics.text(font, TITLE, bounds.x() + 6, bounds.y() + 4, UiConstants.MARRIAGE_ACCENT);
-		graphics.text(font, snapshot.partner(), bounds.x() + 6, bounds.y() + 15, UiConstants.MARRIAGE_TEXT);
+				ThemeTokens.marriageSurface());
+		graphics.outline(bounds.x(), bounds.y(), bounds.width(), bounds.height(), ThemeTokens.marriageBorder());
+		graphics.text(font, TITLE, bounds.x() + 6, bounds.y() + 4, ThemeTokens.marriageAccent());
+		graphics.text(font, snapshot.partner(), bounds.x() + 6, bounds.y() + 15, ThemeTokens.marriageText());
 		if (!status.text().isEmpty()) {
 			graphics.text(font, status.text(), bounds.x() + 10 + font.width(snapshot.partner()),
 					bounds.y() + 15, status.color());
@@ -87,8 +87,8 @@ public final class MarriageHud {
 
 	static PartnerStatus partnerStatus(String partner, Set<String> onlinePlayers) {
 		return onlinePlayers.contains(partner.toLowerCase(Locale.ROOT))
-				? new PartnerStatus("", UiConstants.MUTED)
-				: new PartnerStatus("оффлайн", UiConstants.MUTED);
+				? new PartnerStatus("", ThemeTokens.textMuted())
+				: new PartnerStatus("оффлайн", ThemeTokens.textMuted());
 	}
 
 	static Bounds bounds(int screenWidth, int screenHeight, int contentWidth, int friendsOccupiedHeight,

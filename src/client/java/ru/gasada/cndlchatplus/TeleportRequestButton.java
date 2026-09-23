@@ -148,10 +148,10 @@ public final class TeleportRequestButton {
 		String label = label(request);
 		Bounds bounds = bounds(graphics.guiWidth(), minecraft.font, request.requester());
 		graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + HEIGHT,
-				UiConstants.SURFACE_ALT);
-		graphics.outline(bounds.x(), bounds.y(), bounds.width(), HEIGHT, UiConstants.SUCCESS);
+				ThemeTokens.surfaceSecondary());
+		graphics.outline(bounds.x(), bounds.y(), bounds.width(), HEIGHT, ThemeTokens.success());
 		graphics.centeredText(minecraft.font, label, bounds.x() + bounds.width() / 2,
-				bounds.y() + 6, UiConstants.TEXT);
+				bounds.y() + 6, ThemeTokens.text());
 	}
 
 	private PendingRequest current() {

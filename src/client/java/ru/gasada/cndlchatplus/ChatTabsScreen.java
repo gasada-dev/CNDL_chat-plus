@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,17 +77,17 @@ public final class ChatTabsScreen extends CompatScreen {
 			Integer percent = ChatTabTextSize.parsePercent(field.getValue());
 			if (percent == null || percent < ResponderConfig.MIN_CHAT_TAB_TEXT_SCALE_PERCENT
 					|| percent > ResponderConfig.MAX_CHAT_TAB_TEXT_SCALE_PERCENT) {
-				status.set("Введите размер от 50 до 200%", ERROR);
+				status.set("Введите размер от 50 до 200%", danger());
 				return;
 			}
 			Integer previous = config.chatTabTextScalePercent;
 			config.chatTabTextScalePercent = percent;
 			if (!ConfigManager.saveGlobalSettings(config)) {
 				config.chatTabTextScalePercent = previous;
-				status.set("Не удалось сохранить размер текста вкладок", ERROR);
+				status.set("Не удалось сохранить размер текста вкладок", danger());
 				return;
 			}
-			status.set("Размер текста вкладок сохранён", SUCCESS);
+			status.set("Размер текста вкладок сохранён", success());
 			rebuild();
 		}).bounds(x + rowWidth - saveWidth, panelY + 34, saveWidth, FIELD_HEIGHT).build());
 	}
@@ -134,7 +134,7 @@ public final class ChatTabsScreen extends CompatScreen {
 
 	private void addTab() {
 		if (config.customChatTabs.size() >= ResponderConfig.MAX_CUSTOM_CHAT_TABS) {
-			status.set("Достигнут лимит пользовательских вкладок", ERROR);
+			status.set("Достигнут лимит пользовательских вкладок", danger());
 			return;
 		}
 		ClientUi.setScreen(minecraft, new CustomChatTabEditScreen(this, null,
@@ -168,14 +168,14 @@ public final class ChatTabsScreen extends CompatScreen {
 		if (!ConfigManager.saveGlobalSettings(config)) {
 			config.customChatTabs = previousTabs;
 			config.hiddenBuiltInTabs = previousHidden;
-			status.set("Не удалось сохранить настройки вкладок", ERROR);
+			status.set("Не удалось сохранить настройки вкладок", danger());
 			return false;
 		}
 		if (CndlChatPlusClient.CHAT_TABS != null) {
 			CndlChatPlusClient.CHAT_TABS.reloadConfig(config);
 			CndlChatPlusClient.CHAT_TABS.refresh(minecraft);
 		}
-		status.set(successMessage, SUCCESS);
+		status.set(successMessage, success());
 		return true;
 	}
 
@@ -204,7 +204,7 @@ public final class ChatTabsScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 14);
-		graphics.text(font, textSizeLabel().getString(), panelX + 16, panelY + 40, TEXT);
+		graphics.text(font, textSizeLabel().getString(), panelX + 16, panelY + 40, text());
 		if (!status.empty()) graphics.centeredText(font, status.text(), width / 2,
 				panelY + panelHeight - 46, status.color());
 	}

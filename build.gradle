@@ -11,7 +11,7 @@ def targets = [
 		plugin: 'net.fabricmc.fabric-loom-remap', remap: true
 	],
 	mc26_2: [
-		minecraft: '26.2', java: 25, fabricApi: '0.156.0+26.2',
+		minecraft: '26.2', java: 25, fabricApi: '0.156.0+26.2', owoLib: '0.13.1+26.2',
 		minecraftConstraint: '~26.2', javaConstraint: '>=25', fabricApiConstraint: '>=0.156.0',
 		plugin: 'net.fabricmc.fabric-loom', remap: false
 	]
@@ -38,6 +38,10 @@ targets.each { projectName, target ->
 		}
 		if (target.remap) configurations.maybeCreate('modClientImplementation')
 
+		repositories {
+			maven { url = 'https://maven.wispforest.io/releases/' }
+		}
+
 		dependencies {
 			minecraft "com.mojang:minecraft:${target.minecraft}"
 			if (target.remap) {
@@ -48,6 +52,14 @@ targets.each { projectName, target ->
 			def modConfiguration = target.remap ? 'modClientImplementation' : 'implementation'
 			add(modConfiguration, "net.fabricmc:fabric-loader:${rootProject.loader_version}")
 			add(modConfiguration, "net.fabricmc.fabric-api:fabric-api:${target.fabricApi}")
+			if (target.owoLib) {
+				add(modConfiguration, "io.wispforest:owo-lib:${target.owoLib}") {
+					exclude group: 'com.github.kdl-org', module: 'kdl4j'
+				}
+				add('include', "io.wispforest:owo-lib:${target.owoLib}") {
+					exclude group: 'com.github.kdl-org', module: 'kdl4j'
+				}
+			}
 		}
 
 		sourceSets {
@@ -70,7 +82,8 @@ targets.each { projectName, target ->
 				loader_constraint: ">=${rootProject.loader_version}",
 				minecraft_constraint: target.minecraftConstraint,
 				java_constraint: target.javaConstraint,
-				fabric_api_constraint: target.fabricApiConstraint
+				fabric_api_constraint: target.fabricApiConstraint,
+				owo_depends: target.owoLib ? ',\n\t\t"owo": ">=0.13.0"' : ''
 			]
 			inputs.properties values
 			filesMatching('fabric.mod.json') {

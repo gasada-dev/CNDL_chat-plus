@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.List;
 
@@ -91,7 +91,7 @@ public final class ChatAlertsScreen extends CompatScreen {
 
 	private void addRule() {
 		if (config.chatAlertRules.size() >= ResponderConfig.MAX_CHAT_ALERT_RULES) {
-			status.set("Достигнут лимит 100 правил", ERROR);
+			status.set("Достигнут лимит 100 правил", danger());
 			return;
 		}
 		ClientUi.setScreen(minecraft, new ChatAlertEditScreen(this, null, this::saveRule));
@@ -135,7 +135,7 @@ public final class ChatAlertsScreen extends CompatScreen {
 			CndlChatPlusClient.CHAT_ALERTS.reload(config.chatAlertRules);
 		}
 		status.set(saved ? "Alert-правила сохранены" : "Не удалось сохранить alert-правила",
-				saved ? SUCCESS : ERROR);
+				saved ? success() : danger());
 	}
 
 	private ChatAlertRule selected() {
@@ -177,7 +177,7 @@ public final class ChatAlertsScreen extends CompatScreen {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 12);
 		if (config.chatAlertRules.isEmpty()) {
-			graphics.centeredText(font, "Alert-правил пока нет", width / 2, panelY + 92, MUTED);
+			graphics.centeredText(font, "Alert-правил пока нет", width / 2, panelY + 92, textMuted());
 		}
 		if (!status.empty()) graphics.centeredText(font, status.text(), width / 2,
 				panelY + panelHeight - 76, status.color());

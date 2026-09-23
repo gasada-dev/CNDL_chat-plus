@@ -28,7 +28,7 @@ final class MarriageMenuScreen extends CompatScreen {
 
 	private void addAction(MarriageAction action, int offsetY) {
 		addRenderableWidget(StyledButton.create(Component.literal(action.label()), ignored -> execute(action))
-				.bounds(panelX + 16, panelY + offsetY, panelWidth - 32, UiConstants.FIELD_HEIGHT).build());
+				.bounds(panelX + 16, panelY + offsetY, panelWidth - 32, ThemeTokens.FIELD_HEIGHT).build());
 	}
 
 	private void execute(MarriageAction action) {
@@ -45,11 +45,11 @@ final class MarriageMenuScreen extends CompatScreen {
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, PANEL_HEIGHT,
-				UiConstants.MARRIAGE_SURFACE, UiConstants.MARRIAGE_BORDER);
-		graphics.centeredText(font, title, width / 2, panelY + 10, UiConstants.MARRIAGE_TEXT);
-		graphics.centeredText(font, context.partner(), width / 2, panelY + 25, UiConstants.MARRIAGE_ACCENT);
+				ThemeTokens.marriageSurface(), ThemeTokens.marriageBorder());
+		graphics.centeredText(font, title, width / 2, panelY + 10, ThemeTokens.marriageText());
+		graphics.centeredText(font, context.partner(), width / 2, panelY + 25, ThemeTokens.marriageAccent());
 		if (!status.isEmpty()) {
-			graphics.centeredText(font, status, width / 2, panelY + 119, UiConstants.ERROR);
+			graphics.centeredText(font, status, width / 2, panelY + 119, ThemeTokens.danger());
 		}
 	}
 
