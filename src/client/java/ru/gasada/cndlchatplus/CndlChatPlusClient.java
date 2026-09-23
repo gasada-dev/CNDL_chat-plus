@@ -51,6 +51,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		RuntimeResetCoordinator resetCoordinator = new RuntimeResetCoordinator();
 		VANILLA_BOX_RUNTIME = new VanillaBoxRuntime(resetCoordinator);
 		Path configDirectory = FabricLoader.getInstance().getConfigDir();
+		ThemeManager.initialize(configDirectory);
 		VanillaBoxConfigStore vanillaBoxStore = new VanillaBoxConfigStore(configDirectory);
 		OutgoingChatService outgoingChatService = OutgoingChatService.forMinecraft(
 				ignored -> { }, VANILLA_BOX_RUNTIME::generation);

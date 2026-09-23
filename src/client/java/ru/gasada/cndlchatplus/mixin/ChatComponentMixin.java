@@ -3,12 +3,16 @@ package ru.gasada.cndlchatplus.mixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.minecraft.client.gui.components.ChatComponent;
 import ru.gasada.cndlchatplus.ChatTabFilterAccess;
 import ru.gasada.cndlchatplus.CndlChatPlusClient;
 import ru.gasada.cndlchatplus.ResponderConfig;
+import ru.gasada.cndlchatplus.ThemeTokens;
 
 @Mixin(ChatComponent.class)
 public abstract class ChatComponentMixin implements ChatTabFilterAccess {
@@ -23,6 +27,21 @@ public abstract class ChatComponentMixin implements ChatTabFilterAccess {
 			return original;
 		}
 		return config.chatHistoryLimit;
+	}
+
+	@Inject(method = "getWidth()I", at = @At("RETURN"), cancellable = true, require = 1)
+	private void gasada$themeChatWidth(CallbackInfoReturnable<Integer> cir) {
+		cir.setReturnValue(ThemeTokens.resolvedChatWidth(cir.getReturnValue()));
+	}
+
+	@Inject(method = "getHeight()I", at = @At("RETURN"), cancellable = true, require = 1)
+	private void gasada$themeChatHeight(CallbackInfoReturnable<Integer> cir) {
+		cir.setReturnValue(ThemeTokens.resolvedChatHeight(cir.getReturnValue()));
+	}
+
+	@ModifyConstant(method = "getLineHeight()I", constant = @Constant(doubleValue = 9.0, ordinal = 0), require = 1)
+	private double gasada$themeChatLineHeight(double original) {
+		return ThemeTokens.chatLineBaseHeight();
 	}
 
 	@Invoker("refreshTrimmedMessages")

@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -170,11 +170,11 @@ public final class ChatBookmarksScreen extends CompatScreen {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 12);
 		if (selected() == null && store.snapshot().isEmpty()) {
-			graphics.centeredText(font, "Закладок пока нет", width / 2, panelY + 92, MUTED);
+			graphics.centeredText(font, "Закладок пока нет", width / 2, panelY + 92, textMuted());
 		}
 		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2,
 				panelY + panelHeight - (panelWidth < 520 ? 68 : 46),
-				statusError ? ERROR : SUCCESS);
+				statusError ? danger() : success());
 	}
 
 	@Override

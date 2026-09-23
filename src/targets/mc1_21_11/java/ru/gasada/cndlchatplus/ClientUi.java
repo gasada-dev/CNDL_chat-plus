@@ -7,4 +7,6 @@ final class ClientUi {
 	private ClientUi() { }
 	static Screen currentScreen(Minecraft minecraft) { return minecraft.screen; }
 	static void setScreen(Minecraft minecraft, Screen screen) { minecraft.setScreen(screen); }
+	static boolean themeScreenAvailable() { return false; }
+	static void openThemeScreen(Minecraft minecraft, Screen parent) { }
 }

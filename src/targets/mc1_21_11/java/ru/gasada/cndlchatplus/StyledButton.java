@@ -18,11 +18,11 @@ class StyledButton extends Button {
 	@Override
 	protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
 		boolean highlighted = active && isHovered();
-		graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(),
-				highlighted ? UiConstants.SURFACE_HOVER : UiConstants.SURFACE_ALT);
-		graphics.renderOutline(getX(), getY(), getWidth(), getHeight(),
-				highlighted ? UiConstants.ACCENT : UiConstants.BORDER);
-		int color = active ? UiConstants.TEXT : UiConstants.MUTED;
+		new CompatGraphics(graphics).roundedRect(getX(), getY(), getX() + getWidth(), getY() + getHeight(),
+				ThemeTokens.safeRadiusSmall(), ThemeTokens.safeBorderWidth(),
+				highlighted ? ThemeTokens.accent() : ThemeTokens.border(),
+				highlighted ? ThemeTokens.surfaceHover() : ThemeTokens.surfaceSecondary());
+		int color = active ? ThemeTokens.text() : ThemeTokens.textMuted();
 		graphics.enableScissor(getX() + 1, getY() + 1, getX() + getWidth() - 1, getY() + getHeight() - 1);
 		graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(),
 				getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, color);

@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -112,7 +112,7 @@ public final class CustomChatTabEditScreen extends CompatScreen {
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 14);
-		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2, panelY + 34, ERROR);
+		if (!status.isEmpty()) graphics.centeredText(font, status, width / 2, panelY + 34, danger());
 	}
 
 	@Override

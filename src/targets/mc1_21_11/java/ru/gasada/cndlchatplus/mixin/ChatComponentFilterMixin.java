@@ -18,6 +18,7 @@ import ru.gasada.cndlchatplus.ChatMessageTarget;
 import ru.gasada.cndlchatplus.ChatMessageUnderMouseAccess;
 import ru.gasada.cndlchatplus.ChatTabFilterAccess;
 import ru.gasada.cndlchatplus.CndlChatPlusClient;
+import ru.gasada.cndlchatplus.ThemeTokens;
 
 @Mixin(ChatComponent.class)
 public abstract class ChatComponentFilterMixin implements ChatMessageUnderMouseAccess, ChatDuplicateAccess {
@@ -41,7 +42,7 @@ public abstract class ChatComponentFilterMixin implements ChatMessageUnderMouseA
 		ChatTabFilterAccess access = (ChatTabFilterAccess) this;
 		int index = ChatMessageHitTest.lineIndex(mouseX, mouseY, screenHeight, access.gasada$chatWidth(),
 				access.gasada$chatHeight(), access.gasada$chatScale(), access.gasada$chatLineHeight(),
-				chatScrollbarPos);
+				chatScrollbarPos, ThemeTokens.chatIndent());
 		if (index < 0 || index >= trimmedMessages.size()) return null;
 
 		int groupStart = index;

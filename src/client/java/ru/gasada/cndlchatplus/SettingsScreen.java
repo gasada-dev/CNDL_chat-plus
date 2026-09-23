@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.function.Consumer;
 
@@ -75,6 +75,12 @@ public final class SettingsScreen extends CompatScreen {
 				.tooltip(Tooltip.create(Component.literal("Настроить уведомления о сообщениях"))).build());
 		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 18 - backWidth, buttonY, backWidth, FIELD_HEIGHT).build());
+		if (ClientUi.themeScreenAvailable()) {
+			int themeWidth = narrow ? 62 : 74;
+			addRenderableWidget(StyledButton.create(Component.literal("Темы"), ignored ->
+					ClientUi.openThemeScreen(minecraft, this))
+					.bounds(panelX + panelWidth - 22 - backWidth - themeWidth, buttonY, themeWidth, FIELD_HEIGHT).build());
+		}
 	}
 
 	private void addPageButton(Page target, int x, int y, int buttonWidth) {
@@ -194,7 +200,7 @@ public final class SettingsScreen extends CompatScreen {
 
 	private void persistChatBinds() {
 		boolean saved = ConfigManager.saveGlobalSettings(config);
-		status.set(saved ? "Бинды сохранены" : "Не удалось сохранить бинды", saved ? SUCCESS : ERROR);
+		status.set(saved ? "Бинды сохранены" : "Не удалось сохранить бинды", saved ? success() : danger());
 	}
 
 	private void persistChatBindIfComplete(ChatBind bind) {
@@ -222,7 +228,7 @@ public final class SettingsScreen extends CompatScreen {
 					update.accept(value);
 					boolean saved = ConfigManager.saveGlobalSettings(config);
 					status.set(saved ? "Настройки сохранены" : "Не удалось сохранить настройки",
-							saved ? SUCCESS : ERROR);
+							saved ? success() : danger());
 				});
 		addRenderableWidget(toggle);
 		toggle.setTooltip(Tooltip.create(Component.literal(help)));
@@ -253,10 +259,10 @@ public final class SettingsScreen extends CompatScreen {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 14);
 		if (!narrow && page == Page.BINDS) {
-			graphics.text(font, "Бинды", panelX + 18, panelY + 38, ACCENT_SOFT);
+			graphics.text(font, "Бинды", panelX + 18, panelY + 38, accentSoft());
 		} else if (!narrow) {
-			graphics.text(font, "Чат", panelX + 18, panelY + 38, ACCENT_SOFT);
-			graphics.text(font, "Отображение и звуки", panelX + panelWidth / 2 + 8, panelY + 38, ACCENT_SOFT);
+			graphics.text(font, "Чат", panelX + 18, panelY + 38, accentSoft());
+			graphics.text(font, "Отображение и звуки", panelX + panelWidth / 2 + 8, panelY + 38, accentSoft());
 		}
 		if (!status.empty() && (!narrow || panelHeight >= 240)) {
 			graphics.centeredText(font, status.text(), width / 2, panelY + panelHeight - 44, status.color());

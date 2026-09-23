@@ -1,0 +1,76 @@
+{
+	"meta": {
+		"id": "nocturne-glass",
+		"name": "Nocturne Glass",
+		"author": "AmadoMuerte",
+		"version": 1
+	},
+
+	"_readme": [
+		"Файл темы CNDL_chat+; храните его в config/cndl-chat-plus-themes/.",
+		"Имя файла — ID темы: например, nocturne-glass.json для темы nocturne-glass.",
+		"Цвета записываются как #RRGGBB или #AARRGGBB.",
+		"Пропущенные ключи используют значения встроенной темы.",
+		"overrideBackground включает фон строк чата.",
+		"Итоговая прозрачность фона: alpha(chatBackground) × backgroundOpacity при значении opacity от 0 до 1.",
+		"padding меняет отступ текста, фон и hit-testing; messageSpacing меняет шаг строк и выделение.",
+		"width и height задаются в пикселях до scale; 0 или меньше оставляет vanilla размер.",
+		"geometry.borderWidth влияет на рамки панелей, кнопок и полей ввода.",
+		"geometry.radius* пока применяется только к owo-компонентам; vanilla-отрисовка скруглений не поддерживает."
+	],
+
+	"colors": {
+		"background": "#E7080A10",
+		"surface": "#E50D1019",
+		"surfaceSecondary": "#E8121622",
+
+		"hover": "#E51C2233",
+		"pressed": "#F0080A0F",
+
+		"border": "#B839435C",
+		"borderFocused": "#FF8B83FF",
+
+		"accent": "#FF9A91FF",
+		"accentSoft": "#FFB9B5FF",
+
+		"text": "#FFF2F4FA",
+		"textMuted": "#FF8991A5",
+
+		"chatBackground": "#A60A0C12",
+
+		"chatTabBackground": "#E30C0F17",
+		"chatTabBackgroundHover": "#F0181D2B",
+		"chatTabOutline": "#D98B83FF",
+
+		"chatTabText": "#FF939BAD",
+		"chatTabTextActive": "#FFF5F6FC",
+
+		"chatBadge": "#FFFF6E9C"
+	},
+
+	"geometry": {
+		"radiusSmall": 6,
+		"radiusMedium": 6,
+		"radiusLarge": 6,
+
+		"borderWidth": 1,
+
+		"spacingSmall": 4,
+		"spacingMedium": 8,
+		"spacingLarge": 14
+	},
+
+	"chat": {
+		"padding": 5,
+		"messageSpacing": 2,
+
+		"width": 0,
+		"height": 0,
+
+		"backgroundOpacity": 0.66,
+		"tabHeight": 13,
+		"tabGap": 3,
+
+		"overrideBackground": true
+	}
+}

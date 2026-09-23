@@ -17,17 +17,18 @@ final class ChatTextSelectionTest {
 	@Test
 	void mapsCoordinatesWithScrollAndClampsDraggedEndpoints() {
 		assertEquals(new ChatTextSelection.Point(2, 2), ChatTextSelection.pointAt(24, 141, 200, 180,
-				1, 9, 2, LINES, ADVANCES));
+				1, 9, 2, LINES, ADVANCES, 4));
 		assertEquals(new ChatTextSelection.Point(2, 0), ChatTextSelection.pointAt(-20, -30, 200, 180,
-				1, 9, 2, LINES, ADVANCES));
-		assertNull(ChatTextSelection.pointAt(4, 160, 200, 180, 0, 9, 0, LINES, ADVANCES));
+				1, 9, 2, LINES, ADVANCES, 4));
+		assertNull(ChatTextSelection.pointAt(4, 160, 200, 180, 0, 9, 0, LINES, ADVANCES, 4));
 	}
 
 	@Test
 	void identifiesChatBoundsBeforeStartingSelection() {
-		assertTrue(ChatTextSelection.contains(10, 159, 200, 320, 180, 1, 9));
-		assertFalse(ChatTextSelection.contains(3, 159, 200, 320, 180, 1, 9));
-		assertFalse(ChatTextSelection.contains(10, 161, 200, 320, 180, 1, 9));
+		assertTrue(ChatTextSelection.contains(10, 159, 200, 320, 180, 1, 9, 4));
+		assertFalse(ChatTextSelection.contains(3, 159, 200, 320, 180, 1, 9, 4));
+		assertFalse(ChatTextSelection.contains(10, 161, 200, 320, 180, 1, 9, 4));
+		assertFalse(ChatTextSelection.contains(7, 159, 200, 320, 180, 1, 9, 8));
 	}
 
 	@Test

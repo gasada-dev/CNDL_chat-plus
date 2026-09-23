@@ -73,11 +73,11 @@ public final class FriendsHud {
 		int boxHeight = 8 + (online.size() + 1) * 11;
 		int x = graphics.guiWidth() - boxWidth - 5;
 		int y = graphics.guiHeight() - boxHeight - 5;
-		graphics.fill(x, y, x + boxWidth, y + boxHeight, UiConstants.HUD_SURFACE);
-		graphics.outline(x, y, boxWidth, boxHeight, UiConstants.BORDER);
-		graphics.text(font, title, x + 6, y + 4, UiConstants.TEXT);
+		graphics.fill(x, y, x + boxWidth, y + boxHeight, ThemeTokens.hudSurface());
+		graphics.outline(x, y, boxWidth, boxHeight, ThemeTokens.border());
+		graphics.text(font, title, x + 6, y + 4, ThemeTokens.text());
 		for (int index = 0; index < online.size(); index++) {
-			graphics.text(font, "● " + online.get(index), x + 6, y + 15 + index * 11, UiConstants.ONLINE);
+			graphics.text(font, "● " + online.get(index), x + 6, y + 15 + index * 11, ThemeTokens.online());
 		}
 
 		int noticeY = y - 5;
@@ -88,12 +88,12 @@ public final class FriendsHud {
 			int noticeWidth = Math.round(font.width(notice) * noticeScale) + 16;
 			noticeY -= 20;
 			int noticeX = graphics.guiWidth() - noticeWidth - 5;
-			graphics.fill(noticeX, noticeY, noticeX + noticeWidth, noticeY + 18, 0xD0222937);
-			graphics.outline(noticeX, noticeY, noticeWidth, 18, UiConstants.ACCENT);
+			graphics.fill(noticeX, noticeY, noticeX + noticeWidth, noticeY + 18, ThemeTokens.noticeSurface());
+			graphics.outline(noticeX, noticeY, noticeWidth, 18, ThemeTokens.accent());
 			graphics.pushPose();
 			graphics.translatePose(noticeX + 8, noticeY + 4);
 			graphics.scalePose(noticeScale);
-			graphics.text(font, notice, 0, 0, UiConstants.ONLINE);
+			graphics.text(font, notice, 0, 0, ThemeTokens.online());
 			graphics.popPose();
 		}
 	}

@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -37,8 +37,8 @@ public final class ChatBookmarksClearScreen extends CompatScreen {
 
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.centeredText(font, title, width / 2, height / 2 - 18, WARNING);
-		graphics.centeredText(font, "Действие нельзя отменить", width / 2, height / 2, MUTED);
+		graphics.centeredText(font, title, width / 2, height / 2 - 18, warning());
+		graphics.centeredText(font, "Действие нельзя отменить", width / 2, height / 2, textMuted());
 	}
 
 	@Override

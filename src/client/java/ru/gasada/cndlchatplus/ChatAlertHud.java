@@ -80,9 +80,9 @@ public final class ChatAlertHud {
 			String text = font.plainSubstrByWidth(notice.text(), maxWidth - 12);
 			int width = font.width(text) + 12;
 			int x = graphics.guiWidth() - width - 5;
-			graphics.fill(x, y, x + width, y + 18, 0xD0222937);
-			graphics.outline(x, y, width, 18, UiConstants.ACCENT);
-			graphics.text(font, text, x + 6, y + 5, UiConstants.TEXT);
+			graphics.fill(x, y, x + width, y + 18, ThemeTokens.noticeSurface());
+			graphics.outline(x, y, width, 18, ThemeTokens.accent());
+			graphics.text(font, text, x + 6, y + 5, ThemeTokens.text());
 			y += 21;
 		}
 	}

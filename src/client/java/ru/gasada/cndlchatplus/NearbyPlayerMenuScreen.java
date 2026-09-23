@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import net.minecraft.network.chat.Component;
 
@@ -65,10 +65,10 @@ public final class NearbyPlayerMenuScreen extends CompatScreen {
 	@Override
 	protected void renderContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT);
-		graphics.centeredText(font, title, width / 2, panelY + 10, TEXT);
-		graphics.centeredText(font, player, width / 2, panelY + 25, SUCCESS);
+		graphics.centeredText(font, title, width / 2, panelY + 10, text());
+		graphics.centeredText(font, player, width / 2, panelY + 25, success());
 		if (!status.isEmpty()) {
-			graphics.centeredText(font, status, width / 2, panelY + 146, ERROR);
+			graphics.centeredText(font, status, width / 2, panelY + 146, danger());
 		}
 	}
 

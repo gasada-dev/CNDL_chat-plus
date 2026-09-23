@@ -1,0 +1,63 @@
+{
+	"meta": {
+		"id": "contrast",
+		"name": "High contrast",
+		"author": "CNDL_chat+",
+		"version": 1
+	},
+
+	"_readme": [
+		"Файл темы CNDL_chat+; храните его в config/cndl-chat-plus-themes/.",
+		"Имя файла — ID темы: например, my-theme.json для темы my-theme.",
+		"Цвета записываются как #RRGGBB или #AARRGGBB.",
+		"Пропущенные ключи используют значения встроенной темы.",
+		"overrideBackground включает фон строк чата.",
+		"Итоговая прозрачность фона: alpha(chatBackground) × backgroundOpacity при значении opacity от 0 до 1.",
+		"padding меняет отступ текста, фон и hit-testing; messageSpacing меняет шаг строк и выделение.",
+		"width и height задаются в пикселях до scale; 0 или меньше оставляет vanilla размер.",
+		"geometry.borderWidth влияет на рамки панелей, кнопок и полей ввода.",
+		"geometry.radius* пока применяется только к owo-компонентам; vanilla-отрисовка скруглений не поддерживает."
+	],
+
+	"colors": {
+		"background": "#FF000000",
+		"surface": "#FF000000",
+		"surfaceSecondary": "#FF000000",
+		"hover": "#FF202020",
+		"pressed": "#FF000000",
+		"border": "#FFFFFFFF",
+		"borderFocused": "#FFFFFF00",
+		"accent": "#FFFFFF00",
+		"accentSoft": "#FFFFFF00",
+		"text": "#FFFFFFFF",
+		"textMuted": "#FFFFFFFF",
+		"chatBackground": "#A0000000",
+		"chatTabBackground": "#FF000000",
+		"chatTabBackgroundHover": "#FF202020",
+		"chatTabOutline": "#FFFFFFFF",
+		"chatTabText": "#FFFFFFFF",
+		"chatTabTextActive": "#FFFFFF00",
+		"chatBadge": "#FFFFFF00"
+	},
+
+	"geometry": {
+		"radiusSmall": 0,
+		"radiusMedium": 0,
+		"radiusLarge": 0,
+		"borderWidth": 1,
+		"spacingSmall": 4,
+		"spacingMedium": 8,
+		"spacingLarge": 16
+	},
+
+	"chat": {
+		"padding": 4,
+		"messageSpacing": 1,
+		"width": 0,
+		"height": 0,
+		"backgroundOpacity": 1.0,
+		"tabHeight": 12,
+		"tabGap": 2,
+		"overrideBackground": true
+	}
+}

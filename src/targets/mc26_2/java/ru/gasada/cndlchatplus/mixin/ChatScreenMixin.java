@@ -30,6 +30,7 @@ import ru.gasada.cndlchatplus.ChatTextSelectionAccess;
 import ru.gasada.cndlchatplus.CompatGraphics;
 import ru.gasada.cndlchatplus.CndlChatPlusClient;
 import ru.gasada.cndlchatplus.ScreenWidgetAccess;
+import ru.gasada.cndlchatplus.ThemeTokens;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
@@ -217,7 +218,8 @@ public abstract class ChatScreenMixin {
 	private void gasada$startSelection(double mouseX, double mouseY, int screenHeight) {
 		ChatTabFilterAccess metrics = (ChatTabFilterAccess) Minecraft.getInstance().gui.hud.getChat();
 		if (!ChatTextSelection.contains(mouseX, mouseY, screenHeight, metrics.gasada$chatWidth(),
-				metrics.gasada$chatHeight(), metrics.gasada$chatScale(), metrics.gasada$chatLineHeight())) {
+				metrics.gasada$chatHeight(), metrics.gasada$chatScale(), metrics.gasada$chatLineHeight(),
+				ThemeTokens.chatIndent())) {
 			return;
 		}
 		ChatTextSelectionAccess access = (ChatTextSelectionAccess) Minecraft.getInstance().gui.hud.getChat();
@@ -226,7 +228,7 @@ public abstract class ChatScreenMixin {
 		List<int[]> advances = gasada$characterAdvances(lines);
 		ChatTextSelection.Point point = ChatTextSelection.pointAt(mouseX, mouseY, screenHeight,
 				metrics.gasada$chatHeight(), metrics.gasada$chatScale(), metrics.gasada$chatLineHeight(),
-				access.gasada$selectionScrollPosition(), lines, advances);
+				access.gasada$selectionScrollPosition(), lines, advances, ThemeTokens.chatIndent());
 		if (point == null) return;
 		gasada$selectionStart = point;
 		gasada$selectionEnd = point;
@@ -249,7 +251,8 @@ public abstract class ChatScreenMixin {
 		ChatTabFilterAccess metrics = (ChatTabFilterAccess) minecraft.gui.hud.getChat();
 		gasada$selectionEnd = ChatTextSelection.pointAt(mouseX, mouseY, ((Screen) (Object) this).height,
 				metrics.gasada$chatHeight(), metrics.gasada$chatScale(), metrics.gasada$chatLineHeight(),
-				gasada$selectionScrollPosition, gasada$selectionLines, gasada$selectionAdvances);
+				gasada$selectionScrollPosition, gasada$selectionLines, gasada$selectionAdvances,
+				ThemeTokens.chatIndent());
 		gasada$selectionDragged |= gasada$dragged(mouseX, mouseY);
 		if (!gasada$selectionDragged || gasada$selectionEnd == null) return;
 		ChatTextSelection.Point top = gasada$selectionStart.line() >= gasada$selectionEnd.line()
@@ -263,8 +266,8 @@ public abstract class ChatScreenMixin {
 			int end = line == top.line() ? top.offset() : text.length();
 			if (start == end) continue;
 			int[] advances = gasada$selectionAdvances.get(line);
-			int left = (int) Math.floor((4 + advances[start]) * scale);
-			int right = (int) Math.ceil((4 + advances[end]) * scale);
+			int left = (int) Math.floor((ThemeTokens.chatIndent() + advances[start]) * scale);
+			int right = (int) Math.ceil((ThemeTokens.chatIndent() + advances[end]) * scale);
 			int y = ChatTextSelection.lineTop(((Screen) (Object) this).height, scale, lineHeight,
 					gasada$selectionScrollPosition, line);
 			graphics.fill(left, y, right, y + (int) Math.ceil(lineHeight * scale), 0x664a90e2);

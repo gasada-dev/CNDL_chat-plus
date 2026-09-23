@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.List;
 
@@ -71,7 +71,7 @@ public final class UpdateAvailableScreen extends CompatScreen {
 
 	@Override
 	protected void renderBackgroundContent(CompatGraphics graphics, int mouseX, int mouseY, float delta) {
-		graphics.fill(0, 0, width, height, 0xD010141D);
+		graphics.fill(0, 0, width, height, background());
 	}
 
 	@Override
@@ -79,18 +79,18 @@ public final class UpdateAvailableScreen extends CompatScreen {
 		ScreenChrome.drawPanel(graphics, panelX, panelY, panelWidth, panelHeight);
 		ScreenChrome.drawHeader(graphics, font, title, width / 2, panelY + 16);
 		graphics.centeredText(font, "Установлена: " + currentVersion + "  →  Новая: " + update.version(),
-				width / 2, panelY + 42, ACCENT_SOFT);
+				width / 2, panelY + 42, accentSoft());
 		boolean truncated = noteLines.size() > maxNotesLines;
 		int visibleLines = truncated ? Math.max(0, maxNotesLines - 1) : noteLines.size();
 		for (int index = 0; index < visibleLines; index++) {
 			graphics.text(font, noteLines.get(index), panelX + 24,
-					notesY + index * font.lineHeight, 0xFFCED5E0);
+					notesY + index * font.lineHeight, text());
 		}
 		if (truncated) {
 			graphics.text(font, "...", panelX + 24,
-					notesY + visibleLines * font.lineHeight, 0xFFCED5E0);
+					notesY + visibleLines * font.lineHeight, text());
 		}
-		CreditRenderer.draw(graphics, font, panelX + 6, panelY + panelHeight - 12, MUTED);
+		CreditRenderer.draw(graphics, font, panelX + 6, panelY + panelHeight - 12, textMuted());
 	}
 
 	static String formatNotes(String message) {

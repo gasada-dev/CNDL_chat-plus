@@ -26,3 +26,5 @@ Thumbs.db
 
 # Optional archives in the repository root
 /*.zip
+.opencode/
+.direnv/

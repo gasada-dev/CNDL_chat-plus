@@ -7,9 +7,9 @@ public final class ChatMessageHitTest {
 	}
 
 	public static int lineIndex(double mouseX, double mouseY, int screenHeight, int chatWidth,
-			int chatHeight, double scale, int lineHeight, int scrollPosition) {
+			int chatHeight, double scale, int lineHeight, int scrollPosition, int padding) {
 		if (scale <= 0 || lineHeight <= 0) return -1;
-		double localX = mouseX / scale - 4;
+		double localX = mouseX / scale - Math.max(0, padding);
 		if (localX < 0 || localX >= chatWidth / scale) return -1;
 		int chatBottom = (int) Math.floor((screenHeight - BOTTOM_MARGIN) / scale);
 		int row = (int) Math.floor((chatBottom - mouseY / scale) / lineHeight);

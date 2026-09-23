@@ -22,6 +22,6 @@
 		"fabricloader": "${loader_constraint}",
 		"minecraft": "${minecraft_constraint}",
 		"java": "${java_constraint}",
-		"fabric-api": "${fabric_api_constraint}"
+		"fabric-api": "${fabric_api_constraint}"${owo_depends}
 	}
 }

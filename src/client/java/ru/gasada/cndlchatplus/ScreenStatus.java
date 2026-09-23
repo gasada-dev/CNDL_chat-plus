@@ -2,7 +2,7 @@ package ru.gasada.cndlchatplus;
 
 public final class ScreenStatus {
 	private String text = "";
-	private int color = 0xFF75D98B;
+	private int color = ThemeTokens.success();
 
 	public String text() { return text; }
 	public int color() { return color; }

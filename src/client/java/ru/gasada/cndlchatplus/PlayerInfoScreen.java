@@ -1,6 +1,6 @@
 package ru.gasada.cndlchatplus;
 
-import static ru.gasada.cndlchatplus.UiConstants.*;
+import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,10 +12,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public final class PlayerInfoScreen extends CompatScreen {
-	private static final int TEXT_COLOR = TEXT;
-	private static final int MUTED_COLOR = MUTED;
-	private static final int ERROR_COLOR = ERROR;
-	private static final int SUCCESS_COLOR = SUCCESS;
 	private static final int BUILDINGS_PER_PAGE = 6;
 
 	private final Screen parent;
@@ -27,7 +23,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 	private PlayerInfoProfile profile;
 	private PlayerLookupData lookupData;
 	private String status = "Выберите игрока и нажмите «Обновить»";
-	private int statusColor = MUTED_COLOR;
+	private int statusColor = textMuted();
 	private boolean loading;
 	private int requestSerial;
 	private int buildingPage;
@@ -102,7 +98,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 			lookupData = null;
 			buildingPage = 0;
 			status = profile == null ? "Игрок выбран; нажмите «Обновить»" : "Показаны данные из кэша сеанса";
-			statusColor = profile == null ? MUTED_COLOR : SUCCESS_COLOR;
+			statusColor = profile == null ? textMuted() : success();
 		}
 		refreshSuggestions();
 	}
@@ -112,12 +108,12 @@ public final class PlayerInfoScreen extends CompatScreen {
 		PlayerNameValidator.ValidationResult validation = PlayerNameValidator.validate(player);
 		if (!validation.valid()) {
 			status = validation.errorMessage();
-			statusColor = ERROR_COLOR;
+			statusColor = danger();
 			return;
 		}
 		if (CndlChatPlusClient.PLAYER_INFO == null) {
 			status = "Сервис профилей не инициализирован";
-			statusColor = ERROR_COLOR;
+			statusColor = danger();
 			return;
 		}
 		if (selectedPlayer == null || !selectedPlayer.equalsIgnoreCase(player)) {
@@ -128,7 +124,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 		}
 		loading = true;
 		status = "Загрузка…";
-		statusColor = MUTED_COLOR;
+		statusColor = textMuted();
 		int serial = ++requestSerial;
 		rebuildContents();
 		CndlChatPlusClient.PLAYER_INFO.refresh(player).whenComplete((result, error) ->
@@ -137,15 +133,15 @@ public final class PlayerInfoScreen extends CompatScreen {
 					loading = false;
 					if (error != null || result == null) {
 						status = "Не удалось загрузить профиль";
-						statusColor = ERROR_COLOR;
+						statusColor = danger();
 					} else if (result.success()) {
 						profile = result.profile();
 						lookupData = result.lookupData();
 						status = result.message().isBlank() ? "Профиль обновлён" : result.message();
-						statusColor = result.fallback() ? MUTED_COLOR : SUCCESS_COLOR;
+						statusColor = result.fallback() ? textMuted() : success();
 					} else {
 						status = result.message();
-						statusColor = ERROR_COLOR;
+						statusColor = danger();
 					}
 					buildingPage = 0;
 					rebuildContents();
@@ -187,7 +183,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 			selectedPlayer = null;
 			buildingPage = 0;
 			status = "Подключение или конфигурация изменены; выберите игрока заново";
-			statusColor = MUTED_COLOR;
+			statusColor = textMuted();
 			loading = false;
 			rebuildContents();
 			return;
@@ -226,16 +222,16 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 		int y = 110;
 		if (selectedPlayer != null) {
-			graphics.text(font, "Игрок: " + selectedPlayer, panelX + 18, y, TEXT_COLOR);
+			graphics.text(font, "Игрок: " + selectedPlayer, panelX + 18, y, text());
 			graphics.text(font, isOnline() ? "Онлайн сейчас" : "Не найден в списке онлайн",
-					panelX + 220, y, isOnline() ? SUCCESS_COLOR : MUTED_COLOR);
+					panelX + 220, y, isOnline() ? success() : textMuted());
 			y += 18;
 		}
 		if (profile != null) {
 			y = drawProfile(graphics, panelX + 18, y);
 		}
 		if (lookupData != null && lookupData.hasData()) drawLookupData(graphics, panelX + 18, y);
-		CreditRenderer.draw(graphics, font, panelX + 4, height - 14, MUTED_COLOR);
+		CreditRenderer.draw(graphics, font, panelX + 4, height - 14, textMuted());
 	}
 
 	private int drawProfile(CompatGraphics graphics, int x, int y) {
@@ -266,13 +262,13 @@ public final class PlayerInfoScreen extends CompatScreen {
 		y = line(graphics, x, y, "VK", profile.vk());
 		y = line(graphics, x, y, "Сайт", profile.website());
 		if (!profile.buildings().isEmpty()) {
-			graphics.text(font, "Постройки:", x, y, TEXT_COLOR);
+			graphics.text(font, "Постройки:", x, y, text());
 			y += 14;
 			int from = buildingPage * BUILDINGS_PER_PAGE;
 			int to = Math.min(profile.buildings().size(), from + BUILDINGS_PER_PAGE);
 			for (PlayerInfoProfile.Building building : profile.buildings().subList(from, to)) {
 				String rating = building.rating() == null ? "" : " — рейтинг " + building.rating();
-				graphics.text(font, "• " + building.title() + rating, x + 10, y, MUTED_COLOR);
+				graphics.text(font, "• " + building.title() + rating, x + 10, y, textMuted());
 				y += 14;
 			}
 		}
@@ -280,7 +276,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 	}
 
 	private int drawLookupData(CompatGraphics graphics, int x, int y) {
-		graphics.text(font, "Данные сервера:", x, y, TEXT_COLOR);
+		graphics.text(font, "Данные сервера:", x, y, text());
 		y += 16;
 		if (lookupData.lastSeen() != null) {
 			y = line(graphics, x, y, "Последнее посещение", lookupData.lastSeen());
@@ -293,7 +289,7 @@ public final class PlayerInfoScreen extends CompatScreen {
 
 	private int line(CompatGraphics graphics, int x, int y, String label, String value) {
 		if (value == null || value.isBlank()) return y;
-		graphics.text(font, label + ": " + ChatMessageTextSanitizer.stripDisplayFormatting(value), x, y, TEXT_COLOR);
+		graphics.text(font, label + ": " + ChatMessageTextSanitizer.stripDisplayFormatting(value), x, y, text());
 		return y + 14;
 	}
 

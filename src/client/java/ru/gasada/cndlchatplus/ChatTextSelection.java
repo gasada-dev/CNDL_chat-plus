@@ -12,9 +12,9 @@ public final class ChatTextSelection {
 	}
 
 	public static boolean contains(double mouseX, double mouseY, int screenHeight, int chatWidth,
-			int chatHeight, double scale, int lineHeight) {
+			int chatHeight, double scale, int lineHeight, int padding) {
 		if (scale <= 0 || lineHeight <= 0 || chatHeight <= 0) return false;
-		double localX = mouseX / scale - 4;
+		double localX = mouseX / scale - Math.max(0, padding);
 		if (localX < 0 || localX >= chatWidth / scale) return false;
 		int chatBottom = (int) Math.floor((screenHeight - BOTTOM_MARGIN) / scale);
 		int row = (int) Math.floor((chatBottom - mouseY / scale) / lineHeight);
@@ -22,7 +22,7 @@ public final class ChatTextSelection {
 	}
 
 	public static Point pointAt(double mouseX, double mouseY, int screenHeight, int chatHeight, double scale,
-			int lineHeight, int scrollPosition, List<String> lines, List<int[]> advances) {
+			int lineHeight, int scrollPosition, List<String> lines, List<int[]> advances, int padding) {
 		if (scale <= 0 || lineHeight <= 0 || lines.isEmpty() || advances.size() != lines.size()) return null;
 		int firstVisible = Math.clamp(scrollPosition, 0, lines.size() - 1);
 		int visibleLines = Math.min(chatHeight / lineHeight, lines.size() - firstVisible);
@@ -30,7 +30,7 @@ public final class ChatTextSelection {
 		int chatBottom = (int) Math.floor((screenHeight - BOTTOM_MARGIN) / scale);
 		int row = (int) Math.floor((chatBottom - mouseY / scale) / lineHeight);
 		int line = firstVisible + Math.clamp(row, 0, visibleLines - 1);
-		return new Point(line, offsetAt(mouseX / scale - 4, advances.get(line)));
+		return new Point(line, offsetAt(mouseX / scale - Math.max(0, padding), advances.get(line)));
 	}
 
 	public static String selectedText(List<String> lines, Point first, Point second) {
