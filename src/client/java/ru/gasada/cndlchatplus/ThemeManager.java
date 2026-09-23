@@ -63,16 +63,15 @@ public final class ThemeManager {
 		List<UiTheme> themes = ThemeLoader.scan(directory);
 		available = metas(themes);
 		String id = readActive();
-		if (id == null || id.equals(UiTheme.defaults().meta().id())) {
-			current = UiTheme.defaults();
-			return;
-		}
+		if (id == null) id = UiTheme.defaults().meta().id();
 		Path file = directory.resolve(id + ".json");
 		if (!Files.exists(file)) {
-			try {
-				Files.deleteIfExists(directory.resolve(ACTIVE_FILE));
-			} catch (IOException error) {
-				CndlChatPlusClient.LOGGER.warn("Не удалось удалить выбор отсутствующей темы", error);
+			if (!id.equals(UiTheme.defaults().meta().id())) {
+				try {
+					Files.deleteIfExists(directory.resolve(ACTIVE_FILE));
+				} catch (IOException error) {
+					CndlChatPlusClient.LOGGER.warn("Не удалось удалить выбор отсутствующей темы", error);
+				}
 			}
 			current = UiTheme.defaults();
 			return;

@@ -9,7 +9,7 @@ record UiTheme(Meta meta, Colors colors, Geometry geometry, Chat chat) {
 						0xB0181D27, 0xD0222937, 0xE03A2A38, 0xFFFF8FB5, 0xFFFF6FA5,
 						0xFFFFE4EE, 0xA0101010, 0xA0000000, 0xC0404040, 0xFFFFFFFF,
 						0xFFAAAAAA, 0xFFFFFFFF, 0xFFFF5555),
-				new Geometry(2, 4, 7, 2, 4, 8, 16), new Chat(4, 1, 0, 0, 1.0, 12, 2, false));
+				new Geometry(0, 0, 0, 1, 4, 8, 16), new Chat(4, 1, 0, 0, 1.0, 12, 2, false));
 	}
 
 	record Meta(String id, String name, String author, int version) { }

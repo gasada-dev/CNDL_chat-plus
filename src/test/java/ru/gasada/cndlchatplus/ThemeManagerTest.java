@@ -62,14 +62,36 @@ final class ThemeManagerTest {
 	}
 
 	@Test
-	void bundledDefaultCopiesParsesAndActivates() throws Exception {
+	void fallbackHasSquareGeometryAndBaselinePanelSizing() {
+		assertEquals(new UiTheme.Geometry(0, 0, 0, 1, 4, 8, 16), UiTheme.defaults().geometry());
+	}
+
+	@Test
+	void noActiveThemeAndExplicitDefaultUseCopiedDefaultTheme() throws Exception {
 		ThemeManager.initialize(directory);
 		Path bundled = ThemeManager.themesDirectory().resolve("default.json");
 		assertTrue(Files.isRegularFile(bundled));
 		UiTheme fallback = UiTheme.defaults();
 		UiTheme parsed = ThemeLoader.load(bundled, fallback);
 		assertNotSame(fallback, parsed);
+		assertEquals(parsed, ThemeManager.current());
 		assertTrue(ThemeManager.setTheme("default"));
 		assertEquals(parsed, ThemeManager.current());
+	}
+
+	@Test
+	void noActiveThemeHonorsUserDefaultGeometry() throws Exception {
+		Path themes = directory.resolve("cndl-chat-plus-themes");
+		Files.createDirectories(themes);
+		Files.writeString(themes.resolve("default.json"), """
+				{"meta":{"id":"default"},"geometry":{"radiusSmall":3,"spacingLarge":24}}
+				""");
+
+		ThemeManager.initialize(directory);
+		assertEquals(3, ThemeManager.current().geometry().radiusSmall());
+		assertEquals(24, ThemeManager.current().geometry().spacingLarge());
+		assertTrue(ThemeManager.setTheme("default"));
+		assertEquals(3, ThemeManager.current().geometry().radiusSmall());
+		assertEquals(24, ThemeManager.current().geometry().spacingLarge());
 	}
 }
