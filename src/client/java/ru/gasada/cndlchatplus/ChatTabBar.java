@@ -12,6 +12,7 @@ import net.minecraft.client.gui.screens.Screen;
 public final class ChatTabBar {
 	private static final int TEXT_HEIGHT = 9;
 	private static final int LEFT = 2;
+	private static final int TAB_LAYOUT_GAP = 2;
 	private static final int SEARCH_ROW_HEIGHT = 18;
 	private static final int PAGE_BUTTON_WIDTH = 12;
 	// vanilla: нижняя граница чата = screenHeight - 40, а не у input-строки
@@ -62,7 +63,7 @@ public final class ChatTabBar {
 			starts.add(index);
 			int used = 0;
 			do {
-				int next = widths.get(index) + (used == 0 ? 0 : tabGap());
+				int next = widths.get(index) + (used == 0 ? 0 : TAB_LAYOUT_GAP);
 				if (used > 0 && used + next > availableWidth) break;
 				used += next;
 				index++;
@@ -94,14 +95,14 @@ public final class ChatTabBar {
 		int x = LEFT;
 		if (definitions.isEmpty()) return new BarLayout(rects, null, null);
 		List<Integer> widths = definitions.stream().map(definition -> tabWidth(font, tabs, definition)).toList();
-		int totalWidth = widths.stream().mapToInt(Integer::intValue).sum() + tabGap() * (widths.size() - 1);
+		int totalWidth = widths.stream().mapToInt(Integer::intValue).sum() + TAB_LAYOUT_GAP * (widths.size() - 1);
 		if (totalWidth <= screenWidth - LEFT * 2) {
 			page = 0;
 			rememberLayout(definitions, tabs.activeDefinition(), -1, List.of());
 			for (int index = 0; index < definitions.size(); index++) {
 				int width = widths.get(index);
 				rects.add(new TabRect(definitions.get(index), x, y0, x + width, barBottom));
-				x += width + tabGap();
+				x += width + TAB_LAYOUT_GAP;
 			}
 			return new BarLayout(rects, null, null);
 		}
@@ -114,10 +115,10 @@ public final class ChatTabBar {
 
 		int allWidth = widths.getFirst();
 		rects.add(new TabRect(definitions.getFirst(), x, y0, x + allWidth, barBottom));
-		x += allWidth + tabGap();
+		x += allWidth + TAB_LAYOUT_GAP;
 		ControlRect previous = new ControlRect(x, y0, x + PAGE_BUTTON_WIDTH, barBottom, false);
-		x += PAGE_BUTTON_WIDTH + tabGap();
-		int availableWidth = Math.max(1, screenWidth - LEFT - x - PAGE_BUTTON_WIDTH - tabGap());
+		x += PAGE_BUTTON_WIDTH + TAB_LAYOUT_GAP;
+		int availableWidth = Math.max(1, screenWidth - LEFT - x - PAGE_BUTTON_WIDTH - TAB_LAYOUT_GAP);
 		List<Integer> customWidths = widths.subList(1, widths.size());
 		List<Integer> starts = pageStarts(customWidths, availableWidth);
 		page = Math.max(0, Math.min(page, starts.size() - 1));
@@ -131,7 +132,7 @@ public final class ChatTabBar {
 		for (int index = start; index < end; index++) {
 			int width = Math.min(customWidths.get(index), availableWidth);
 			rects.add(new TabRect(definitions.get(index + 1), x, y0, x + width, barBottom));
-			x += width + tabGap();
+			x += width + TAB_LAYOUT_GAP;
 		}
 		previous = new ControlRect(previous.x0(), previous.y0(), previous.x1(), previous.y1(), page > 0);
 		ControlRect next = new ControlRect(screenWidth - LEFT - PAGE_BUTTON_WIDTH, y0,
@@ -148,12 +149,10 @@ public final class ChatTabBar {
 	}
 
 	private static int tabWidth(Font font, ChatTabController tabs, ChatTabDefinition definition) {
-		return scaled(font.width(label(tabs, definition))) + chatIndent() * 2;
-	}
-
-	private static String label(ChatTabController tabs, ChatTabDefinition definition) {
 		int unread = definition.builtIn() == ChatTab.ALL ? 0 : tabs.unread(definition);
-		return unread > 0 ? definition.displayName() + " " + unread : definition.displayName();
+		int textWidth = scaledTextWidth(font.width(definition.displayName()));
+		if (unread > 0) textWidth += scaledTextWidth(font.width(" " + unread));
+		return textWidth + chatIndent() * 2;
 	}
 
 	public static void render(CompatGraphics graphics, Font font, ChatTabController tabs,
@@ -174,7 +173,7 @@ public final class ChatTabBar {
 				renderTabText(graphics, font, displayName, rect.x0() + chatIndent(), rect.y0(),
 						activeTab ? chatTabTextActive() : chatTabText(), scale);
 				if (unread > 0) {
-					renderTabText(graphics, font, badge, rect.x0() + chatIndent() + font.width(displayName),
+					renderTabText(graphics, font, badge, unreadBadgeX(rect.x0() + chatIndent(), font.width(displayName)),
 							rect.y0(), chatBadge(), scale);
 				}
 			} else {
@@ -199,6 +198,14 @@ public final class ChatTabBar {
 
 	private static int scaled(int value) {
 		return (int) Math.ceil(value * textScale());
+	}
+
+	static int scaledTextWidth(int width) {
+		return scaled(width);
+	}
+
+	static int unreadBadgeX(int textX, int displayNameWidth) {
+		return textX + scaledTextWidth(displayNameWidth);
 	}
 
 	private static void renderTabText(CompatGraphics graphics, Font font, String text, int x, int tabTop,
@@ -259,7 +266,7 @@ public final class ChatTabBar {
 	static BookmarkRect bookmarkRect(boolean searchHintVisible, int searchHintWidth, int searchBoxWidth,
 			int preferredWidth, int screenWidth, int rowY, int height) {
 		int width = Math.min(preferredWidth, Math.max(0, screenWidth - LEFT * 2));
-		int preferredX = searchHintVisible ? 6 + searchHintWidth + tabGap() : searchBoxWidth + 6;
+		int preferredX = searchHintVisible ? 6 + searchHintWidth + TAB_LAYOUT_GAP : searchBoxWidth + 6;
 		int x = Math.max(LEFT, Math.min(preferredX, screenWidth - LEFT - width));
 		int y = rowY + (SEARCH_ROW_HEIGHT - height) / 2;
 		return new BookmarkRect(x, y, x + width, y + height);
