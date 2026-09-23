@@ -47,6 +47,24 @@ final class ResponderUiComponentsTest {
 	}
 
 	@Test
+	void chatTabUnreadWidthUsesTextScaleForTwoDigitBadges() {
+		ResponderConfig previous = CndlChatPlusClient.CONFIG;
+		try {
+			ResponderConfig config = new ResponderConfig();
+			config.chatTabTextScalePercent = 135;
+			CndlChatPlusClient.CONFIG = config;
+
+			assertEquals(41, ChatTabBar.scaledTextWidth(30));
+			assertEquals(17, ChatTabBar.scaledTextWidth(12)); // measured width of " 18"
+			assertEquals(58, ChatTabBar.scaledTextWidth(30) + ChatTabBar.scaledTextWidth(12));
+			assertEquals(43, ChatTabBar.unreadBadgeX(2, 30));
+			assertEquals(List.of(0), ChatTabBar.pageStarts(List.of(58, 30), 90));
+		} finally {
+			CndlChatPlusClient.CONFIG = previous;
+		}
+	}
+
+	@Test
 	void chatTabOverflowMovesToActivePageAndKeepsCurrentPageWhenItContainsActive() {
 		List<Integer> starts = List.of(0, 2, 4);
 		assertEquals(1, ChatTabBar.pageContaining(starts, 5, 3, 0));
