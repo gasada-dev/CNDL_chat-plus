@@ -54,6 +54,9 @@ public final class ServerAddressNormalizer {
 
 		int port = DEFAULT_PORT;
 		if (portText != null) {
+			if (portText.chars().anyMatch(character -> character < '0' || character > '9')) {
+				return NormalizationResult.failure("Некорректный порт сервера");
+			}
 			try {
 				port = Integer.parseInt(portText);
 			} catch (NumberFormatException error) {

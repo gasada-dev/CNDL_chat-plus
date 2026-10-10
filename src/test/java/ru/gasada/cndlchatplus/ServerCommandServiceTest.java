@@ -77,14 +77,14 @@ final class ServerCommandServiceTest {
 	}
 
 	@Test
-	void deniedServerNeverSendsClanLookup() {
+	void arbitraryServerAllowsClanLookup() {
 		VanillaBoxConnectionGate gate = new VanillaBoxConnectionGate();
 		gate.join("example.org");
 		OutgoingChatService outgoing = new OutgoingChatService(transport, ignored -> { }, gate::active);
 		commands = new ServerCommandService(runtime, outgoing);
 
-		assertFalse(commands.lookupFriend("Player_1").success());
-		assertTrue(transport.commands.isEmpty());
+		assertTrue(commands.lookupFriend("Player_1").success());
+		assertEquals(List.of("clan lookup Player_1"), transport.commands);
 	}
 
 	@Test

@@ -21,8 +21,8 @@ final class CndlChatPlusClientLifecycleTest {
 	Path directory;
 
 	@ParameterizedTest
-	@MethodSource("allowedAddresses")
-	void allowedJoinActivatesExactPersistedVanillaBox(String address, String normalized) throws Exception {
+	@MethodSource("validAddresses")
+	void validJoinActivatesExactPersistedVanillaBox(String address, String normalized) throws Exception {
 		Path main = initializedMain();
 		VanillaBoxConfig persisted = VanillaBoxConfig.empty();
 		persisted.friends = new ArrayList<>(List.of("PersistedOnly"));
@@ -43,8 +43,8 @@ final class CndlChatPlusClientLifecycleTest {
 	}
 
 	@ParameterizedTest
-	@MethodSource("deniedAddresses")
-	void deniedLookalikeMalformedNullAndSingleplayerJoinClearRuntimeAndAddress(String address) {
+	@MethodSource("invalidAddresses")
+	void invalidOrSingleplayerJoinClearsRuntimeAndAddress(String address) {
 		VanillaBoxRuntime runtime = activeRuntime();
 		VanillaBoxConnectionGate gate = new VanillaBoxConnectionGate();
 		gate.join("vanilla-box.ru");
@@ -57,6 +57,29 @@ final class CndlChatPlusClientLifecycleTest {
 		assertEquals(null, state.normalizedAddress());
 		assertTrue(runtime.activeSnapshot().isEmpty());
 		assertEquals(generation + 1, runtime.generation());
+	}
+
+	@Test
+	void switchingBetweenArbitraryServersReactivatesAndResetsRuntimeIsolation() {
+		RuntimeResetCoordinator resets = new RuntimeResetCoordinator();
+		int[] resetCount = { 0 };
+		resets.register(() -> resetCount[0]++);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(resets);
+		VanillaBoxConnectionGate gate = new VanillaBoxConnectionGate();
+		ConfigOperationResult<VanillaBoxConfig> config = ConfigOperationResult.success(VanillaBoxConfig.empty());
+
+		VanillaBoxConnectionGate.State first = CndlChatPlusClient.activateConnection(
+				gate, runtime, config, "example.org");
+		long firstGeneration = runtime.generation();
+		VanillaBoxConnectionGate.State second = CndlChatPlusClient.activateConnection(
+				gate, runtime, config, "[2001:db8::1]:25566");
+
+		assertTrue(first.active());
+		assertEquals("example.org:25565", first.normalizedAddress());
+		assertTrue(second.active());
+		assertEquals("[2001:db8::1]:25566", second.normalizedAddress());
+		assertEquals(firstGeneration + 1, runtime.generation());
+		assertEquals(2, resetCount[0]);
 	}
 
 	@Test
@@ -137,18 +160,19 @@ final class CndlChatPlusClientLifecycleTest {
 		return runtime;
 	}
 
-	private static Stream<Arguments> allowedAddresses() {
+	private static Stream<Arguments> validAddresses() {
 		return Stream.of(
 				Arguments.of("vanilla-box.ru", "vanilla-box.ru:25565"),
-				Arguments.of("MC.VANILLA-BOX.RU.:25566", "mc.vanilla-box.ru:25566"));
+				Arguments.of("play.example.org:25566", "play.example.org:25566"),
+				Arguments.of("127.0.0.1", "127.0.0.1:25565"),
+				Arguments.of("[2001:db8::1]:25566", "[2001:db8::1]:25566"));
 	}
 
-	private static Stream<Arguments> deniedAddresses() {
+	private static Stream<Arguments> invalidAddresses() {
 		return Stream.of(
 				Arguments.of((String) null),
-				Arguments.of("vanilla-box.ru.evil"),
-				Arguments.of("notvanilla-box.ru"),
 				Arguments.of("vanilla-box.ru:0"),
-				Arguments.of(" vanilla-box.ru"));
+				Arguments.of("https://vanilla-box.ru"),
+				Arguments.of("[::1"));
 	}
 }

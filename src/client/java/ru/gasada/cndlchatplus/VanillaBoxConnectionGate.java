@@ -1,57 +1,13 @@
 package ru.gasada.cndlchatplus;
 
 public final class VanillaBoxConnectionGate {
-	private static final String VANILLA_BOX_DOMAIN = "vanilla-box.ru";
-	private static final String VNBX_DOMAIN = "vnbx.ru";
-	private static final String VANILLA_BOX_IP = "213.171.18.139:25345";
 	private static final State INACTIVE = new State(false, null);
 	private volatile State state = INACTIVE;
 
 	public static Decision decide(String address) {
-		if (address == null || address.isBlank() || !address.equals(address.trim())) {
-			return Decision.denied();
-		}
-		int firstColon = address.indexOf(':');
-		if (firstColon != address.lastIndexOf(':') || address.startsWith("[")) {
-			return Decision.denied();
-		}
-
-		String host = firstColon < 0 ? address : address.substring(0, firstColon);
-		if (host.endsWith(".")) {
-			host = host.substring(0, host.length() - 1);
-			if (host.endsWith(".")) return Decision.denied();
-		}
-		if (host.isEmpty()) return Decision.denied();
-
-		int port = ServerAddressNormalizer.DEFAULT_PORT;
-		if (firstColon >= 0) {
-			String portText = address.substring(firstColon + 1);
-			if (portText.isEmpty()) return Decision.denied();
-			port = 0;
-			for (int index = 0; index < portText.length(); index++) {
-				char character = portText.charAt(index);
-				if (character < '0' || character > '9') return Decision.denied();
-				port = port * 10 + character - '0';
-				if (port > 65535) return Decision.denied();
-			}
-			if (port == 0) return Decision.denied();
-		}
-
-		ServerAddressNormalizer.NormalizationResult normalized =
-				ServerAddressNormalizer.normalize(host + ":" + port);
+		ServerAddressNormalizer.NormalizationResult normalized = ServerAddressNormalizer.normalize(address);
 		if (!normalized.valid()) return Decision.denied();
-		String normalizedHost = normalized.normalizedAddress().substring(
-				0, normalized.normalizedAddress().lastIndexOf(':'));
-		if (!normalized.normalizedAddress().equals(VANILLA_BOX_IP)
-				&& !matchesDomain(normalizedHost, VANILLA_BOX_DOMAIN)
-				&& !matchesDomain(normalizedHost, VNBX_DOMAIN)) {
-			return Decision.denied();
-		}
 		return new Decision(true, normalized.normalizedAddress());
-	}
-
-	private static boolean matchesDomain(String host, String domain) {
-		return host.equals(domain) || host.endsWith("." + domain);
 	}
 
 	public State join(String address) {
