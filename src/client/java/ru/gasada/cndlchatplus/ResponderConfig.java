@@ -5,8 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.lwjgl.glfw.GLFW;
-
 public final class ResponderConfig {
 	public static final int MIN_CHAT_HISTORY_LIMIT = 100;
 	public static final int MAX_CHAT_HISTORY_LIMIT = 16384;
@@ -62,8 +60,8 @@ public final class ResponderConfig {
 	public Boolean chatAlertsEnabled = true;
 	public List<ChatAlertRule> chatAlertRules = new ArrayList<>();
 	public List<ChatBind> chatBinds = new ArrayList<>(List.of(
-			new ChatBind(GLFW.GLFW_KEY_F7, "claimfly"),
-			new ChatBind(GLFW.GLFW_KEY_BACKSLASH, "enderchest")));
+			new ChatBind(PlatformInput.KEY_F7, "claimfly"),
+			new ChatBind(PlatformInput.KEY_BACKSLASH, "enderchest")));
 
 	public static ResponderConfig defaults() {
 		ResponderConfig config = new ResponderConfig();

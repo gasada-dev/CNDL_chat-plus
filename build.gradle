@@ -14,6 +14,12 @@ def targets = [
 		minecraft: '26.2', java: 25, fabricApi: '0.156.0+26.2', owoLib: '0.13.1+26.2',
 		minecraftConstraint: '~26.2', javaConstraint: '>=25', fabricApiConstraint: '>=0.156.0',
 		plugin: 'net.fabricmc.fabric-loom', remap: false
+	],
+	mc26_3: [
+		minecraft: '26.3', java: 25, fabricApi: '0.161.0+26.3',
+		minecraftConstraint: '~26.3', javaConstraint: '>=25', fabricApiConstraint: '>=0.161.0',
+		plugin: 'net.fabricmc.fabric-loom', remap: false, sharedSourceTarget: 'mc26_2',
+		sharedExcludes: ['ClientUi.java', 'OwoThemeBridge.java', 'PlatformInput.java', 'ThemeScreen.java']
 	]
 ]
 
@@ -64,8 +70,15 @@ targets.each { projectName, target ->
 
 		sourceSets {
 			client {
-				java.srcDirs rootProject.file('src/client/java'),
-						rootProject.file("src/targets/${projectName}/java")
+				java.srcDir rootProject.file('src/client/java')
+				if (target.sharedSourceTarget) {
+					java.srcDir rootProject.file("src/targets/${target.sharedSourceTarget}/java")
+					def sharedRoot = rootProject.file("src/targets/${target.sharedSourceTarget}/java").toPath()
+					java.exclude { details ->
+						details.file.toPath().startsWith(sharedRoot) && target.sharedExcludes.contains(details.file.name)
+					}
+				}
+				java.srcDir rootProject.file("src/targets/${projectName}/java")
 				resources.srcDir rootProject.file('src/client/resources')
 			}
 			test {
@@ -125,18 +138,19 @@ targets.each { projectName, target ->
 }
 
 tasks.register('test') {
-	dependsOn ':mc1_21_11:test', ':mc26_2:test'
+	dependsOn ':mc1_21_11:test', ':mc26_2:test', ':mc26_3:test'
 }
 
 tasks.register('assembleRelease', Sync) {
-	dependsOn ':mc1_21_11:remapJar', ':mc26_2:jar'
+	dependsOn ':mc1_21_11:remapJar', ':mc26_2:jar', ':mc26_3:jar'
 	into layout.buildDirectory.dir('release')
 	from project(':mc1_21_11').tasks.named('remapJar').flatMap { it.archiveFile }
 	from project(':mc26_2').tasks.named('jar').flatMap { it.archiveFile }
+	from project(':mc26_3').tasks.named('jar').flatMap { it.archiveFile }
 }
 
 tasks.named('check') {
-	dependsOn ':mc1_21_11:check', ':mc26_2:check'
+	dependsOn ':mc1_21_11:check', ':mc26_2:check', ':mc26_3:check'
 }
 
 tasks.named('build') {

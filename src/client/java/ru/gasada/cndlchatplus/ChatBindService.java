@@ -3,8 +3,6 @@ package ru.gasada.cndlchatplus;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Minecraft;
 
 final class ChatBindService {
@@ -40,14 +38,9 @@ final class ChatBindService {
 	}
 
 	private static boolean pressed(Minecraft minecraft, ChatBind bind) {
-		Window window = minecraft.getWindow();
-		return InputConstants.isKeyDown(window, bind.keyCode)
-				&& (!bind.control || modifierDown(window, InputConstants.KEY_LCONTROL, InputConstants.KEY_RCONTROL))
-				&& (!bind.shift || modifierDown(window, InputConstants.KEY_LSHIFT, InputConstants.KEY_RSHIFT))
-				&& (!bind.alt || modifierDown(window, InputConstants.KEY_LALT, InputConstants.KEY_RALT));
-	}
-
-	private static boolean modifierDown(Window window, int left, int right) {
-		return InputConstants.isKeyDown(window, left) || InputConstants.isKeyDown(window, right);
+		return PlatformInput.keyDown(minecraft, bind.keyCode)
+				&& (!bind.control || PlatformInput.controlDown(minecraft))
+				&& (!bind.shift || PlatformInput.shiftDown(minecraft))
+				&& (!bind.alt || PlatformInput.altDown(minecraft));
 	}
 }

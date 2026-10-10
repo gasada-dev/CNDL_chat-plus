@@ -3,7 +3,6 @@ package ru.gasada.cndlchatplus;
 import java.util.List;
 import java.nio.file.Path;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -120,8 +119,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				Identifier.fromNamespaceAndPath(MOD_ID, "main"));
 		KeyMapping openScreen = PlatformKeyMapping.register(new KeyMapping(
 				"key.cndl_chat_plus.open",
-				InputConstants.Type.KEYSYM,
-				InputConstants.KEY_F8,
+				PlatformInput.keyType(),
+				PlatformInput.nativeF8(),
 				category));
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			boolean connectionActive = CONNECTION_GATE.active();
@@ -237,8 +236,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 	}
 
 	private static boolean altDown(Minecraft minecraft) {
-		return InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LALT)
-				|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RALT);
+		return PlatformInput.altDown(minecraft);
 	}
 
 	private static void triggerAlert(ChatAlertHud hud, Component message, boolean fromGame) {

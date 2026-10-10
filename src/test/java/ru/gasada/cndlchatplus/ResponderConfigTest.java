@@ -14,7 +14,6 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.Test;
-import org.lwjgl.glfw.GLFW;
 
 final class ResponderConfigTest {
 	@Test
@@ -31,7 +30,7 @@ final class ResponderConfigTest {
 		assertTrue(config.whitenBlackNames);
 		assertTrue(config.chatAlertsEnabled);
 		assertTrue(config.chatAlertRules.isEmpty());
-		assertEquals(List.of(GLFW.GLFW_KEY_F7, GLFW.GLFW_KEY_BACKSLASH),
+		assertEquals(List.of(PlatformInput.KEY_F7, PlatformInput.KEY_BACKSLASH),
 				config.chatBinds.stream().map(bind -> bind.keyCode).toList());
 		assertEquals(List.of("claimfly", "enderchest"),
 				config.chatBinds.stream().map(bind -> bind.command).toList());
@@ -306,13 +305,13 @@ final class ResponderConfigTest {
 		config.chatBinds = new ArrayList<>();
 		config.chatBinds.add(null);
 		config.chatBinds.add(new ChatBind(0, "valid"));
-		config.chatBinds.add(new ChatBind(GLFW.GLFW_KEY_F6, "   "));
-		config.chatBinds.add(new ChatBind(GLFW.GLFW_KEY_F7, " /claimfly "));
+		config.chatBinds.add(new ChatBind(PlatformInput.KEY_F6, "   "));
+		config.chatBinds.add(new ChatBind(PlatformInput.KEY_F7, " /claimfly "));
 
 		config.sanitize();
 
 		assertEquals(1, config.chatBinds.size());
-		assertEquals(GLFW.GLFW_KEY_F7, config.chatBinds.getFirst().keyCode);
+		assertEquals(PlatformInput.KEY_F7, config.chatBinds.getFirst().keyCode);
 		assertEquals("claimfly", config.chatBinds.getFirst().command);
 	}
 
@@ -320,13 +319,13 @@ final class ResponderConfigTest {
 	void chatBindsRoundTripThroughCompatibleJsonReader() {
 		Gson gson = new GsonBuilder().serializeNulls().create();
 		ResponderConfig source = new ResponderConfig();
-		source.chatBinds = List.of(new ChatBind(GLFW.GLFW_KEY_F6, true, false, true, "command"));
+		source.chatBinds = List.of(new ChatBind(PlatformInput.KEY_F6, true, false, true, "command"));
 		source.whitenBlackNames = false;
 
 		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(source));
 		restored.sanitize();
 
-		assertEquals(GLFW.GLFW_KEY_F6, restored.chatBinds.getFirst().keyCode);
+		assertEquals(PlatformInput.KEY_F6, restored.chatBinds.getFirst().keyCode);
 		assertTrue(restored.chatBinds.getFirst().control);
 		assertFalse(restored.chatBinds.getFirst().shift);
 		assertTrue(restored.chatBinds.getFirst().alt);
@@ -511,9 +510,9 @@ final class ResponderConfigTest {
 		assertFalse(persisted.whitenBlackNames);
 		assertFalse(persisted.chatAlertsEnabled);
 		assertEquals("alert", persisted.chatAlertRules.getFirst().id);
-		source.chatBinds = List.of(new ChatBind(GLFW.GLFW_KEY_F6, "command"));
+		source.chatBinds = List.of(new ChatBind(PlatformInput.KEY_F6, "command"));
 		persisted.applyGlobalSettingsFrom(source);
-		assertEquals(GLFW.GLFW_KEY_F6, persisted.chatBinds.getFirst().keyCode);
+		assertEquals(PlatformInput.KEY_F6, persisted.chatBinds.getFirst().keyCode);
 		assertEquals("command", persisted.chatBinds.getFirst().command);
 		assertEquals("trigger", persisted.rules.getFirst().trigger);
 		assertEquals(List.of("ServerFriend"), persisted.friends);

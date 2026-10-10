@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -18,7 +19,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import ru.gasada.cndlchatplus.ChatSearchState;
 import ru.gasada.cndlchatplus.ChatContextMenuController;
 import ru.gasada.cndlchatplus.ChatMessageTextSanitizer;
@@ -29,6 +29,7 @@ import ru.gasada.cndlchatplus.ChatTextSelection;
 import ru.gasada.cndlchatplus.ChatTextSelectionAccess;
 import ru.gasada.cndlchatplus.CompatGraphics;
 import ru.gasada.cndlchatplus.CndlChatPlusClient;
+import ru.gasada.cndlchatplus.PlatformInput;
 import ru.gasada.cndlchatplus.ScreenWidgetAccess;
 import ru.gasada.cndlchatplus.ThemeTokens;
 
@@ -71,26 +72,26 @@ public abstract class ChatScreenMixin {
 			CallbackInfoReturnable<Boolean> cir) {
 		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
 		Screen screen = (Screen) (Object) this;
-		if (event.button() == 0 && CndlChatPlusClient.TELEPORT_REQUEST != null
+		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && CndlChatPlusClient.TELEPORT_REQUEST != null
 				&& CndlChatPlusClient.TELEPORT_REQUEST.click(event.x(), event.y(), screen.width,
 						Minecraft.getInstance().font)) {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (event.button() == 1 && CndlChatPlusClient.MARRIAGE_HUD != null
+		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT && CndlChatPlusClient.MARRIAGE_HUD != null
 				&& CndlChatPlusClient.MARRIAGE_HUD.rightClick(event.x(), event.y(), screen.width,
 						screen.height, Minecraft.getInstance().font, Minecraft.getInstance())) {
 			gasada$contextMenu.close();
 			cir.setReturnValue(true);
 			return;
 		}
-		if (event.button() == 1 && gasada$contextMenu.rightClick(event.x(), event.y(),
+		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT && gasada$contextMenu.rightClick(event.x(), event.y(),
 				screen.width, screen.height, Minecraft.getInstance())) {
 			cir.setReturnValue(true);
 			return;
 		}
 		if (gasada$contextMenu.open()) {
-			if (event.button() == 0) {
+			if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
 				gasada$contextMenu.leftClick(event.x(), event.y(), screen,
 						value -> gasada$setInput(screen, value), Minecraft.getInstance());
 			} else {
@@ -99,16 +100,16 @@ public abstract class ChatScreenMixin {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (event.button() == 0 && ChatTabBar.clickBookmarks(screen, Minecraft.getInstance().font,
+		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && ChatTabBar.clickBookmarks(screen, Minecraft.getInstance().font,
 				screen.width, screen.height, event.x(), event.y(), Minecraft.getInstance())) {
 			cir.setReturnValue(true);
 			return;
 		}
-		if (event.button() == 0) {
+		if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
 			gasada$startSelection(event.x(), event.y(), screen.height);
 		}
 		ChatTabController tabs = CndlChatPlusClient.CHAT_TABS;
-		if (tabs == null || !tabs.enabled() || event.button() != 0) {
+		if (tabs == null || !tabs.enabled() || event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
 			return;
 		}
 		if (ChatTabBar.click(tabs, Minecraft.getInstance().font, screen.width, screen.height,
@@ -148,7 +149,7 @@ public abstract class ChatScreenMixin {
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
 	private void gasada$searchKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
 		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
-		if (event.key() == GLFW.GLFW_KEY_ESCAPE && gasada$contextMenu.close()) {
+		if (event.key() == PlatformInput.nativeEscape() && gasada$contextMenu.close()) {
 			cir.setReturnValue(true);
 			return;
 		}
@@ -157,7 +158,7 @@ public abstract class ChatScreenMixin {
 			return;
 		}
 		Screen screen = (Screen) (Object) this;
-		if (event.key() == GLFW.GLFW_KEY_F && event.hasControlDown()) {
+		if (event.key() == PlatformInput.nativeF() && event.hasControlDown()) {
 			search.activate();
 			gasada$searchBox.setVisible(true);
 			screen.setFocused(gasada$searchBox);
@@ -168,7 +169,7 @@ public abstract class ChatScreenMixin {
 		if (!gasada$searchBox.isFocused()) {
 			return;
 		}
-		if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+		if (event.key() == PlatformInput.nativeEscape()) {
 			gasada$closeSearch(screen);
 			cir.setReturnValue(true);
 			return;
@@ -243,8 +244,7 @@ public abstract class ChatScreenMixin {
 	private void gasada$renderSelection(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		if (gasada$selectionStart == null) return;
 		Minecraft minecraft = Minecraft.getInstance();
-		if (GLFW.glfwGetMouseButton(minecraft.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT)
-				!= GLFW.GLFW_PRESS) {
+		if (!PlatformInput.leftMouseDown(minecraft)) {
 			gasada$copySelection(minecraft);
 			return;
 		}

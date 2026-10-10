@@ -4,7 +4,6 @@ import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
 import java.util.function.Consumer;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -213,8 +212,7 @@ public final class SettingsScreen extends CompatScreen {
 	}
 
 	private static String keyName(int keyCode) {
-		return keyCode <= 0 ? "Назначить" : InputConstants.Type.KEYSYM.getOrCreate(keyCode)
-				.getDisplayName().getString();
+		return keyCode <= 0 ? "Назначить" : PlatformInput.keyName(keyCode);
 	}
 
 	private int buttonY(int panelTop) {
@@ -237,7 +235,7 @@ public final class SettingsScreen extends CompatScreen {
 	@Override
 	public boolean keyPressed(KeyEvent event) {
 		if (capturedBind == null) return super.keyPressed(event);
-		if (event.key() == InputConstants.KEY_ESCAPE) {
+		if (event.key() == PlatformInput.nativeEscape()) {
 			capturedBind = null;
 			rebuild();
 			return true;

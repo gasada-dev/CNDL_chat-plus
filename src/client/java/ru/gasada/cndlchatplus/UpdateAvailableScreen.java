@@ -2,6 +2,7 @@ package ru.gasada.cndlchatplus;
 
 import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
+import java.net.URI;
 import java.util.List;
 
 import net.minecraft.client.gui.components.Tooltip;
@@ -49,17 +50,17 @@ public final class UpdateAvailableScreen extends CompatScreen {
 		noteLines = font.split(notes, panelWidth - 48);
 
 		addRenderableWidget(StyledButton.create(Component.literal("Посмотреть все изменения"), ignored ->
-				ConfirmLinkScreen.confirmLinkNow(this, UpdateChecker.releaseNotesUrl(update.version())))
+				ConfirmLinkScreen.confirmLinkNow(this, URI.create(UpdateChecker.releaseNotesUrl(update.version()))))
 				.bounds(panelX + (panelWidth - 200) / 2, changesY, 200, 20)
 				.tooltip(Tooltip.create(Component.literal("Открыть UPDATE_NOTES.md этой версии на GitHub")))
 				.build());
 		addRenderableWidget(StyledButton.create(Component.literal("Скачать 1.21.11"), ignored ->
-				ConfirmLinkScreen.confirmLinkNow(this, update.minecraft12111DownloadUrl()))
+				ConfirmLinkScreen.confirmLinkNow(this, URI.create(update.minecraft12111DownloadUrl())))
 				.bounds(panelX + 24, downloadY, downloadWidth, 20)
 				.tooltip(Tooltip.create(Component.literal("Открыть JAR для Minecraft 1.21.11 на GitHub")))
 				.build());
 		addRenderableWidget(StyledButton.create(Component.literal("Скачать 26.2"), ignored ->
-				ConfirmLinkScreen.confirmLinkNow(this, update.minecraft262DownloadUrl()))
+				ConfirmLinkScreen.confirmLinkNow(this, URI.create(update.minecraft262DownloadUrl())))
 				.bounds(panelX + 36 + downloadWidth, downloadY, downloadWidth, 20)
 				.tooltip(Tooltip.create(Component.literal("Открыть JAR для Minecraft 26.2 на GitHub")))
 				.build());
