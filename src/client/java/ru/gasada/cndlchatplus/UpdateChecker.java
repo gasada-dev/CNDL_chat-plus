@@ -31,6 +31,7 @@ public final class UpdateChecker {
 			"https://github.com/gasada-dev/CNDL_chat-plus/blob/v%s/UPDATE_NOTES.md";
 	private static final String MINECRAFT_12111 = "1.21.11";
 	private static final String MINECRAFT_262 = "26.2";
+	private static final String MINECRAFT_263 = "26.3";
 	private static final Gson GSON = new Gson();
 	private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(4))
@@ -135,8 +136,10 @@ public final class UpdateChecker {
 			if (!UpdateVersion.isStrictManifestVersion(version) || dto.assets == null) return null;
 			String expected12111 = assetName(version, MINECRAFT_12111);
 			String expected262 = assetName(version, MINECRAFT_262);
+			String expected263 = assetName(version, MINECRAFT_263);
 			String download12111 = null;
 			String download262 = null;
+			String download263 = null;
 			for (ReleaseAssetDto asset : dto.assets) {
 				if (asset == null) continue;
 				if (expected12111.equals(asset.name)) {
@@ -145,10 +148,13 @@ public final class UpdateChecker {
 				} else if (expected262.equals(asset.name)) {
 					if (download262 != null || asset.browserDownloadUrl == null) return null;
 					download262 = asset.browserDownloadUrl;
+				} else if (expected263.equals(asset.name)) {
+					if (download263 != null || asset.browserDownloadUrl == null) return null;
+					download263 = asset.browserDownloadUrl;
 				}
 			}
-			return download12111 == null || download262 == null ? null
-					: new UpdateInfo(version, download12111, download262, dto.body);
+			return download12111 == null || download262 == null || download263 == null ? null
+					: new UpdateInfo(version, download12111, download262, download263, dto.body);
 		} catch (CharacterCodingException | RuntimeException exception) {
 			return null;
 		}
@@ -165,7 +171,10 @@ public final class UpdateChecker {
 		ValidationResult first = validateDownloadUrl(info.version(), MINECRAFT_12111,
 				info.minecraft12111DownloadUrl());
 		if (!first.valid()) return first;
-		return validateDownloadUrl(info.version(), MINECRAFT_262, info.minecraft262DownloadUrl());
+		ValidationResult second = validateDownloadUrl(info.version(), MINECRAFT_262,
+				info.minecraft262DownloadUrl());
+		if (!second.valid()) return second;
+		return validateDownloadUrl(info.version(), MINECRAFT_263, info.minecraft263DownloadUrl());
 	}
 
 	private static ValidationResult validateDownloadUrl(String version, String minecraftVersion, String url) {
@@ -216,7 +225,7 @@ public final class UpdateChecker {
 
 	public enum CheckState { NOT_STARTED, CHECKING, NO_UPDATE, AVAILABLE, FAILED, SHOWN }
 	public record UpdateInfo(String version, String minecraft12111DownloadUrl,
-			String minecraft262DownloadUrl, String message) { }
+			String minecraft262DownloadUrl, String minecraft263DownloadUrl, String message) { }
 	public record ValidationResult(boolean valid, String errorMessage) {
 		private static ValidationResult success() { return new ValidationResult(true, ""); }
 		private static ValidationResult failure(String error) { return new ValidationResult(false, error); }

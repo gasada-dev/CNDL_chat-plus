@@ -42,32 +42,46 @@ public final class UpdateAvailableScreen extends CompatScreen {
 		panelX = (width - panelWidth) / 2;
 		panelY = (height - panelHeight) / 2;
 		int laterY = panelY + panelHeight - 38;
-		int downloadY = laterY - 30;
-		int changesY = downloadY - 30;
-		int downloadWidth = (panelWidth - 60) / 2;
+		DownloadLayout downloads = downloadLayout(panelWidth, laterY);
+		int changesY = downloads.firstRowY() - 30;
 		notesY = panelY + 62;
 		maxNotesLines = Math.max(1, (changesY - notesY - 8) / font.lineHeight);
 		noteLines = font.split(notes, panelWidth - 48);
 
 		addRenderableWidget(StyledButton.create(Component.literal("Посмотреть все изменения"), ignored ->
 				ConfirmLinkScreen.confirmLinkNow(this, URI.create(UpdateChecker.releaseNotesUrl(update.version()))))
-				.bounds(panelX + (panelWidth - 200) / 2, changesY, 200, 20)
+				.bounds(panelX + (panelWidth - 200) / 2, changesY, 200, FIELD_HEIGHT)
 				.tooltip(Tooltip.create(Component.literal("Открыть UPDATE_NOTES.md этой версии на GitHub")))
 				.build());
 		addRenderableWidget(StyledButton.create(Component.literal("Скачать 1.21.11"), ignored ->
 				ConfirmLinkScreen.confirmLinkNow(this, URI.create(update.minecraft12111DownloadUrl())))
-				.bounds(panelX + 24, downloadY, downloadWidth, 20)
+				.bounds(panelX + downloads.minecraft12111X(), downloads.firstRowY(),
+						downloads.buttonWidth(), FIELD_HEIGHT)
 				.tooltip(Tooltip.create(Component.literal("Открыть JAR для Minecraft 1.21.11 на GitHub")))
 				.build());
 		addRenderableWidget(StyledButton.create(Component.literal("Скачать 26.2"), ignored ->
 				ConfirmLinkScreen.confirmLinkNow(this, URI.create(update.minecraft262DownloadUrl())))
-				.bounds(panelX + 36 + downloadWidth, downloadY, downloadWidth, 20)
+				.bounds(panelX + downloads.minecraft262X(), downloads.firstRowY(),
+						downloads.buttonWidth(), FIELD_HEIGHT)
 				.tooltip(Tooltip.create(Component.literal("Открыть JAR для Minecraft 26.2 на GitHub")))
 				.build());
+		addRenderableWidget(StyledButton.create(Component.literal("Скачать 26.3"), ignored ->
+				ConfirmLinkScreen.confirmLinkNow(this, URI.create(update.minecraft263DownloadUrl())))
+				.bounds(panelX + downloads.minecraft263X(), downloads.secondRowY(),
+						downloads.buttonWidth(), FIELD_HEIGHT)
+				.tooltip(Tooltip.create(Component.literal("Открыть JAR для Minecraft 26.3 на GitHub")))
+				.build());
 		addRenderableWidget(StyledButton.create(Component.literal("Позже"), ignored -> onClose())
-				.bounds(panelX + (panelWidth - 150) / 2, laterY, 150, 20)
+				.bounds(panelX + (panelWidth - 150) / 2, laterY, 150, FIELD_HEIGHT)
 				.tooltip(Tooltip.create(Component.literal("Закрыть уведомление до следующего запуска")))
 				.build());
+	}
+
+	static DownloadLayout downloadLayout(int panelWidth, int laterY) {
+		int buttonWidth = (panelWidth - 60) / 2;
+		int secondRowY = laterY - 30;
+		return new DownloadLayout(buttonWidth, 24, 36 + buttonWidth,
+				(panelWidth - buttonWidth) / 2, secondRowY - 30, secondRowY);
 	}
 
 	@Override
@@ -114,4 +128,7 @@ public final class UpdateAvailableScreen extends CompatScreen {
 	public boolean isPauseScreen() {
 		return false;
 	}
+
+	record DownloadLayout(int buttonWidth, int minecraft12111X, int minecraft262X,
+			int minecraft263X, int firstRowY, int secondRowY) { }
 }
