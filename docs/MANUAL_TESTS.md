@@ -1,6 +1,6 @@
 # Ручные проверки CNDL_chat+
 
-Сценарии проверяют Minecraft 1.21.11 и 26.2. Используйте тестовый аккаунт и безопасные команды:
+Сценарии проверяют Minecraft 1.21.11, 26.2 и 26.3. Используйте тестовый аккаунт и безопасные команды:
 `/pay`, `/mail send` и `/ignoreplayer` меняют серверное состояние. F8 принадлежит CNDL_chat+,
 F9 и automation принадлежат CNDL_toolkit.
 
@@ -27,30 +27,28 @@ F9 и automation принадлежат CNDL_toolkit.
 1. Запустите клиент с результатом сценария 1 второй раз.
 2. Сравните manifest и archive tree с первым запуском.
 3. Удалите или повредите `server-templates/vanilla-box.json`, оставив `storageVersion: 1`.
-4. Подключитесь к разрешённому Vanilla-box address.
+4. Подключитесь к корректному multiplayer address.
 
 Ожидается: второй запуск не создаёт duplicate archive, не переписывает archive и не возвращает
 retired files в active paths. В последнем случае runtime inactive: нет server commands, filters,
 history/bookmark scope, HUD actions и hidden fallback.
 
-## 3. Граница Vanilla-box
+## 3. Граница multiplayer
 
-1. Подключитесь к `vanilla-box.ru`, `mc.vanilla-box.ru:25566`, `h.vnbx.ru`,
-   `deep.h.vnbx.ru:25566`, `VANILLA-BOX.RU.` и `213.171.18.139:25345`.
+1. Подключитесь к Vanilla-box, несвязанному hostname, IPv4 и IPv6 адресу, используя при
+   необходимости корректный optional port.
 2. На каждом адресе проверьте F8, одну безопасную команду, chat filter и history/bookmark scope.
-3. Подключитесь к `vanilla-box.ru.example.org`, `notvanilla-box.ru`, `127.0.0.1`, `[::1]`,
-   `vanilla-box.ru:0`, адресу с пробелом и адресу с двумя конечными точками.
+3. Проверьте malformed address, пустой адрес, порт `0` и порт больше `65535`.
 4. Повторите в singleplayer и при direct connection без `ServerData`.
 
-Ожидается: разрешены apex и настоящие subdomain `vanilla-box.ru` и `vnbx.ru` с корректным optional
-port, а также точный IP `213.171.18.139:25345`. Case и одна trailing dot нормализуются. Lookalike,
-unrelated host, другие IP, malformed input и singleplayer inactive.
-На denied path F8 server functions не открываются, F7 и `\` ничего не отправляют, сообщения
+Ожидается: любой корректный hostname, IPv4 или IPv6 с optional port активирует runtime. Case и
+trailing dots hostname нормализуются. Malformed input и singleplayer inactive.
+На invalid path F8 server functions не открываются, F7 и `\` ничего не отправляют, сообщения
 проходят vanilla и мод не создаёт history/bookmark scope.
 
 ## 4. F8, глобальные настройки и отсутствующие маршруты
 
-1. На разрешённом address нажмите F8.
+1. На корректном multiplayer address нажмите F8.
 2. Проверьте вкладки «Чёрный список» и «Друзья», первую открытую вкладку «Друзья», кнопки
    `Информация об игроке`, `⚙` и `?`.
 3. Измените безопасный global toggle, закройте экран, перезапустите клиент и проверьте значение.
@@ -85,8 +83,8 @@ configuration.
 3. Добавьте muted word, Discord mute и Minecraft mute, затем проверьте, что скрытое сообщение не
    попадает в tabs или history.
 4. Сохраните сообщение в bookmarks, измените только text, reconnect и проверьте его на том же
-   разрешённом address.
-5. Подключитесь к другому разрешённому subdomain и вернитесь к первому.
+   multiplayer address.
+5. Подключитесь к серверу с другим hostname или IP и вернитесь к первому.
 6. Откройте вкладку «ГС чат». Получите входящее сообщение с `(Войс)` и сообщение другого типа,
    затем проверьте фильтрацию. Добавьте вторую пользовательскую вкладку с источниками
    `ГС` и `Глобал`: голосовое сообщение должно быть видно в обеих вкладках, глобальное —
@@ -95,7 +93,7 @@ configuration.
    Затем отправьте явную slash-команду и проверьте, что она остаётся vanilla command path.
 
 Ожидается: history и bookmarks разделены по адресу, но используют одну Vanilla-box config.
-Bookmarks независимы от history toggles. В singleplayer и denied connection bookmark UI недоступен.
+Bookmarks независимы от history toggles. В singleplayer и invalid connection bookmark UI недоступен.
 Пользовательская вкладка является только фильтром представления: её ID не появляется в history,
 bookmarks или Chat Alerts. При inactive runtime её outgoing prefix не имеет vanilla fallback.
 
@@ -105,7 +103,7 @@ bookmarks или Chat Alerts. При inactive runtime её outgoing prefix не 
 2. Проверьте `/clan lookup` queue, скрытие служебного ответа и last-seen persistence.
 3. Проверьте private message, mail, pay, call, ignore и `Alt+ПКМ` по player entity.
 4. Получите teleport request, проверьте manual button, timeout и режимы автоприёма.
-5. Во время lookup или teleport request отключитесь либо перейдите на denied address.
+5. Во время lookup или teleport request отключитесь либо перейдите на другой сервер.
 6. В «Настройки CNDL_chat+» откройте «Расширенные настройки», отключите «Клан-поиск» и проверьте,
    что новые friend/profile lookup не ставятся в очередь и `/clan lookup` не отправляется. Включите
    переключатель обратно и проверьте обычный lookup.
@@ -114,13 +112,13 @@ bookmarks или Chat Alerts. При inactive runtime её outgoing prefix не 
 buttons, notices и callbacks очищаются. При отключённом «Клан-поиске» очередь и команда отсутствуют.
 Invalid input не отправляется. Private text и суммы не попадают в log.
 
-## 7. VnbxBridge и оба target
+## 7. VnbxBridge и все target
 
-1. На Minecraft 26.2 подключитесь к серверу с VnbxBridge и обновите профиль игрока.
+1. На Minecraft 26.2 и 26.3 подключитесь к серверу с VnbxBridge и обновите профиль игрока.
 2. Проверьте clan/marriage data, marriage HUD и stale response после disconnect.
 3. На Minecraft 1.21.11 проверьте unavailable bridge и lookup fallback.
-4. Повторите минимум F8, allowed/denied gate, setting persistence, history/bookmark и одну
-   безопасную command path на обоих target.
+4. Повторите минимум F8, valid/invalid gate, setting persistence, history/bookmark и одну
+   безопасную command path на всех target; на 26.3 отдельно проверьте бинды и экран тем.
 
 Ожидается: bridge payload не появляется в обычном UI, config, history или logs. Target 1.21.11
 не отправляет bridge payload.
@@ -128,9 +126,9 @@ Invalid input не отправляется. Private text и суммы не п�
 ## 8. Финальный smoke test
 
 1. Выполните `./gradlew clean test build assembleRelease` и `git diff --check`.
-2. Проверьте JAR для Minecraft 1.21.11 и 26.2 в `build/release/`.
-3. На обоих target повторите migration, second-run idempotence, allowed/denied activation, F8,
+2. Проверьте JAR для Minecraft 1.21.11, 26.2 и 26.3 в `build/release/`.
+3. На всех target повторите migration, second-run idempotence, valid/invalid activation, F8,
     увеличенную `⚙`, размещение `Chat Alerts` рядом с «Биндами», CRUD и paging вкладок,
     мультивыбор фиксированных источников, фильтр «ГС чат» и отправку `/gc`.
-4. Убедитесь, что `UPDATE_NOTES.md`, пользовательские config, archive, screenshots и `.tmp` не
-   попали в commit.
+4. Убедитесь, что `UPDATE_NOTES.md` включён в commit выпуска, а пользовательские config,
+   archive, screenshots и `.tmp` в commit не попали.

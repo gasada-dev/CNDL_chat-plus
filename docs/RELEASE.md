@@ -6,8 +6,9 @@
 
 GitHub Release создаётся автоматически workflow `.github/workflows/release.yml` при
 push тега `v<mod_version>`. Workflow повторно выполняет clean test/build, проверяет
-совпадение tag и `gradle.properties`, а затем прикладывает два основных JAR:
-`CNDL_chat+-<version>-mc1.21.11.jar` и `CNDL_chat+-<version>-mc26.2.jar`.
+совпадение tag и `gradle.properties`, а затем прикладывает три основных JAR:
+`CNDL_chat+-<version>-mc1.21.11.jar`, `CNDL_chat+-<version>-mc26.2.jar` и
+`CNDL_chat+-<version>-mc26.3.jar`.
 Sources JAR и обычные CI artifacts в release не попадают.
 
 ## Подготовка
@@ -31,8 +32,8 @@ git diff --check
 
 Проверить:
 
-- оба JAR из `build/release/` открываются как ZIP и содержат свой `fabric.mod.json`;
-- JAR `mc1.21.11` требует Java 21, а JAR `mc26.2` требует Java 25;
+- все три JAR из `build/release/` открываются как ZIP и содержат свой `fabric.mod.json`;
+- JAR `mc1.21.11` требует Java 21, а JAR `mc26.2` и `mc26.3` требуют Java 25;
 - JUnit отсутствует в runtimeClasspath и внутри JAR;
 - старый `gasada-chat-responder.json` копируется в `cndl-chat-plus.json` и мигрирует с backup в `Vanilla-box`;
 - legacy rules/periodic/reply fields сохраняются после load/save/copy и остаются inert для миграции CNDL_toolkit;
@@ -59,10 +60,10 @@ git push origin v<mod_version>
 Подставьте фактическую версию. Release workflow использует `contents: write`,
 `actions/checkout@v4`, `actions/setup-java@v4` с Java 25 и GitHub CLI
 `gh release create --verify-tag --notes-file UPDATE_NOTES.md --latest`. Если tag не равен
-`v<mod_version>`, один из двух JAR отсутствует или тесты не прошли, release не создаётся.
+`v<mod_version>`, один из трёх JAR отсутствует или тесты не прошли, release не создаётся.
 
 После завершения открыть `https://github.com/gasada-dev/CNDL_chat-plus/releases/latest`
-и проверить оба asset. `UpdateChecker` использует этот же latest release через GitHub REST API;
+и проверить все три asset. `UpdateChecker` использует этот же latest release через GitHub REST API;
 release body берётся из `UPDATE_NOTES.md`, а полная ссылка ведёт на файл точного тега.
 Отдельный `version.json` больше не используется. Автоматической установки обновления в
 папку mods нет: пользователь подтверждает открытие ссылки и скачивает JAR сам.

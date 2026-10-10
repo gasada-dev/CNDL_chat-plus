@@ -2,7 +2,7 @@
 
 `OutgoingChatService.MinecraftTransport` является единственной точкой вызова Minecraft
 `sendChat` и `sendCommand`. Перед постановкой и непосредственно перед отправкой сервис
-проверяет Vanilla-box gate, connection, ограничения ввода и текущую runtime generation.
+проверяет multiplayer gate, connection, ограничения ввода и текущую runtime generation.
 Команда передаётся API без начального `/`.
 
 ## Команды Vanilla-box
@@ -28,7 +28,7 @@ placeholders, а `PlayerNameValidator`, `MessageValidator`, `AmountValidator` и
 команда ничего не отправляет. Fallback к bundled JSON или другой конфигурации отсутствует.
 
 F7 и `\` являются обычными переназначаемыми key mappings и работают только при закрытом GUI,
-разрешённом Vanilla-box connection и активном runtime. `Alt+ПКМ` по игроку открывает меню
+корректном multiplayer connection и активном runtime. `Alt+ПКМ` по игроку открывает меню
 Vanilla-box действий только в тех же условиях.
 
 ## Пользовательские вкладки чата
@@ -56,7 +56,7 @@ Friend lookup использует одну конфигурацию Vanilla-box
 очереди, а также непосредственную отправку `/clan lookup`; при отключении запрос не ставится в очередь.
 `teleportRequestPattern` требует capture group 1 с валидным ником, а политика автоприёма
 использует друзей из той же конфигурации. Очереди и pending results очищаются при disconnect,
-denied join и замене runtime.
+invalid join и замене runtime при переходе между серверами.
 
 CNDL_chat+ не формирует auto-reply и periodic messages. Их persisted поля остаются inert bridge
 для CNDL_toolkit. Не логируйте private/mail text, reply payloads, email или суммы.

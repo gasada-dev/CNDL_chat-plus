@@ -6,8 +6,8 @@
 | --- | --- |
 | `.minecraft/config/cndl-chat-plus.json` | Глобальные настройки и совместимое представление Vanilla-box. |
 | `.minecraft/config/server-templates/vanilla-box.json` | Единственный источник серверных настроек. |
-| `.minecraft/config/cndl-chat-plus-chat-history/<server>.json` | История для нормализованного разрешённого адреса. |
-| `.minecraft/config/cndl-chat-plus-chat-bookmarks/<server>.json` | Закладки для нормализованного разрешённого адреса. |
+| `.minecraft/config/cndl-chat-plus-chat-history/<server>.json` | История для нормализованного multiplayer-адреса. |
+| `.minecraft/config/cndl-chat-plus-chat-bookmarks/<server>.json` | Закладки для нормализованного multiplayer-адреса. |
 | `.minecraft/config/cndl-chat-plus-themes/` | Пользовательские темы и `active.txt`. |
 
 `server-templates/vanilla-box.json` хранит каналы, фильтры, Discord-муты, друзей,
@@ -181,7 +181,7 @@ config, архив или обязательный Vanilla-box config приво
 
 ## Пользовательские данные
 
-История записывается только для разрешённого multiplayer address, восстанавливается при join и
+История записывается только для корректного multiplayer address, восстанавливается при join и
 не создаётся в singleplayer. Закладки независимы от истории, тоже разделены по адресу и пишутся
 атомарно после явного действия; автоматически старые закладки не удаляются. Если bookmark JSON
 нельзя прочитать полностью, перед следующим сохранением исходный файл переносится рядом под

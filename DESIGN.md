@@ -32,7 +32,9 @@ width. Compact mode begins near 520px and replaces side-by-side content with pag
 - `StyledEditBox`: native edit behavior with border and accent focus outline.
 - Pagination: adjacent `<` and `>` buttons with disabled boundary states; content remains reachable.
 - Status text: centered success/warning/error feedback; failed mutations stay on the current screen.
-- `ThemeScreen`: owo-ui theme selector on Minecraft 26.2 only; 1.21.11 does not open it.
+- `ThemeScreen`: paged selector with active, reload, folder, and back states; owo-ui owns Minecraft
+  26.2 while the native implementation preserves the same actions on 26.3. Minecraft 1.21.11 does
+  not open it.
 
 ## 6. Motion & Interaction
 

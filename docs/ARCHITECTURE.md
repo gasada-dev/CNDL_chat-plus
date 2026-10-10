@@ -1,6 +1,6 @@
 # Архитектура CNDL_chat+
 
-CNDL_chat+ является client-only Fabric модом для Minecraft 1.21.11 и 26.2. Игровой UI,
+CNDL_chat+ является client-only Fabric модом для Minecraft 1.21.11, 26.2 и 26.3. Игровой UI,
 connection, player list, send, HUD и sound выполняются на client thread. F8 открывает менеджер
 чата, F9 и automation принадлежат CNDL_toolkit.
 
@@ -8,16 +8,14 @@ connection, player list, send, HUD и sound выполняются на client t
 
 `CndlChatPlusClient` загружает `ResponderConfig`, выполняет `VanillaBoxStorageMigration`,
 создаёт сервисы и регистрирует Fabric events. `VanillaBoxConnectionGate` является единственной
-границей server activation. Он принимает только `ServerData.ip` с hostname `vanilla-box.ru`,
-`vnbx.ru`, настоящим поддоменом одного из них или точным адресом `213.171.18.139:25345`.
-Регистр и одна trailing dot нормализуются.
-Lookalike, unrelated hostname, другой IP, malformed input, singleplayer и connection без
-`ServerData` отклоняются без DNS lookup.
+границей server activation. Он принимает любой корректный multiplayer `ServerData.ip`, включая
+hostname, IPv4 и IPv6 с optional port, и нормализует его через `ServerAddressNormalizer`.
+Malformed input, singleplayer и connection без `ServerData` отклоняются без DNS lookup.
 
-При разрешённом join `VanillaBoxConfigStore` загружает только
+При корректном multiplayer join `VanillaBoxConfigStore` загружает только
 `server-templates/vanilla-box.json`, а `VanillaBoxRuntime` публикует immutable
 `VanillaBoxSnapshot`. Нормализованный адрес используется только для history/bookmark scope.
-Он не участвует в выборе config. Denied join, disconnect, failed migration, missing config после
+Он не участвует в выборе config. Invalid join, disconnect, failed migration, missing config после
 `storageVersion: 1` или compilation failure очищают runtime, gate, очереди, HUD и transient state.
 Это fail-inactive поведение, без defaults и fallback.
 
@@ -86,11 +84,12 @@ templates, import, catalog или настройки fixed commands/parsers.
 
 Friends, filter settings, channel markers, teleport policy и commands берутся из одной
 Vanilla-box config. `FriendLookupManager` и `PlayerInfoService` используют compiled parsers.
-На Minecraft 26.2 `VnbxBridgeClient` принимает bounded raw UTF-8 JSON `vnbx:bridge`; payload
-не попадает в config/history или log. На 1.21.11 bridge сразу unavailable.
+На Minecraft 26.2 и 26.3 `VnbxBridgeClient` принимает bounded raw UTF-8 JSON `vnbx:bridge`; payload
+не попадает в config/history или log. На 1.21.11 bridge сразу unavailable. Minecraft 26.3 хранит
+бинды в прежних GLFW-числах JSON и переводит их в SDL-коды только на runtime-границе.
 
-`ChatHistoryStore` и `ChatBookmarkStore` хранят данные отдельно по нормализованному разрешённому
-адресу через atomic temporary file и move. Они не создают scope в singleplayer или denied
+`ChatHistoryStore` и `ChatBookmarkStore` хранят данные отдельно по нормализованному multiplayer
+адресу через atomic temporary file и move. Они не создают scope в singleplayer или invalid
 connection. Bookmarks независимы от history toggles.
 
 ## Поддерживаемые границы
