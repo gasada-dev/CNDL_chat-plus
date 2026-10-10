@@ -26,7 +26,7 @@ final class ResponderConfigTest {
 		assertTrue(config.friendSoundEnabled);
 		assertTrue(config.teleportRequestSoundEnabled);
 		assertTrue(config.chatDuplicateCollapseEnabled);
-		assertEquals(3000, config.chatHistoryLimit);
+		assertEquals(9_000, config.chatHistoryLimit);
 		assertTrue(config.whitenBlackNames);
 		assertTrue(config.chatAlertsEnabled);
 		assertTrue(config.chatAlertRules.isEmpty());
@@ -238,7 +238,7 @@ final class ResponderConfigTest {
 
 		assertTrue(config.chatHistoryEnabled);
 		assertTrue(config.chatHistoryPersist);
-		assertEquals(ResponderConfig.DEFAULT_CHAT_HISTORY_LIMIT, config.chatHistoryLimit);
+		assertEquals(9_000, config.chatHistoryLimit);
 
 		config.chatHistoryLimit = 1;
 		config.sanitize();
@@ -246,7 +246,7 @@ final class ResponderConfigTest {
 
 		config.chatHistoryLimit = 999_999;
 		config.sanitize();
-		assertEquals(ResponderConfig.MAX_CHAT_HISTORY_LIMIT, config.chatHistoryLimit);
+		assertEquals(49_152, config.chatHistoryLimit);
 	}
 
 	@Test

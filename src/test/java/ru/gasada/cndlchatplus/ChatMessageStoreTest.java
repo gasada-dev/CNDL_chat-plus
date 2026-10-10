@@ -41,6 +41,19 @@ final class ChatMessageStoreTest {
 	}
 
 	@Test
+	void defaultLimitRetainsNewestNineThousandEntries() {
+		ChatMessageStore store = new ChatMessageStore(() -> ResponderConfig.DEFAULT_CHAT_HISTORY_LIMIT);
+		for (int index = 1; index <= 9_001; index++) {
+			store.add(new ChatHistoryEntry(index, "{}"));
+		}
+
+		List<ChatHistoryEntry> snapshot = store.snapshot();
+		assertEquals(9_000, snapshot.size());
+		assertEquals(2L, snapshot.getFirst().timestamp());
+		assertEquals(9_001L, snapshot.getLast().timestamp());
+	}
+
+	@Test
 	void appliesReducedLimitOnNextAdd() {
 		AtomicInteger limit = new AtomicInteger(5);
 		ChatMessageStore store = new ChatMessageStore(limit::get);
