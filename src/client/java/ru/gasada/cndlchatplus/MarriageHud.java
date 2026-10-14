@@ -3,6 +3,7 @@ package ru.gasada.cndlchatplus;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
@@ -17,13 +18,15 @@ public final class MarriageHud {
 	private final ServerCommandService commands;
 	private final FriendsHud friendsHud;
 	private final MarriageHudController controller;
+	private final BooleanSupplier enabled;
 	private volatile Set<String> onlinePlayers = Set.of();
 
 	MarriageHud(VanillaBoxRuntime runtime, PlayerInfoService playerInfo,
-			ServerCommandService commands, FriendsHud friendsHud) {
+			ServerCommandService commands, FriendsHud friendsHud, BooleanSupplier enabled) {
 		this.runtime = runtime;
 		this.commands = commands;
 		this.friendsHud = friendsHud;
+		this.enabled = enabled;
 		controller = new MarriageHudController(playerInfo);
 	}
 
@@ -53,7 +56,7 @@ public final class MarriageHud {
 			Font font, Minecraft minecraft) {
 		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return false;
 		MarriageHudSnapshot snapshot = controller.snapshot();
-		if (!snapshot.visible()) return false;
+		if (!visible(snapshot)) return false;
 		PartnerStatus status = partnerStatus(snapshot.partner(), onlinePlayers);
 		int contentWidth = Math.max(font.width(TITLE), font.width(status.line(snapshot.partner())));
 		Bounds bounds = bounds(screenWidth, screenHeight, contentWidth, friendsHud.occupiedHeight(),
@@ -64,11 +67,18 @@ public final class MarriageHud {
 	}
 
 	MarriageHudController.ActionResult execute(MarriageHudSnapshot.Context context, MarriageAction action) {
+		if (!enabled.getAsBoolean()) {
+			return new MarriageHudController.ActionResult(false, "Действия брака отключены");
+		}
 		return controller.execute(context, action, commands);
 	}
 
+	boolean visible(MarriageHudSnapshot snapshot) {
+		return enabled.getAsBoolean() && snapshot.visible();
+	}
+
 	private void render(CompatGraphics graphics, MarriageHudSnapshot snapshot) {
-		if (!CndlChatPlusClient.CONNECTION_GATE.active() || !snapshot.visible()) return;
+		if (!CndlChatPlusClient.CONNECTION_GATE.active() || !visible(snapshot)) return;
 		Font font = Minecraft.getInstance().font;
 		PartnerStatus status = partnerStatus(snapshot.partner(), onlinePlayers);
 		int contentWidth = Math.max(font.width(TITLE), font.width(status.line(snapshot.partner())));

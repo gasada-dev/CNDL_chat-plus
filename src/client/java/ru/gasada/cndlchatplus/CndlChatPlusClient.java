@@ -90,7 +90,8 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		resetCoordinator.register(friendsHud::resetRuntimeState);
 		resetCoordinator.register(FRIEND_LOOKUP::resetRuntimeState);
 		friendsHud.register();
-		MARRIAGE_HUD = new MarriageHud(VANILLA_BOX_RUNTIME, PLAYER_INFO, SERVER_COMMANDS, friendsHud);
+		MARRIAGE_HUD = new MarriageHud(VANILLA_BOX_RUNTIME, PLAYER_INFO, SERVER_COMMANDS, friendsHud,
+				() -> Boolean.TRUE.equals(CONFIG.marriageGuiEnabled));
 		resetCoordinator.register(MARRIAGE_HUD::resetRuntimeState);
 		MARRIAGE_HUD.register();
 
