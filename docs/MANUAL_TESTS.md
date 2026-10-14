@@ -17,10 +17,14 @@ F9 и automation принадлежат CNDL_toolkit.
 6. Проверьте сохранность `vanilla-box.json`, `cndl-chat-plus.legacy-backup.json`, branded config,
    branded imports, history и bookmarks.
 7. Проверьте `storageVersion: 1` в основном config.
+8. Для существующего `vanilla-box.json` без поля `psKick` проверьте добавление `/pskick {player}`.
+   Повторите с присутствующими `null`, пустым и пользовательским значением `psKick`: каждое должно
+   остаться без изменений.
 
 Ожидается: archive создаётся и проверяется до cleanup. Automation bridge с null values, порядком
 и количеством остаётся без изменений. Java defaults появляются только при первой инициализации,
-не заменяя существующий Vanilla-box file.
+не заменяя существующий Vanilla-box file. Migration добавляет `psKick` только при отсутствии поля;
+для присутствующих `null`, пустого и пользовательского значения fallback отсутствует.
 
 ## 2. Второй запуск и fail-inactive
 
@@ -102,28 +106,50 @@ bookmarks или Chat Alerts. При inactive runtime её outgoing prefix не 
 1. Добавьте valid friend, проверьте suggestions, persistence и удаление.
 2. Проверьте `/clan lookup` queue, скрытие служебного ответа и last-seen persistence.
 3. Проверьте private message, mail, pay, call, ignore и `Alt+ПКМ` по player entity.
-4. Получите teleport request, проверьте manual button, timeout и режимы автоприёма.
-5. Во время lookup или teleport request отключитесь либо перейдите на другой сервер.
-6. В «Настройки CNDL_chat+» откройте «Расширенные настройки», отключите «Клан-поиск» и проверьте,
+4. В меню `Alt+ПКМ` убедитесь, что все четыре прежние кнопки доступны. Откройте «Деньги», введите
+   корректную положительную сумму, затем пустую, `0`, отрицательную, нечисловую и значение с более
+   чем двумя знаками после разделителя. Проверьте отправку `/pay <player> <amount>` только для
+   корректной суммы. Выполните дополнительное действие `/pskick <player>`.
+5. Получите teleport request, проверьте manual button, timeout и режимы автоприёма.
+6. Во время lookup или teleport request отключитесь либо перейдите на другой сервер.
+7. В «Настройки CNDL_chat+» откройте «Расширенные настройки», отключите «Клан-поиск» и проверьте,
    что новые friend/profile lookup не ставятся в очередь и `/clan lookup` не отправляется. Включите
    переключатель обратно и проверьте обычный lookup.
 
 Ожидается: все server actions используют fixed Vanilla-box commands и validators. Stale queues,
 buttons, notices и callbacks очищаются. При отключённом «Клан-поиске» очередь и команда отсутствуют.
-Invalid input не отправляется. Private text и суммы не попадают в log.
+Invalid input не отправляется. Диалог оплаты не отправляет команду для invalid суммы. Private text
+и суммы не попадают в log.
 
-## 7. VnbxBridge и все target
+## 7. Лимит HUD друзей
+
+1. Добавьте или получите более 15 online-друзей и включите friend HUD.
+2. В «Расширенных настройках» установите `friendHudLimit` в `1`, затем в `15`, и проверьте число
+   строк online-друзей в HUD.
+3. Проверьте, что переключатель предлагает только значения от `1` до `15`.
+4. Перезапустите клиент и проверьте сохранение выбранного лимита.
+5. Откройте F8 и убедитесь, что список друзей и его paging не ограничены `friendHudLimit`.
+
+Ожидается: `friendHudLimit` ограничивает только строки online-друзей в HUD, хранится глобально и
+после перезапуска сохраняет значение от `1` до `15`. Значение по умолчанию равно `15`.
+
+## 8. VnbxBridge и все target
 
 1. На Minecraft 26.2 и 26.3 подключитесь к серверу с VnbxBridge и обновите профиль игрока.
 2. Проверьте clan/marriage data, marriage HUD и stale response после disconnect.
-3. На Minecraft 1.21.11 проверьте unavailable bridge и lookup fallback.
-4. Повторите минимум F8, valid/invalid gate, setting persistence, history/bookmark и одну
+3. В «Расширенных настройках» отключите `marriageGuiEnabled`: marriage HUD и меню действий
+   скрыты, но marriage data остаются в информации об игроке, а общие marriage-команды доступны.
+   Перезапустите клиент и повторите проверку. Затем включите переключатель, перезапустите клиент
+   и проверьте возврат HUD и меню действий.
+4. На Minecraft 1.21.11 проверьте unavailable bridge и lookup fallback.
+5. Повторите минимум F8, valid/invalid gate, setting persistence, history/bookmark и одну
    безопасную command path на всех target; на 26.3 отдельно проверьте бинды и экран тем.
 
 Ожидается: bridge payload не появляется в обычном UI, config, history или logs. Target 1.21.11
-не отправляет bridge payload.
+не отправляет bridge payload. `marriageGuiEnabled` сохраняется после перезапуска и скрывает только
+HUD и меню действий.
 
-## 8. Финальный smoke test
+## 9. Финальный smoke test
 
 1. Выполните `./gradlew clean test build assembleRelease` и `git diff --check`.
 2. Проверьте JAR для Minecraft 1.21.11, 26.2 и 26.3 в `build/release/`.

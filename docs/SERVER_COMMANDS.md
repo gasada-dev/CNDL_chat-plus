@@ -17,6 +17,7 @@
 | `/mail send <player> <message>` | `ServerCommandService.mail` | `{player}`, `{message}` |
 | `/tpaccept` | `ServerCommandService.acceptTeleport` | Нет |
 | `/ps add <player>` и `/ps remove <player>` | protection actions | `{player}` |
+| `/pskick <player>` | дополнительное действие привата | `{player}` |
 | `/vm trusted add <player>` и `/vm trusted remove <player>` | trader actions | `{player}` |
 | `/claimfly` и `/enderchest` | F7 и `\` | Нет |
 | `/marry kiss`, `/marry home`, `/marry tp` | marriage actions | Нет |
@@ -29,7 +30,10 @@ placeholders, а `PlayerNameValidator`, `MessageValidator`, `AmountValidator` и
 
 F7 и `\` являются обычными переназначаемыми key mappings и работают только при закрытом GUI,
 корректном multiplayer connection и активном runtime. `Alt+ПКМ` по игроку открывает меню
-Vanilla-box действий только в тех же условиях.
+Vanilla-box действий только в тех же условиях. Четыре существующие кнопки действий остаются в
+меню. Диалог «Деньги» принимает сумму и отправляет `/pay <player> <amount>` только после
+проверки ника и суммы. Дополнительное действие `/pskick <player>` использует тот же target и
+проверки.
 
 ## Пользовательские вкладки чата
 
