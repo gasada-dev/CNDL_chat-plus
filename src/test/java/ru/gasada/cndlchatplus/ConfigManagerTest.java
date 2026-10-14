@@ -55,7 +55,9 @@ final class ConfigManagerTest {
 		edited.customChatTabs = new ArrayList<>();
 		edited.hiddenBuiltInTabs = new ArrayList<>(List.of("GLOBAL"));
 		edited.friendHudEnabled = false;
+		edited.friendHudLimit = 7;
 		edited.clanLookupEnabled = false;
+		edited.marriageGuiEnabled = false;
 		edited.friends = new ArrayList<>(List.of("WrongFriend"));
 		edited.mutedWords = new ArrayList<>(List.of("wrong-word"));
 		edited.rules = null;
@@ -67,7 +69,9 @@ final class ConfigManagerTest {
 		assertFalse(after.get("chatTabsEnabled").getAsBoolean());
 		assertEquals(135, after.get("chatTabTextScalePercent").getAsInt());
 		assertFalse(after.get("friendHudEnabled").getAsBoolean());
+		assertEquals(7, after.get("friendHudLimit").getAsInt());
 		assertFalse(after.get("clanLookupEnabled").getAsBoolean());
+		assertFalse(after.get("marriageGuiEnabled").getAsBoolean());
 		assertEquals(0, after.getAsJsonArray("customChatTabs").size());
 		assertEquals("GLOBAL", after.getAsJsonArray("hiddenBuiltInTabs").get(0).getAsString());
 		assertEquals(before.get("storageVersion"), after.get("storageVersion"));
@@ -79,6 +83,53 @@ final class ConfigManagerTest {
 		assertEquals(before.get("mutedWords"), after.get("mutedWords"));
 		assertArrayEquals(vanillaBefore,
 				Files.readAllBytes(directory.resolve("server-templates/vanilla-box.json")));
+	}
+
+	@Test
+	void friendHudLimitMissingNullAndRangeLoadAndRoundTripThroughGlobalSave() throws Exception {
+		Path main = directory.resolve("cndl-chat-plus.json");
+		assertTrue(new VanillaBoxConfigStore(directory).save(persistedVanilla()).success());
+		byte[] vanillaBefore = Files.readAllBytes(directory.resolve("server-templates/vanilla-box.json"));
+		List<String> settings = List.of("", ",\"friendHudLimit\":null", ",\"friendHudLimit\":-2147483648",
+				",\"friendHudLimit\":0", ",\"friendHudLimit\":1", ",\"friendHudLimit\":7",
+				",\"friendHudLimit\":15", ",\"friendHudLimit\":16", ",\"friendHudLimit\":2147483647");
+		List<Integer> expectedLimits = List.of(15, 15, 1, 1, 1, 7, 15, 15, 15);
+		for (int index = 0; index < settings.size(); index++) {
+			Files.writeString(main, "{\"storageVersion\":1,\"friendSoundEnabled\":true" + settings.get(index) + "}",
+					StandardCharsets.UTF_8);
+			ConfigManager.LoadedConfig loaded = ConfigManager.load(main);
+			assertTrue(loaded.vanillaBox().success(), loaded.vanillaBox().errorMessage());
+			assertEquals(expectedLimits.get(index), loaded.config().friendHudLimit);
+
+			assertTrue(ConfigManager.saveGlobalSettings(loaded.config(), main));
+			JsonObject persisted = JsonParser.parseString(Files.readString(main)).getAsJsonObject();
+			assertEquals(expectedLimits.get(index).intValue(), persisted.get("friendHudLimit").getAsInt());
+			assertEquals(expectedLimits.get(index), ConfigManager.load(main).config().friendHudLimit);
+			assertArrayEquals(vanillaBefore,
+					Files.readAllBytes(directory.resolve("server-templates/vanilla-box.json")));
+		}
+	}
+
+	@Test
+	void marriageGuiMissingNullAndFalseLoadAndRoundTripThroughGlobalSave() throws Exception {
+		Path main = directory.resolve("cndl-chat-plus.json");
+		assertTrue(new VanillaBoxConfigStore(directory).save(persistedVanilla()).success());
+		byte[] vanillaBefore = Files.readAllBytes(directory.resolve("server-templates/vanilla-box.json"));
+		for (String setting : List.of("", ",\"marriageGuiEnabled\":null", ",\"marriageGuiEnabled\":false")) {
+			Files.writeString(main, "{\"storageVersion\":1,\"friendSoundEnabled\":true" + setting + "}",
+					StandardCharsets.UTF_8);
+			ConfigManager.LoadedConfig loaded = ConfigManager.load(main);
+			assertTrue(loaded.vanillaBox().success(), loaded.vanillaBox().errorMessage());
+			boolean expected = !setting.endsWith("false");
+			assertEquals(expected, loaded.config().marriageGuiEnabled);
+
+			assertTrue(ConfigManager.saveGlobalSettings(loaded.config(), main));
+			JsonObject persisted = JsonParser.parseString(Files.readString(main)).getAsJsonObject();
+			assertEquals(expected, persisted.get("marriageGuiEnabled").getAsBoolean());
+			assertEquals(expected, ConfigManager.load(main).config().marriageGuiEnabled);
+			assertArrayEquals(vanillaBefore,
+					Files.readAllBytes(directory.resolve("server-templates/vanilla-box.json")));
+		}
 	}
 
 	@Test

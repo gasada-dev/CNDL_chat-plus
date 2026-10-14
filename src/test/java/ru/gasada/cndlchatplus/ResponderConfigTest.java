@@ -23,7 +23,9 @@ final class ResponderConfigTest {
 		assertTrue(config.enabled);
 		assertTrue(config.discordChatEnabled);
 		assertTrue(config.friendHudEnabled);
+		assertEquals(15, config.friendHudLimit);
 		assertTrue(config.friendSoundEnabled);
+		assertTrue(config.marriageGuiEnabled);
 		assertTrue(config.teleportRequestSoundEnabled);
 		assertTrue(config.chatDuplicateCollapseEnabled);
 		assertEquals(9_000, config.chatHistoryLimit);
@@ -54,6 +56,57 @@ final class ResponderConfigTest {
 		assertEquals(List.of(ChatTabSource.VOICE), voice.sources);
 		assertEquals("/gc", voice.outgoingPrefix);
 		assertTrue(config.hiddenBuiltInTabs.isEmpty());
+	}
+
+	@Test
+	void friendHudLimitMissingNullRangeCopyAndRoundTripRemainCompatible() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig missing = ResponderConfigJson.read(gson, "{}");
+		ResponderConfig explicitNull = ResponderConfigJson.read(gson, "{\"friendHudLimit\":null}");
+		assertEquals(15, missing.friendHudLimit);
+		assertNull(explicitNull.friendHudLimit);
+		missing.sanitize();
+		explicitNull.sanitize();
+		assertEquals(15, missing.friendHudLimit);
+		assertEquals(15, explicitNull.friendHudLimit);
+
+		for (int value : new int[] {Integer.MIN_VALUE, -1, 0, 1, 7, 15, 16, Integer.MAX_VALUE}) {
+			ResponderConfig source = ResponderConfigJson.read(gson, "{\"friendHudLimit\":" + value + "}");
+			source.sanitize();
+			int expected = Math.clamp(value, 1, 15);
+			assertEquals(expected, source.friendHudLimit);
+			ResponderConfig target = new ResponderConfig();
+			target.applyGlobalSettingsFrom(source);
+			assertEquals(expected, target.friendHudLimit);
+			ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(target));
+			restored.sanitize();
+			assertEquals(expected, restored.friendHudLimit);
+		}
+	}
+
+	@Test
+	void marriageGuiMissingNullFalseCopyAndRoundTripRemainCompatible() {
+		Gson gson = new GsonBuilder().serializeNulls().create();
+		ResponderConfig missing = ResponderConfigJson.read(gson, "{}");
+		ResponderConfig explicitNull = ResponderConfigJson.read(gson, "{\"marriageGuiEnabled\":null}");
+		ResponderConfig disabled = ResponderConfigJson.read(gson, "{\"marriageGuiEnabled\":false}");
+		assertTrue(missing.marriageGuiEnabled);
+		assertNull(explicitNull.marriageGuiEnabled);
+		missing.sanitize();
+		explicitNull.sanitize();
+		disabled.sanitize();
+		assertTrue(missing.marriageGuiEnabled);
+		assertTrue(explicitNull.marriageGuiEnabled);
+		assertFalse(disabled.marriageGuiEnabled);
+
+		ResponderConfig target = new ResponderConfig();
+		target.applyGlobalSettingsFrom(disabled);
+		assertFalse(target.marriageGuiEnabled);
+		ResponderConfig restored = ResponderConfigJson.read(gson, gson.toJson(target));
+		restored.sanitize();
+		assertFalse(restored.marriageGuiEnabled);
+		target.applyGlobalSettingsFrom(explicitNull);
+		assertTrue(target.marriageGuiEnabled);
 	}
 
 	@Test
@@ -490,7 +543,9 @@ final class ResponderConfigTest {
 		ResponderConfig source = new ResponderConfig();
 		source.discordChatEnabled = false;
 		source.friendHudEnabled = false;
+		source.friendHudLimit = 7;
 		source.friendSoundEnabled = false;
+		source.marriageGuiEnabled = false;
 		source.teleportRequestSoundEnabled = false;
 		source.chatTabsEnabled = false;
 		source.chatDuplicateCollapseEnabled = false;
@@ -503,7 +558,9 @@ final class ResponderConfigTest {
 
 		assertFalse(persisted.discordChatEnabled);
 		assertFalse(persisted.friendHudEnabled);
+		assertEquals(7, persisted.friendHudLimit);
 		assertFalse(persisted.friendSoundEnabled);
+		assertFalse(persisted.marriageGuiEnabled);
 		assertFalse(persisted.teleportRequestSoundEnabled);
 		assertFalse(persisted.chatTabsEnabled);
 		assertFalse(persisted.chatDuplicateCollapseEnabled);

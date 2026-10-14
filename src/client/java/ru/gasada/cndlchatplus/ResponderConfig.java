@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 public final class ResponderConfig {
+	public static final int MIN_FRIEND_HUD_LIMIT = 1;
+	public static final int MAX_FRIEND_HUD_LIMIT = 15;
+	public static final int DEFAULT_FRIEND_HUD_LIMIT = 15;
 	public static final int MIN_CHAT_HISTORY_LIMIT = 100;
 	public static final int MAX_CHAT_HISTORY_LIMIT = 49152;
 	public static final int DEFAULT_CHAT_HISTORY_LIMIT = 9000;
@@ -27,8 +30,10 @@ public final class ResponderConfig {
 	public List<String> friends = new ArrayList<>();
 	public Map<String, String> friendLastSeen = new LinkedHashMap<>();
 	public Boolean friendHudEnabled = true;
+	public Integer friendHudLimit = DEFAULT_FRIEND_HUD_LIMIT;
 	public Boolean friendSoundEnabled = true;
 	public Boolean clanLookupEnabled = true;
+	public Boolean marriageGuiEnabled = true;
 	public Boolean teleportRequestSoundEnabled = true;
 	public TeleportAutoAcceptMode teleportAutoAcceptMode = TeleportAutoAcceptMode.OFF;
 	public List<String> teleportAutoAcceptFriends = new ArrayList<>();
@@ -73,8 +78,10 @@ public final class ResponderConfig {
 	void applyGlobalSettingsFrom(ResponderConfig source) {
 		discordChatEnabled = source.discordChatEnabled;
 		friendHudEnabled = source.friendHudEnabled;
+		friendHudLimit = source.friendHudLimit;
 		friendSoundEnabled = source.friendSoundEnabled;
 		clanLookupEnabled = source.clanLookupEnabled;
+		marriageGuiEnabled = source.marriageGuiEnabled;
 		teleportRequestSoundEnabled = source.teleportRequestSoundEnabled;
 		chatHistoryEnabled = source.chatHistoryEnabled;
 		chatHistoryPersist = source.chatHistoryPersist;
@@ -113,11 +120,18 @@ public final class ResponderConfig {
 		if (friendHudEnabled == null) {
 			friendHudEnabled = true;
 		}
+		if (friendHudLimit == null) {
+			friendHudLimit = DEFAULT_FRIEND_HUD_LIMIT;
+		}
+		friendHudLimit = Math.clamp(friendHudLimit, MIN_FRIEND_HUD_LIMIT, MAX_FRIEND_HUD_LIMIT);
 		if (friendSoundEnabled == null) {
 			friendSoundEnabled = true;
 		}
 		if (clanLookupEnabled == null) {
 			clanLookupEnabled = true;
+		}
+		if (marriageGuiEnabled == null) {
+			marriageGuiEnabled = true;
 		}
 		if (teleportRequestSoundEnabled == null) {
 			teleportRequestSoundEnabled = true;
