@@ -45,6 +45,7 @@ public final class CommandTemplateValidator {
 		MAIL(Set.of("player", "message")),
 		PROTECTION_ADD(Set.of("player")),
 		PROTECTION_REMOVE(Set.of("player")),
+		PS_KICK(Set.of("player")),
 		TRADER_TRUSTED_ADD(Set.of("player")),
 		TRADER_TRUSTED_REMOVE(Set.of("player")),
 		ACCEPT_TELEPORT(Set.of()),

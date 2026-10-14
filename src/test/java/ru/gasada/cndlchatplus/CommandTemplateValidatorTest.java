@@ -7,6 +7,18 @@ import org.junit.jupiter.api.Test;
 
 final class CommandTemplateValidatorTest {
 	@Test
+	void psKickRequiresOnlyPlayerPlaceholder() {
+		CommandTemplateValidator.CommandType type = CommandTemplateValidator.CommandType.PS_KICK;
+		assertTrue(CommandTemplateValidator.validate("pskick {player}", type).valid());
+		assertTrue(CommandTemplateValidator.validate("custom kick {player}", type).valid());
+		for (String template : new String[] { null, "", "pskick", "pskick {unknown}",
+				"pskick {player} {amount}", "pskick {Player}", "/pskick {player}",
+				"pskick {player}\nother" }) {
+			assertFalse(CommandTemplateValidator.validate(template, type).valid());
+		}
+	}
+
+	@Test
 	void placeholderFreeCommandsAcceptPlainTemplatesAndRejectPlaceholders() {
 		for (CommandTemplateValidator.CommandType type : new CommandTemplateValidator.CommandType[] {
 				CommandTemplateValidator.CommandType.CLAIM_FLY,
