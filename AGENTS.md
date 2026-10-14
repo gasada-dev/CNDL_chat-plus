@@ -31,6 +31,8 @@ CNDL_chat+ — client-only Fabric-мод. Реализуйте только яв
 - Перед ручными тестами всегда собрать свежий JAR и подставить его в `minecraft/mods` обоих
   тестовых инстансов.
 - MCP-сервер minecraft-mod-mcp — fork `/home/gasada/ai/minecraft-mod-mcp` (все изменения MCP там; bridge CLI: `packages/minecraft-mod-mcp/dist/cli.js`; клиентский мод для MCP-управления: `dist/minecraft-mcp-26.2-fabric.jar`).
+- Не используйте Minecraft MCP для запуска, управления или тестирования игры, если в `AGENTS.md`
+  нет отдельного прямого указания применить его для конкретной задачи. Описание MCP выше не является разрешением.
 
 Читайте только относящиеся к задаче документы:
 
