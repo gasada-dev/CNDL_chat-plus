@@ -10,6 +10,7 @@ public final class ServerCommandSettings {
 	public String acceptTeleport = "";
 	public String protectionAdd = "";
 	public String protectionRemove = "";
+	public String psKick = "";
 	public String traderTrustedAdd = "";
 	public String traderTrustedRemove = "";
 	public String claimFly = "";
@@ -32,6 +33,7 @@ public final class ServerCommandSettings {
 		settings.acceptTeleport = "tpaccept";
 		settings.protectionAdd = "ps add {player}";
 		settings.protectionRemove = "ps remove {player}";
+		settings.psKick = "pskick {player}";
 		settings.traderTrustedAdd = "vm trusted add {player}";
 		settings.traderTrustedRemove = "vm trusted remove {player}";
 		settings.claimFly = "claimfly";
@@ -56,6 +58,7 @@ public final class ServerCommandSettings {
 		copy.acceptTeleport = acceptTeleport;
 		copy.protectionAdd = protectionAdd;
 		copy.protectionRemove = protectionRemove;
+		copy.psKick = psKick;
 		copy.traderTrustedAdd = traderTrustedAdd;
 		copy.traderTrustedRemove = traderTrustedRemove;
 		copy.claimFly = claimFly;

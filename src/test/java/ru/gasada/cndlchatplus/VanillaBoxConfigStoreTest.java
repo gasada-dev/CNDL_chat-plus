@@ -15,14 +15,200 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 final class VanillaBoxConfigStoreTest {
 	private static final Path RELATIVE_CONFIG_PATH = Path.of("server-templates", "vanilla-box.json");
 
 	@TempDir
 	Path directory;
+
+	@Test
+	void psKickIsEnabledOnlyInBootstrapDefaultsAndCopiedExactly() {
+		assertEquals("", new ServerCommandSettings().psKick);
+		ServerCommandSettings defaults = ServerCommandSettings.vanillaBoxDefaults();
+		assertEquals("pskick {player}", defaults.psKick);
+		assertEquals(defaults.psKick, defaults.copy().psKick);
+	}
+
+	@Test
+	void migratesMissingPsKickAdditivelyWithoutNormalizingRawConfig() throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		String original = """
+				{"id":"legacy","name":"Legacy","globalPrefix":null,
+				 "commands":{"privateMessage":"custom {player} {message}","claimFly":null,
+				             "protectionRemove":"","futureCommand":{"values":[3,null,false]}},
+				 "parsers":{"playerInfoPatterns":{"unknown":null},"futureParser":[null,"kept"]},
+				 "responderEnabled":false,"clanReplyPrefix":null,"privateReplyCommand":"legacy {player}",
+				 "rules":[null,{"enabled":false,"trigger":null,"response":"bridge","channel":null,"extra":4}],
+				 "periodicMessages":[null,{"enabled":true,"message":null,"intervalMinutes":-7,"extra":null}],
+				 "periodicEnabled":false,"periodicMessage":null,"periodicIntervalMinutes":-9,
+				 "futureRoot":{"ordered":[false,null,"last"],"number":12345678901234567890}}
+				""";
+		Files.writeString(path, original, StandardCharsets.UTF_8);
+		JsonObject expected = JsonParser.parseString(original).getAsJsonObject();
+		expected.getAsJsonObject("commands").addProperty("psKick", "pskick {player}");
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertTrue(result.success(), result.errorMessage());
+		assertEquals("pskick {player}", result.value().commands.psKick);
+		assertEquals("pskick {player}", result.value().deepCopy().commands.psKick);
+		assertEquals("custom {player} {message}", result.value().commands.privateMessage);
+		assertNull(result.value().commands.claimFly);
+		assertEquals("", result.value().commands.lookupFriend);
+		assertEquals(expected, JsonParser.parseString(Files.readString(path)));
+		assertFalse(Files.exists(path.resolveSibling("vanilla-box.json.tmp")));
+
+		byte[] migratedBytes = Files.readAllBytes(path);
+		Files.createDirectory(path.resolveSibling("vanilla-box.json.tmp"));
+		ConfigOperationResult<VanillaBoxConfig> second = new VanillaBoxConfigStore(directory).load();
+		assertTrue(second.success(), second.errorMessage());
+		assertEquals("pskick {player}", second.value().commands.psKick);
+		assertArrayEquals(migratedBytes, Files.readAllBytes(path));
+	}
+
+	@Test
+	void migratesAbsentPsKickWithoutAddingOtherDefaults() throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		String original = "{\"commands\":{}}";
+		Files.writeString(path, original, StandardCharsets.UTF_8);
+		JsonObject expected = JsonParser.parseString(original).getAsJsonObject();
+		expected.getAsJsonObject("commands").addProperty("psKick", "pskick {player}");
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertTrue(result.success(), result.errorMessage());
+		assertEquals("pskick {player}", result.value().commands.psKick);
+		assertEquals(expected, JsonParser.parseString(Files.readString(path)));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "{}", "{\"rules\":null,\"periodicMessages\":null,\"clanReplyPrefix\":null}" })
+	void preservesMissingCommandsWithoutSynthesizingCommandDefaults(String original) throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		Files.writeString(path, original, StandardCharsets.UTF_8);
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertTrue(result.success(), result.errorMessage());
+		assertEquals("", result.value().commands.psKick);
+		assertEquals(original, Files.readString(path));
+	}
+
+	@ParameterizedTest
+	@NullSource
+	@ValueSource(strings = { "", "  ", "custom-kick {player}", "pskick {player}" })
+	void preservesPresentPsKickWithoutWritingEvenWhenTemporaryIsBlocked(String command) throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		JsonObject commands = new JsonObject();
+		commands.addProperty("psKick", command);
+		JsonObject original = new JsonObject();
+		original.add("commands", commands);
+		Files.writeString(path, original.toString(), StandardCharsets.UTF_8);
+		byte[] originalBytes = Files.readAllBytes(path);
+		Files.createDirectory(path.resolveSibling("vanilla-box.json.tmp"));
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertTrue(result.success(), result.errorMessage());
+		assertEquals(command, result.value().commands.psKick);
+		assertEquals(command, result.value().commands.copy().psKick);
+		assertArrayEquals(originalBytes, Files.readAllBytes(path));
+	}
+
+	@Test
+	void preservesExplicitNullCommandsWithoutEnablingPsKick() throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		String original = "{\"commands\":null}";
+		Files.writeString(path, original, StandardCharsets.UTF_8);
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertTrue(result.success(), result.errorMessage());
+		assertEquals("", result.value().commands.psKick);
+		assertEquals(original, Files.readString(path));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "null", "[]", "{\"commands\":[]}", "{\"commands\":false}",
+			"{\"commands\":{},\"friends\":{}}" })
+	void rejectsInvalidConfigWithoutPersistingMigration(String original) throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		Files.writeString(path, original, StandardCharsets.UTF_8);
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertFalse(result.success());
+		assertNull(result.value());
+		assertEquals(original, Files.readString(path));
+		assertFalse(Files.exists(path.resolveSibling("vanilla-box.json.tmp")));
+	}
+
+	@Test
+	void failedPsKickMigrationLeavesOldBytesAndClearsRuntimeUntilPersistedRetry() throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		Files.writeString(path, "{\"commands\":{},\"future\":null}", StandardCharsets.UTF_8);
+		byte[] originalBytes = Files.readAllBytes(path);
+		Path temporary = path.resolveSibling("vanilla-box.json.tmp");
+		Files.createDirectory(temporary);
+		VanillaBoxConfigStore store = new VanillaBoxConfigStore(directory);
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		runtime.activate(VanillaBoxConfig.empty());
+		VanillaBoxConnectionGate gate = new VanillaBoxConnectionGate();
+		gate.join("example.org");
+
+		ConfigOperationResult<VanillaBoxConfig> failed = store.load();
+
+		assertFalse(failed.success());
+		assertNull(failed.value());
+		assertTrue(failed.error() != null);
+		assertArrayEquals(originalBytes, Files.readAllBytes(path));
+		assertFalse(CndlChatPlusClient.activateConnection(gate, runtime, failed, "example.org").active());
+		assertTrue(runtime.activeSnapshot().isEmpty());
+		assertTrue(Files.isDirectory(temporary));
+		Files.delete(temporary);
+
+		ConfigOperationResult<VanillaBoxConfig> retried = store.load();
+		assertTrue(retried.success(), retried.errorMessage());
+		assertEquals("pskick {player}", retried.value().commands.psKick);
+		assertEquals("pskick {player}", JsonParser.parseString(Files.readString(path))
+				.getAsJsonObject().getAsJsonObject("commands").get("psKick").getAsString());
+		assertTrue(CndlChatPlusClient.activateConnection(gate, runtime, retried, "example.org").active());
+	}
+
+	@Test
+	void psKickMigrationRejectsSymlinkedTemporaryWithoutTouchingEitherFile() throws Exception {
+		Path path = directory.resolve(RELATIVE_CONFIG_PATH);
+		Files.createDirectories(path.getParent());
+		Files.writeString(path, "{\"commands\":{}}", StandardCharsets.UTF_8);
+		byte[] originalBytes = Files.readAllBytes(path);
+		Path external = directory.resolve("external.tmp");
+		Files.writeString(external, "external", StandardCharsets.UTF_8);
+		Path temporary = path.resolveSibling("vanilla-box.json.tmp");
+		Files.createSymbolicLink(temporary, external);
+
+		ConfigOperationResult<VanillaBoxConfig> result = new VanillaBoxConfigStore(directory).load();
+
+		assertFalse(result.success());
+		assertNull(result.value());
+		assertArrayEquals(originalBytes, Files.readAllBytes(path));
+		assertEquals("external", Files.readString(external));
+		assertTrue(Files.isSymbolicLink(temporary));
+	}
 
 	@Test
 	void roundTripsPersistedCustomCommandsAndParsersWithoutApplyingBootstrapDefaults() {

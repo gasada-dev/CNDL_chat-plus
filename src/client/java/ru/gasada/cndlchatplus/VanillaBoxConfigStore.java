@@ -12,6 +12,7 @@ import java.nio.file.StandardOpenOption;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 final class VanillaBoxConfigStore {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
@@ -31,19 +32,63 @@ final class VanillaBoxConfigStore {
 				return ConfigOperationResult.failure("Конфигурация Vanilla-box не найдена", null);
 			}
 			assertRegularFile(path);
-			VanillaBoxConfig config;
+			JsonObject raw;
 			try (InputStream input = Files.newInputStream(path, StandardOpenOption.READ,
 					LinkOption.NOFOLLOW_LINKS)) {
-				config = GSON.fromJson(new String(input.readAllBytes(), StandardCharsets.UTF_8),
-						VanillaBoxConfig.class);
+				raw = GSON.fromJson(new String(input.readAllBytes(), StandardCharsets.UTF_8), JsonObject.class);
 			}
+			VanillaBoxConfig config = GSON.fromJson(raw, VanillaBoxConfig.class);
 			if (config == null) {
 				return ConfigOperationResult.failure("Конфигурация Vanilla-box пуста", null);
 			}
 			config.sanitize();
+			if (migrateMissingPsKick(raw)) return load();
 			return ConfigOperationResult.success(config);
 		} catch (Exception error) {
 			return ConfigOperationResult.failure("Не удалось прочитать конфигурацию Vanilla-box", error);
+		}
+	}
+
+	private boolean migrateMissingPsKick(JsonObject raw) throws IOException {
+		if (!raw.has("commands") || raw.get("commands").isJsonNull()) return false;
+		JsonObject commands = raw.getAsJsonObject("commands");
+		if (commands.has("psKick")) return false;
+		commands.addProperty("psKick", "pskick {player}");
+
+		Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
+		assertNoSymlinkComponents(path);
+		assertRegularFile(path);
+		assertRegularFileOrAbsent(temporary);
+		Files.deleteIfExists(temporary);
+		try {
+			Files.writeString(temporary, GSON.toJson(raw), StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+			assertNoSymlinkComponents(path);
+			assertRegularFile(path);
+			assertRegularFile(temporary);
+			try {
+				Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			} catch (AtomicMoveNotSupportedException unsupported) {
+				Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+			}
+			assertNoSymlinkComponents(path);
+			assertRegularFile(path);
+			try (InputStream input = Files.newInputStream(path, StandardOpenOption.READ,
+					LinkOption.NOFOLLOW_LINKS)) {
+				if (!raw.equals(GSON.fromJson(new String(input.readAllBytes(), StandardCharsets.UTF_8),
+						JsonObject.class))) {
+					throw new IOException("Проверка миграции команды psKick не пройдена");
+				}
+			}
+			return true;
+		} catch (IOException error) {
+			try {
+				assertNoSymlinkComponents(temporary);
+				Files.deleteIfExists(temporary);
+			} catch (IOException cleanupError) {
+				error.addSuppressed(cleanupError);
+			}
+			throw error;
 		}
 	}
 
