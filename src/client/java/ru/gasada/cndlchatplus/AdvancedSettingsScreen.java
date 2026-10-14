@@ -2,13 +2,20 @@ package ru.gasada.cndlchatplus;
 
 import static ru.gasada.cndlchatplus.ThemeTokens.*;
 
+import java.util.stream.IntStream;
+
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 
 public final class AdvancedSettingsScreen extends CompatScreen {
 	private final Screen parent;
 	private final ResponderConfig config;
 	private final ScreenStatus status = new ScreenStatus();
+	private StyledCycleButton<Boolean> marriageGui;
+	private StyledCycleButton<Integer> friendHudLimit;
 	private int panelX;
 	private int panelY;
 	private int panelWidth;
@@ -30,7 +37,7 @@ public final class AdvancedSettingsScreen extends CompatScreen {
 		int usable = panelWidth - 32;
 		StyledCycleButton<Boolean> lookup = StyledCycleButton.onOff(
 				Boolean.TRUE.equals(config.clanLookupEnabled), left, panelY + 48, usable, FIELD_HEIGHT,
-				Component.literal("Клан-поиск"), (button, value) -> {
+				Component.literal("clan lookup"), (button, value) -> {
 					config.clanLookupEnabled = value;
 					boolean saved = ConfigManager.saveGlobalSettings(config);
 					status.set(saved ? "Настройки сохранены" : "Не удалось сохранить настройки",
@@ -39,8 +46,48 @@ public final class AdvancedSettingsScreen extends CompatScreen {
 		lookup.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
 				Component.literal("Разрешить запросы /clan lookup для друзей и профилей")));
 		addRenderableWidget(lookup);
+		marriageGui = StyledCycleButton.onOff(Boolean.TRUE.equals(config.marriageGuiEnabled),
+				left, panelY + 48 + ROW_HEIGHT, usable, FIELD_HEIGHT, Component.literal("Интерфейс брака"),
+				(button, value) -> {
+					config.marriageGuiEnabled = value;
+					boolean saved = ConfigManager.saveGlobalSettings(config);
+					status.set(saved ? "Настройки сохранены" : "Не удалось сохранить настройки",
+							saved ? success() : danger());
+				});
+		marriageGui.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+				Component.literal("Показывать HUD брака и открывать меню брака")));
+		addRenderableWidget(marriageGui);
+		friendHudLimit = StyledCycleButton.of(value -> Component.literal(value.toString()), config.friendHudLimit,
+				IntStream.rangeClosed(ResponderConfig.MIN_FRIEND_HUD_LIMIT, ResponderConfig.MAX_FRIEND_HUD_LIMIT)
+						.boxed().toList(), left, panelY + 48 + ROW_HEIGHT * 2, usable, FIELD_HEIGHT,
+				Component.literal("Лимит друзей в HUD"), (button, value) -> {
+					config.friendHudLimit = value;
+					boolean saved = ConfigManager.saveGlobalSettings(config);
+					status.set(saved ? "Настройки сохранены" : "Не удалось сохранить настройки",
+							saved ? success() : danger());
+				});
+		friendHudLimit.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+				Component.literal("Максимальное число онлайн-друзей в HUD: от 1 до 15")));
+		addRenderableWidget(friendHudLimit);
 		addRenderableWidget(StyledButton.create(Component.literal("Назад"), ignored -> onClose())
 				.bounds(panelX + panelWidth - 96, panelY + panelHeight - 30, 80, FIELD_HEIGHT).build());
+	}
+
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (getFocused() == marriageGui && event.isSelection()) {
+			marriageGui.playDownSound(minecraft.getSoundManager());
+			marriageGui.onClick(new MouseButtonEvent(marriageGui.getX(), marriageGui.getY(),
+					new MouseButtonInfo(0, event.modifiers())), false);
+			return true;
+		}
+		if (getFocused() == friendHudLimit && event.isSelection()) {
+			friendHudLimit.playDownSound(minecraft.getSoundManager());
+			friendHudLimit.onClick(new MouseButtonEvent(friendHudLimit.getX(), friendHudLimit.getY(),
+					new MouseButtonInfo(0, event.modifiers())), false);
+			return true;
+		}
+		return super.keyPressed(event);
 	}
 
 	@Override
