@@ -12,7 +12,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 
 public final class FriendsHud {
-	private static final int MAX_DISPLAYED_ONLINE_FRIENDS = 15;
 	private final VanillaBoxRuntime runtime;
 	private final FriendPresenceTracker tracker = new FriendPresenceTracker();
 	private volatile FriendHudSnapshot snapshot = FriendHudSnapshot.empty();
@@ -61,7 +60,7 @@ public final class FriendsHud {
 		Minecraft minecraft = Minecraft.getInstance();
 		Font font = minecraft.font;
 		List<String> allOnline = snapshot.onlineFriends();
-		List<String> online = allOnline.subList(0, Math.min(MAX_DISPLAYED_ONLINE_FRIENDS, allOnline.size()));
+		List<String> online = displayedOnlineFriends(snapshot, CndlChatPlusClient.CONFIG.friendHudLimit);
 		String title = "Друзья онлайн: " + allOnline.size();
 		int contentWidth = font.width(title);
 		for (String friend : online) {
@@ -99,16 +98,21 @@ public final class FriendsHud {
 	}
 
 	int occupiedHeight() {
-		return occupiedHeight(snapshot);
+		return occupiedHeight(snapshot, CndlChatPlusClient.CONFIG.friendHudLimit);
 	}
 
 	int renderedWidth() {
 		return lastRenderedWidth;
 	}
 
-	static int occupiedHeight(FriendHudSnapshot snapshot) {
+	static List<String> displayedOnlineFriends(FriendHudSnapshot snapshot, int limit) {
+		List<String> online = snapshot.onlineFriends();
+		return online.subList(0, Math.min(limit, online.size()));
+	}
+
+	static int occupiedHeight(FriendHudSnapshot snapshot, int limit) {
 		if (!snapshot.hudEnabled() || snapshot.onlineFriends().isEmpty()) return 0;
-		int displayed = Math.min(MAX_DISPLAYED_ONLINE_FRIENDS, snapshot.onlineFriends().size());
+		int displayed = displayedOnlineFriends(snapshot, limit).size();
 		int boxHeight = 8 + (displayed + 1) * 11;
 		return snapshot.notices().isEmpty() ? boxHeight + 5
 				: boxHeight + 10 + snapshot.notices().size() * 20;
