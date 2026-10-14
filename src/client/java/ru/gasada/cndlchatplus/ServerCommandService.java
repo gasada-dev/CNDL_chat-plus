@@ -73,6 +73,10 @@ public final class ServerCommandService {
 				command("protectionRemove"), player);
 	}
 
+	public CommandResult psKick(String player) {
+		return playerCommand(CommandTemplateValidator.CommandType.PS_KICK, command("psKick"), player);
+	}
+
 	public CommandResult addTraderTrusted(String player) {
 		return playerCommand(CommandTemplateValidator.CommandType.TRADER_TRUSTED_ADD,
 				command("traderTrustedAdd"), player);
@@ -126,6 +130,7 @@ public final class ServerCommandService {
 			case MAIL -> command("mail");
 			case PROTECTION_ADD -> command("protectionAdd");
 			case PROTECTION_REMOVE -> command("protectionRemove");
+			case PS_KICK -> command("psKick");
 			case TRADER_TRUSTED_ADD -> command("traderTrustedAdd");
 			case TRADER_TRUSTED_REMOVE -> command("traderTrustedRemove");
 			case ACCEPT_TELEPORT -> command("acceptTeleport");
@@ -225,6 +230,7 @@ public final class ServerCommandService {
 			case "acceptTeleport" -> commands.acceptTeleport();
 			case "protectionAdd" -> commands.protectionAdd();
 			case "protectionRemove" -> commands.protectionRemove();
+			case "psKick" -> commands.psKick();
 			case "traderTrustedAdd" -> commands.traderTrustedAdd();
 			case "traderTrustedRemove" -> commands.traderTrustedRemove();
 			case "claimFly" -> commands.claimFly();

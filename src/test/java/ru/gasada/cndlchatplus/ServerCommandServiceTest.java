@@ -38,6 +38,7 @@ final class ServerCommandServiceTest {
 		assertTrue(commands.acceptTeleport().success());
 		assertTrue(commands.addToProtection("Player_1").success());
 		assertTrue(commands.removeFromProtection("Player_1").success());
+		assertTrue(commands.psKick("Player_1").success());
 		assertTrue(commands.addTraderTrusted("Player_1").success());
 		assertTrue(commands.removeTraderTrusted("Player_1").success());
 		assertTrue(commands.claimFly().success());
@@ -56,6 +57,7 @@ final class ServerCommandServiceTest {
 				"tpaccept",
 				"ps add Player_1",
 				"ps remove Player_1",
+				"pskick Player_1",
 				"vm trusted add Player_1",
 				"vm trusted remove Player_1",
 				"claimfly",
@@ -63,6 +65,53 @@ final class ServerCommandServiceTest {
 				"marry kiss",
 				"marry home",
 				"marry tp"), transport.commands);
+	}
+
+	@Test
+	void psKickUsesOnlyTheActiveSnapshotTemplate() {
+		assertTrue(commands.supports(CommandTemplateValidator.CommandType.PS_KICK));
+		assertFalse(commands.supportsDraft(CommandTemplateValidator.CommandType.PS_KICK));
+		VanillaBoxConfig custom = configWithCommands();
+		custom.commands.psKick = "custom kick {player}";
+		runtime.activate(custom);
+		custom.commands.psKick = "must not leak {player}";
+
+		assertTrue(commands.supports(CommandTemplateValidator.CommandType.PS_KICK));
+		assertTrue(commands.psKick("Player_1").success());
+		assertEquals(List.of("custom kick Player_1"), transport.commands);
+	}
+
+	@Test
+	void psKickRejectsInvalidPlayersBeforeTransport() {
+		for (String player : new String[] { null, "", "bad player", "Player\n1", "Player;op", "Игрок" }) {
+			assertFalse(commands.psKick(player).success());
+		}
+		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
+	void psKickMissingOrInvalidTemplateNeverFallsBackToDefaults() {
+		for (String template : new String[] { null, "", " ", "pskick", "pskick {unknown}",
+				"pskick {player} {amount}", "/pskick {player}", "pskick {player}\nother" }) {
+			VanillaBoxConfig config = configWithCommands();
+			config.commands.psKick = template;
+			runtime.activate(config);
+
+			assertFalse(commands.supports(CommandTemplateValidator.CommandType.PS_KICK));
+			assertFalse(commands.psKick("Player_1").success());
+		}
+		assertTrue(transport.commands.isEmpty());
+	}
+
+	@Test
+	void psKickDoesNotSendWithoutActiveRuntimeOrConnection() {
+		runtime.clear();
+		assertFalse(commands.supports(CommandTemplateValidator.CommandType.PS_KICK));
+		assertFalse(commands.psKick("Player_1").success());
+		runtime.activate(configWithCommands());
+		transport.connected = false;
+		assertFalse(commands.psKick("Player_1").success());
+		assertTrue(transport.commands.isEmpty());
 	}
 
 	@Test
