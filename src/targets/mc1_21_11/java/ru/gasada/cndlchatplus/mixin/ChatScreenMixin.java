@@ -261,8 +261,9 @@ public abstract class ChatScreenMixin {
 		int lineHeight = metrics.gasada$chatLineHeight();
 		for (int line = top.line(); line >= bottom.line(); line--) {
 			String text = gasada$selectionLines.get(line);
-			int start = line == bottom.line() ? bottom.offset() : 0;
-			int end = line == top.line() ? top.offset() : text.length();
+			ChatTextSelection.Range range = ChatTextSelection.range(text, line, top, bottom);
+			int start = range.start();
+			int end = range.end();
 			if (start == end) continue;
 			int[] advances = gasada$selectionAdvances.get(line);
 			int left = (int) Math.floor((ThemeTokens.chatIndent() + advances[start]) * scale);

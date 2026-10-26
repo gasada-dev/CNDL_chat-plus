@@ -25,6 +25,7 @@ public final class ChatTabController {
 	private final IdentityHashMap<Component, Boolean> gameMessages = new IdentityHashMap<>();
 	private final IdentityHashMap<Component, Boolean> restoredMessages = new IdentityHashMap<>();
 	private final IdentityHashMap<Component, Component> originalMessages = new IdentityHashMap<>();
+	private final Set<Component> localNotices = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
 	private final Map<ChatTab, Integer> unread = new EnumMap<>(ChatTab.class);
 	private final Map<String, Integer> customUnread = new HashMap<>();
 	private List<ChatTabDefinition> customTabs = List.of();
@@ -114,6 +115,7 @@ public final class ChatTabController {
 	}
 
 	public boolean isVisible(Component component, Boolean systemSource) {
+		if (localNotices.contains(component) || localNotices.contains(originalMessages.get(component))) return true;
 		if (!enabled() || activeCustomId == null && active == ChatTab.ALL) {
 			return true;
 		}
@@ -129,6 +131,11 @@ public final class ChatTabController {
 		}
 		boolean fromGame = fromGame(component, systemSource);
 		return classifier.classify(classificationText(component), fromGame) == active;
+	}
+
+	void showLocalNotice(Component component) {
+		if (localNotices.size() >= 64) localNotices.clear();
+		localNotices.add(component);
 	}
 
 	public boolean fromGame(Component component, Boolean systemSource) {
@@ -218,6 +225,7 @@ public final class ChatTabController {
 	}
 
 	public void resetRuntimeState() {
+		localNotices.clear();
 		gameMessages.clear();
 		restoredMessages.clear();
 		originalMessages.clear();

@@ -1,21 +1,33 @@
 package ru.gasada.cndlchatplus;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public final class CustomChatOutgoingService {
 	private final ChatTabController tabs;
 	private final OutgoingChatService outgoing;
+	private final Consumer<FailedMessage> failureReporter;
+
+	public record FailedMessage(String text, String command, String error) { }
 
 	public CustomChatOutgoingService(ChatTabController tabs, OutgoingChatService outgoing) {
+		this(tabs, outgoing, ignored -> { });
+	}
+
+	CustomChatOutgoingService(ChatTabController tabs, OutgoingChatService outgoing,
+			Consumer<FailedMessage> failureReporter) {
 		this.tabs = Objects.requireNonNull(tabs, "tabs");
 		this.outgoing = Objects.requireNonNull(outgoing, "outgoing");
+		this.failureReporter = Objects.requireNonNull(failureReporter, "failureReporter");
 	}
 
 	public boolean route(String message) {
 		if (!tabs.enabled()) return false;
 		String command = commandFor(tabs.activeDefinition(), message);
 		if (command == null) return false;
-		outgoing.sendCommand(command);
+		outgoing.sendCommand(command, result -> {
+			if (!result.success()) failureReporter.accept(new FailedMessage(message, command, result.errorMessage()));
+		});
 		return true;
 	}
 

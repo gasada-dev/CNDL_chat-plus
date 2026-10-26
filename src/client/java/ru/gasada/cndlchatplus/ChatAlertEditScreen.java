@@ -75,7 +75,6 @@ public final class ChatAlertEditScreen extends CompatScreen {
 			return;
 		}
 		draft.pattern = patternValue;
-		draft.cooldownSeconds = 0;
 		saveConsumer.accept(draft);
 		onClose();
 	}

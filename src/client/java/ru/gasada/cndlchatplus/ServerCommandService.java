@@ -63,6 +63,21 @@ public final class ServerCommandService {
 				command("acceptTeleport"), Map.of());
 	}
 
+	OutgoingChatService.SendResult acceptTeleport(String player,
+			java.util.function.Consumer<OutgoingChatService.SendResult> completion) {
+		PlayerNameValidator.ValidationResult name = PlayerNameValidator.validate(player);
+		Optional<String> template = command("acceptTeleport");
+		CommandTemplateValidator.ValidationResult validation = CommandTemplateValidator.validate(
+				template.orElse(""), CommandTemplateValidator.CommandType.ACCEPT_TELEPORT);
+		if (!name.valid() || !validation.valid()) {
+			var failure = new OutgoingChatService.SendResult(OutgoingChatService.SendState.FAILED,
+					!name.valid() ? name.errorMessage() : validation.errorMessage());
+			completion.accept(failure);
+			return failure;
+		}
+		return outgoing.sendCommand(validation.normalizedTemplate() + " " + player, completion);
+	}
+
 	public CommandResult addToProtection(String player) {
 		return playerCommand(CommandTemplateValidator.CommandType.PROTECTION_ADD,
 				command("protectionAdd"), player);

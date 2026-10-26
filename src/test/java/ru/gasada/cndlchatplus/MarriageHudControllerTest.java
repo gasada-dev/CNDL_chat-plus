@@ -13,6 +13,25 @@ import org.junit.jupiter.api.Test;
 
 final class MarriageHudControllerTest {
 	@Test
+	void lastSeenUpdateKeepsPartnerAndDoesNotRefetch() {
+		VanillaBoxRuntime runtime = runtime();
+		AtomicInteger fetches = new AtomicInteger();
+		PlayerInfoService info = new PlayerInfoService(runtime, (id, player) -> {
+			fetches.incrementAndGet();
+			return CompletableFuture.completedFuture(relations(true, "Partner_1"));
+		}, () -> true, null, Runnable::run);
+		MarriageHudController controller = new MarriageHudController(info);
+		Object connection = new Object();
+		controller.tick(connection, generation(runtime), true, () -> "Self_1");
+		runtime.updateLastSeen("Alice", "сейчас");
+		controller.tick(connection, generation(runtime), true, () -> "Self_1");
+		assertEquals("Partner_1", controller.snapshot().partner());
+		assertEquals(1, fetches.get());
+		controller.tick(null, -1, false, () -> "Self_1");
+		assertFalse(controller.snapshot().visible());
+	}
+
+	@Test
 	void fetchesSelfOnlyOncePerConnectionAndGenerationAfterBridgeBecomesAvailable() {
 		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> bridge = new CompletableFuture<>();

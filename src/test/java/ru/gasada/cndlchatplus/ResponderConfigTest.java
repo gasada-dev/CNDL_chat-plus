@@ -17,6 +17,24 @@ import org.junit.jupiter.api.Test;
 
 final class ResponderConfigTest {
 	@Test
+	void timestampColorDefaultsSanitizesCopiesAndRoundTrips() {
+		Gson gson = new Gson();
+		for (String json : List.of("{}", "{\"chatTimestampColor\":null}",
+				"{\"chatTimestampColor\":\"UNKNOWN\"}", "{\"chatTimestampColor\":\"BOLD\"}")) {
+			ResponderConfig config = ResponderConfigJson.read(gson, json);
+			config.sanitize();
+			assertEquals(net.minecraft.ChatFormatting.GRAY, config.chatTimestampColor);
+		}
+		ResponderConfig config = new ResponderConfig();
+		config.chatTimestampColor = net.minecraft.ChatFormatting.RED;
+		ResponderConfig copy = new ResponderConfig();
+		copy.applyGlobalSettingsFrom(config);
+		assertEquals(net.minecraft.ChatFormatting.RED, copy.chatTimestampColor);
+		assertEquals(net.minecraft.ChatFormatting.RED,
+				ResponderConfigJson.read(gson, gson.toJson(copy)).chatTimestampColor);
+	}
+
+	@Test
 	void defaultsPreserveLegacyCompatibilityConfiguration() {
 		ResponderConfig config = ResponderConfig.defaults();
 

@@ -8,7 +8,11 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 
 public final class SettingsScreen extends CompatScreen {
 	private final Screen parent;
@@ -22,6 +26,7 @@ public final class SettingsScreen extends CompatScreen {
 	private Page page = Page.CHAT;
 	private int chatBindPage;
 	private ChatBind capturedBind;
+	private StyledCycleButton<ChatFormatting> timestampColor;
 
 	public SettingsScreen(Screen parent, ResponderConfig config) {
 		super(Component.literal("Настройки CNDL_chat+"));
@@ -107,12 +112,25 @@ public final class SettingsScreen extends CompatScreen {
 					if (!value && CndlChatPlusClient.CHAT_SEARCH != null) CndlChatPlusClient.CHAT_SEARCH.clear();
 				});
 		addToggle("Время сообщений", Boolean.TRUE.equals(config.chatTimestampsEnabled), x,
-				firstY + rowGap * 2, buttonWidth, "Добавлять префикс [HH:mm]", value -> {
+				firstY + rowGap * 2, buttonWidth - 116, "Добавлять префикс [HH:mm]", value -> {
 					config.chatTimestampsEnabled = value;
 					if (!value && CndlChatPlusClient.CHAT_TIMESTAMPS != null) {
 						CndlChatPlusClient.CHAT_TIMESTAMPS.resetRuntimeState();
 					}
 				});
+		timestampColor = StyledCycleButton.of(
+				value -> Component.literal(ChatTimestamps.colorName(value)).withStyle(value), config.chatTimestampColor,
+				java.util.Arrays.stream(ChatFormatting.values())
+						.filter(value -> TextColor.fromLegacyFormat(value) != null).toList(),
+				x + buttonWidth - 112, firstY + rowGap * 2, 112, FIELD_HEIGHT,
+				Component.literal("Цвет"), (button, value) -> {
+					config.chatTimestampColor = value;
+					boolean saved = ConfigManager.saveGlobalSettings(config);
+					status.set(saved ? "Цвет времени сохранён" : "Не удалось сохранить цвет",
+							saved ? success() : danger());
+				});
+		timestampColor.setTooltip(Tooltip.create(Component.literal("Цвет времени новых и восстановленных сообщений")));
+		addRenderableWidget(timestampColor);
 		addToggle("Объединять повторы", Boolean.TRUE.equals(config.chatDuplicateCollapseEnabled), x,
 				firstY + rowGap * 3, buttonWidth, "Собирать одинаковые сообщения в строку xN", value -> {
 					config.chatDuplicateCollapseEnabled = value;
@@ -234,6 +252,12 @@ public final class SettingsScreen extends CompatScreen {
 
 	@Override
 	public boolean keyPressed(KeyEvent event) {
+		if (timestampColor != null && getFocused() == timestampColor && event.isSelection()) {
+			timestampColor.playDownSound(minecraft.getSoundManager());
+			timestampColor.onClick(new MouseButtonEvent(timestampColor.getX(), timestampColor.getY(),
+					new MouseButtonInfo(0, event.modifiers())), false);
+			return true;
+		}
 		if (capturedBind == null) return super.keyPressed(event);
 		if (event.key() == PlatformInput.nativeEscape()) {
 			capturedBind = null;

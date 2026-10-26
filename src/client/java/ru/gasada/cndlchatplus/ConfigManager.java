@@ -22,7 +22,7 @@ public final class ConfigManager {
 			"chatHistoryEnabled", "chatHistoryPersist", "chatHistoryLimit", "chatTabsEnabled", "chatTabTextSize",
 			"chatTabTextScalePercent", "customChatTabs",
 			"hiddenBuiltInTabs",
-			"chatTimestampsEnabled", "chatSearchEnabled", "chatContextMenuEnabled",
+			"chatTimestampsEnabled", "chatTimestampColor", "chatSearchEnabled", "chatContextMenuEnabled",
 			"chatDuplicateCollapseEnabled", "whitenBlackNames", "chatAlertsEnabled", "chatAlertRules",
 			"chatBinds");
 

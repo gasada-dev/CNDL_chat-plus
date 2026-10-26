@@ -16,6 +16,25 @@ import org.junit.jupiter.api.Test;
 
 final class PlayerInfoServiceTest {
 	@Test
+	void lastSeenDoesNotInvalidatePendingProfileButDisconnectDoes() {
+		VanillaBoxRuntime runtime = runtime();
+		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();
+		PlayerInfoService service = new PlayerInfoService(runtime, (id, player) -> pending, null, Runnable::run);
+		var result = service.refresh("Player_1");
+		runtime.updateLastSeen("Alice", "сейчас");
+		pending.complete(new VnbxPlayerRelationsResult(true, "Player_1", false,
+				new VnbxPlayerRelationsResult.Clan(false, null, null, null), true,
+				new VnbxPlayerRelationsResult.Marriage(false, null, null)));
+		assertTrue(result.join().success());
+		CompletableFuture<VnbxPlayerRelationsResult> stale = new CompletableFuture<>();
+		PlayerInfoService other = new PlayerInfoService(runtime, (id, player) -> stale, null, Runnable::run);
+		var staleResult = other.refresh("Player_1");
+		runtime.clear();
+		stale.complete(pending.join());
+		assertFalse(staleResult.join().success());
+	}
+
+	@Test
 	void coalescesConcurrentRefreshesForSamePlayerIgnoringCase() {
 		VanillaBoxRuntime runtime = runtime();
 		CompletableFuture<VnbxPlayerRelationsResult> pending = new CompletableFuture<>();

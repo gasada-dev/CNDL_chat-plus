@@ -8,6 +8,20 @@ public final class ChatTextSelection {
 	public record Point(int line, int offset) {
 	}
 
+	public record Range(int start, int end) { }
+
+	public static Range range(String text, int line, Point first, Point second) {
+		Point top = first.line() >= second.line() ? first : second;
+		Point bottom = top == first ? second : first;
+		if (line < bottom.line() || line > top.line()) return new Range(0, 0);
+		if (top.line() == bottom.line()) {
+			return new Range(clampOffset(text, Math.min(first.offset(), second.offset())),
+					clampOffset(text, Math.max(first.offset(), second.offset())));
+		}
+		return new Range(line == top.line() ? clampOffset(text, top.offset()) : 0,
+				line == bottom.line() ? clampOffset(text, bottom.offset()) : text.length());
+	}
+
 	private ChatTextSelection() {
 	}
 
@@ -40,18 +54,12 @@ public final class ChatTextSelection {
 		if (top.line() < 0 || top.line() >= lines.size() || bottom.line() < 0 || bottom.line() >= lines.size()) {
 			return "";
 		}
-		int topOffset = clampOffset(lines.get(top.line()), top.offset());
-		int bottomOffset = clampOffset(lines.get(bottom.line()), bottom.offset());
-		if (top.line() == bottom.line()) {
-			return lines.get(top.line()).substring(Math.min(topOffset, bottomOffset), Math.max(topOffset, bottomOffset));
-		}
 		StringBuilder selected = new StringBuilder();
 		for (int line = top.line(); line >= bottom.line(); line--) {
 			String text = lines.get(line);
-			int start = line == bottom.line() ? bottomOffset : 0;
-			int end = line == top.line() ? topOffset : text.length();
-			if (!selected.isEmpty()) selected.append('\n');
-			selected.append(text, start, end);
+			Range range = range(text, line, first, second);
+			if (line != top.line()) selected.append('\n');
+			selected.append(text, range.start(), range.end());
 		}
 		return selected.toString();
 	}

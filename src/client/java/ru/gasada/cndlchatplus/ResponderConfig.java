@@ -5,6 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.TextColor;
+
 public final class ResponderConfig {
 	public static final int MIN_FRIEND_HUD_LIMIT = 1;
 	public static final int MAX_FRIEND_HUD_LIMIT = 15;
@@ -58,6 +61,7 @@ public final class ResponderConfig {
 	public List<CustomChatTab> customChatTabs = new ArrayList<>(List.of(CustomChatTab.defaultVoice()));
 	public List<String> hiddenBuiltInTabs = new ArrayList<>();
 	public Boolean chatTimestampsEnabled = true;
+	public ChatFormatting chatTimestampColor = ChatFormatting.GRAY;
 	public Boolean chatSearchEnabled = true;
 	public Boolean chatContextMenuEnabled = true;
 	public Boolean chatDuplicateCollapseEnabled = true;
@@ -92,6 +96,7 @@ public final class ResponderConfig {
 		customChatTabs = source.customChatTabs.stream().map(CustomChatTab::copy).toList();
 		hiddenBuiltInTabs = List.copyOf(source.hiddenBuiltInTabs);
 		chatTimestampsEnabled = source.chatTimestampsEnabled;
+		chatTimestampColor = source.chatTimestampColor;
 		chatSearchEnabled = source.chatSearchEnabled;
 		chatContextMenuEnabled = source.chatContextMenuEnabled;
 		chatDuplicateCollapseEnabled = source.chatDuplicateCollapseEnabled;
@@ -194,6 +199,9 @@ public final class ResponderConfig {
 		hiddenBuiltInTabs = ChatTabConfigSanitizer.hiddenBuiltIns(hiddenBuiltInTabs);
 		if (chatTimestampsEnabled == null) {
 			chatTimestampsEnabled = true;
+		}
+		if (chatTimestampColor == null || TextColor.fromLegacyFormat(chatTimestampColor) == null) {
+			chatTimestampColor = ChatFormatting.GRAY;
 		}
 		if (chatSearchEnabled == null) {
 			chatSearchEnabled = true;

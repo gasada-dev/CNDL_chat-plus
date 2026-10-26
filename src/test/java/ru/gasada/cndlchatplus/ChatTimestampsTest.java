@@ -22,6 +22,23 @@ final class ChatTimestampsTest {
 	}
 
 	@Test
+	void selectedColorAppliesOnlyToTimestampAndUpdatesForRestoredAndCountedMessages() {
+		java.util.concurrent.atomic.AtomicReference<net.minecraft.ChatFormatting> color =
+				new java.util.concurrent.atomic.AtomicReference<>(net.minecraft.ChatFormatting.RED);
+		ChatTimestamps timestamps = new ChatTimestamps(() -> true, color::get);
+		Component body = Component.literal("body");
+		Component red = timestamps.at(body, 0);
+		assertEquals(0xFF5555, red.getSiblings().getFirst().getStyle().getColor().getValue());
+		assertSame(body, timestamps.withoutOwnPrefix(red));
+		org.junit.jupiter.api.Assertions.assertNull(red.getStyle().getColor());
+		org.junit.jupiter.api.Assertions.assertNull(body.getStyle().getColor());
+		color.set(net.minecraft.ChatFormatting.AQUA);
+		for (Component result : java.util.List.of(timestamps.restored(body, 0), timestamps.counted(red, 2, 1000))) {
+			assertEquals(0x55FFFF, result.getSiblings().getFirst().getStyle().getColor().getValue());
+		}
+	}
+
+	@Test
 	void disabledReturnsSameInstance() {
 		ChatTimestamps timestamps = new ChatTimestamps(() -> false);
 		Component message = Component.literal("привет");

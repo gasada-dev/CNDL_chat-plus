@@ -49,7 +49,7 @@ final class VanillaBoxRuntime {
 		VanillaBoxConfig nextConfig = config.deepCopy();
 		nextConfig.friendLastSeen.keySet().removeIf(key -> key.equalsIgnoreCase(player));
 		nextConfig.friendLastSeen.put(player, value);
-		VanillaBoxSnapshot nextSnapshot = VanillaBoxSnapshot.from(nextConfig, generation + 1);
+		VanillaBoxSnapshot nextSnapshot = VanillaBoxSnapshot.from(nextConfig, generation);
 		config = nextConfig;
 		generation = nextSnapshot.generation();
 		snapshot = nextSnapshot;

@@ -28,6 +28,19 @@ final class ChatTabControllerTest {
 	}
 
 	@Test
+	void sendFailureNoticeIsVisibleInCustomTabAfterTimestampRemapping() {
+		ChatTabDefinition voice = controller.definitions().stream().filter(ChatTabDefinition::custom).findFirst().orElseThrow();
+		controller.selectTab(voice, null);
+		Component notice = Component.literal("Не отправлено");
+		assertFalse(controller.isVisible(notice, true));
+		controller.showLocalNotice(notice);
+		Component stamped = new ChatTimestamps(() -> true).at(notice, 0);
+		controller.remapComponent(notice, stamped);
+		assertTrue(controller.isVisible(notice, true));
+		assertTrue(controller.isVisible(stamped, true));
+	}
+
+	@Test
 	void allTabShowsEverythingAndUnreadAccumulatesPerTab() {
 		controller.recordMessage(Component.literal("(!) Player » продаю"), false);
 		controller.recordMessage(Component.literal("[лс] Player » привет"), false);

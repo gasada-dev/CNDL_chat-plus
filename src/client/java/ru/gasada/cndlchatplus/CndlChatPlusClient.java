@@ -10,10 +10,12 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -98,13 +100,14 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 		ChatMessageStore chatMessageStore = new ChatMessageStore(() -> CONFIG.chatHistoryLimit);
 		ChatHistoryStore chatHistoryStore = new ChatHistoryStore(ConfigManager.chatHistoryDirectory());
 		ChatHistoryCodec chatHistoryCodec = new ChatHistoryCodec();
-		CHAT_TIMESTAMPS = new ChatTimestamps(() -> Boolean.TRUE.equals(CONFIG.chatTimestampsEnabled));
+		CHAT_TIMESTAMPS = new ChatTimestamps(() -> Boolean.TRUE.equals(CONFIG.chatTimestampsEnabled),
+				() -> CONFIG.chatTimestampColor);
 		CHAT_DUPLICATES = new ChatDuplicateCollapser(
 				() -> Boolean.TRUE.equals(CONFIG.chatDuplicateCollapseEnabled));
 		CHAT_TABS = new ChatTabController(new ChatTabClassifier(VANILLA_BOX_RUNTIME),
 				() -> Boolean.TRUE.equals(CONFIG.chatTabsEnabled), CONFIG, CHAT_TIMESTAMPS);
 		CustomChatOutgoingService customChatOutgoing = new CustomChatOutgoingService(CHAT_TABS,
-				outgoingChatService);
+				outgoingChatService, CndlChatPlusClient::showSendFailure);
 		ClientSendMessageEvents.ALLOW_CHAT.register(message -> !customChatOutgoing.route(message));
 		CHAT_SEARCH = new ChatSearchState(() -> Boolean.TRUE.equals(CONFIG.chatSearchEnabled));
 		CHAT_ALERTS = new ChatAlertService(() -> Boolean.TRUE.equals(CONFIG.chatAlertsEnabled),
@@ -185,7 +188,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				chatMessageStore.clear();
 				chatAlertHud.resetRuntimeState();
 				CHAT_SEARCH.clear();
-				CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
+				CHAT_BOOKMARKS.disconnect();
 				chatBinds.resetRuntimeState();
 				return;
 			}
@@ -203,7 +206,7 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 				CHAT_BOOKMARKS.disconnect();
 			} else {
 				chatMessageStore.clear();
-				CHAT_BOOKMARKS = new ChatBookmarkStore(ConfigManager.chatBookmarksDirectory());
+				CHAT_BOOKMARKS.disconnect();
 			}
 			CHAT_SEARCH.clear();
 			chatAlertHud.resetRuntimeState();
@@ -238,6 +241,19 @@ public final class CndlChatPlusClient implements ClientModInitializer {
 
 	private static boolean altDown(Minecraft minecraft) {
 		return PlatformInput.altDown(minecraft);
+	}
+
+	private static void showSendFailure(CustomChatOutgoingService.FailedMessage failed) {
+		Component notice = Component.literal("Не отправлено: " + failed.error() + " ")
+				.withStyle(ChatFormatting.RED)
+				.append(Component.literal("[Вернуть команду]").withStyle(style -> style
+						.withColor(ChatFormatting.YELLOW)
+						.withClickEvent(new ClickEvent.SuggestCommand("/" + failed.command()))))
+				.append(Component.literal(" [Копировать текст]").withStyle(style -> style
+						.withColor(ChatFormatting.YELLOW)
+						.withClickEvent(new ClickEvent.CopyToClipboard(failed.text()))));
+		CHAT_TABS.showLocalNotice(notice);
+		ChatAccess.addMessage(ChatAccess.chat(Minecraft.getInstance()), notice);
 	}
 
 	private static void triggerAlert(ChatAlertHud hud, Component message, boolean fromGame) {

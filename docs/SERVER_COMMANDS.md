@@ -16,6 +16,7 @@
 | `/call <player>` | `ServerCommandService.call` | `{player}` |
 | `/mail send <player> <message>` | `ServerCommandService.mail` | `{player}`, `{message}` |
 | `/tpaccept` | `ServerCommandService.acceptTeleport` | Нет |
+| `/tpaccept <player>` | адресный overload `ServerCommandService.acceptTeleport` для карточек/автоприёма | Ник валидируется и добавляется к существующей команде без изменения JSON template |
 | `/ps add <player>` и `/ps remove <player>` | protection actions | `{player}` |
 | `/pskick <player>` | дополнительное действие привата | `{player}` |
 | `/vm trusted add <player>` и `/vm trusted remove <player>` | trader actions | `{player}` |

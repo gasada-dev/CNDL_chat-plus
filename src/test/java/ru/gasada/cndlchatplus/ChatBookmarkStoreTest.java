@@ -113,6 +113,49 @@ final class ChatBookmarkStoreTest {
 	}
 
 	@Test
+	void failedSaveSurvivesDisconnectAndOtherScopeUntilRetry() throws Exception {
+		Path blocked = directory.resolve("blocked");
+		Files.writeString(blocked, "occupied");
+		ChatBookmarkStore store = new ChatBookmarkStore(blocked, clock::get);
+		store.connect("one", "one");
+		store.add(ChatTab.PRIVATE, "Alice", "важное");
+		store.disconnect();
+		store.connect("two", "two");
+		assertTrue(store.snapshot().isEmpty());
+		store.disconnect();
+		Files.delete(blocked);
+		store.connect("one", "one");
+		assertEquals("важное", store.snapshot().getFirst().text());
+		assertTrue(store.lastSaveSucceeded());
+		ChatBookmarkStore reloaded = new ChatBookmarkStore(blocked, clock::get);
+		reloaded.connect("one", "one");
+		assertEquals(store.snapshot(), reloaded.snapshot());
+	}
+
+	@Test
+	void failedEditAndScopeSwitchPreserveOriginalAndRetryLatestState() throws Exception {
+		ChatBookmarkStore store = store();
+		store.connect("one", "one");
+		ChatBookmark bookmark = store.add(ChatTab.LOCAL, "Alice", "исходный");
+		byte[] original = Files.readAllBytes(directory.resolve("one.json"));
+		Path blockedTemp = directory.resolve("one.json.tmp");
+		Files.createDirectory(blockedTemp);
+		Files.writeString(blockedTemp.resolve("block"), "block");
+		store.updateText(bookmark.id(), "изменённый");
+		store.connect("two", "two");
+		assertTrue(store.snapshot().isEmpty());
+		assertArrayEquals(original, Files.readAllBytes(directory.resolve("one.json")));
+		store.add(ChatTab.LOCAL, "Bob", "другой сервер");
+		Files.delete(blockedTemp.resolve("block"));
+		Files.delete(blockedTemp);
+		store.connect("one", "one");
+		assertEquals("изменённый", store.snapshot().getFirst().text());
+		assertTrue(store.lastSaveSucceeded());
+		store.connect("two", "two");
+		assertEquals("другой сервер", store.snapshot().getFirst().text());
+	}
+
+	@Test
 	void failedWriteKeepsRuntimeDataAndReportsFailure() throws Exception {
 		Path notDirectory = directory.resolve("file");
 		Files.writeString(notDirectory, "occupied", StandardCharsets.UTF_8);

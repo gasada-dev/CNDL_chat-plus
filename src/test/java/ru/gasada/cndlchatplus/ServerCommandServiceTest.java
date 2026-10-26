@@ -193,6 +193,18 @@ final class ServerCommandServiceTest {
 	}
 
 	@Test
+	void targetedTeleportValidatesPlayerAndConfiguredCommand() {
+		List<OutgoingChatService.SendResult> results = new ArrayList<>();
+		assertTrue(commands.acceptTeleport("Player_1", results::add).success());
+		assertEquals(OutgoingChatService.SendState.SENT, results.getFirst().state());
+		assertEquals(List.of("tpaccept Player_1"), transport.commands);
+		assertFalse(commands.acceptTeleport("bad player", results::add).success());
+		runtime.activate(VanillaBoxConfig.empty());
+		assertFalse(commands.acceptTeleport("Player_1", results::add).success());
+		assertEquals(1, transport.commands.size());
+	}
+
+	@Test
 	void acceptsTeleportThroughConfiguredCommand() {
 		VanillaBoxConfig config = configWithCommands();
 		config.commands.acceptTeleport = "tpaccept";

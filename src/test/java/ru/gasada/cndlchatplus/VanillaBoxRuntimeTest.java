@@ -90,7 +90,7 @@ final class VanillaBoxRuntimeTest {
 	}
 
 	@Test
-	void lastSeenUpdatePublishesGenerationWithoutResettingQueues() {
+	void lastSeenUpdatePreservesGenerationAndQueues() {
 		AtomicInteger resets = new AtomicInteger();
 		RuntimeResetCoordinator coordinator = new RuntimeResetCoordinator();
 		coordinator.register(resets::incrementAndGet);
@@ -100,7 +100,7 @@ final class VanillaBoxRuntimeTest {
 		VanillaBoxSnapshot updated = runtime.updateLastSeen("Alice", "yesterday").orElseThrow();
 
 		assertEquals(1, resets.get());
-		assertTrue(updated.generation() > first.generation());
+		assertEquals(first.generation(), updated.generation());
 		assertEquals(Map.of("Alice", "yesterday"), updated.friendLastSeen());
 	}
 

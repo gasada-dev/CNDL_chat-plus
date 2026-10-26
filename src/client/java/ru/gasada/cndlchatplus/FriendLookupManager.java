@@ -230,11 +230,10 @@ public final class FriendLookupManager {
 				return false;
 			}
 			case UNRELATED -> {
-				// The pending-player visibility check below is part of the existing manager state logic.
+				return true;
 			}
 		}
-		String normalized = text.toLowerCase(Locale.ROOT);
-		return !normalized.contains(pendingRequest.player().toLowerCase(Locale.ROOT));
+		return true;
 	}
 
 	static LookupParseResult parseMessage(String text) {

@@ -10,8 +10,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.LongSupplier;
@@ -37,6 +39,9 @@ public final class ChatBookmarkStore {
 	private boolean dirty;
 	private boolean lastSaveSucceeded = true;
 	private boolean preserveBeforeSave;
+	private final Map<String, PendingSave> pendingSaves = new HashMap<>();
+
+	private record PendingSave(List<ChatBookmark> bookmarks, boolean preserveBeforeSave) { }
 
 	public ChatBookmarkStore(Path directory) {
 		this(directory, System::currentTimeMillis);
@@ -48,20 +53,42 @@ public final class ChatBookmarkStore {
 	}
 
 	public void connect(String newServerKey, String newScopeLabel) {
-		if (serverKey != null && dirty) save();
+		retainUnsavedScope();
 		serverKey = newServerKey;
 		scopeLabel = newScopeLabel == null || newScopeLabel.isBlank() ? "Текущая сессия" : newScopeLabel;
 		bookmarks.clear();
-		if (serverKey != null) bookmarks.addAll(load(serverKey));
 		dirty = false;
+		preserveBeforeSave = false;
+		lastSaveSucceeded = true;
+		if (serverKey != null) {
+			PendingSave pending = pendingSaves.get(serverKey);
+			if (pending == null) {
+				bookmarks.addAll(load(serverKey));
+			} else {
+				bookmarks.addAll(pending.bookmarks());
+				preserveBeforeSave = pending.preserveBeforeSave();
+				dirty = true;
+				lastSaveSucceeded = save();
+			}
+		}
 	}
 
 	public void disconnect() {
-		if (serverKey != null && dirty) save();
+		retainUnsavedScope();
 		serverKey = null;
 		scopeLabel = "Текущая сессия";
 		bookmarks.clear();
 		dirty = false;
+		preserveBeforeSave = false;
+	}
+
+	private void retainUnsavedScope() {
+		if (serverKey != null && dirty) {
+			lastSaveSucceeded = save();
+			if (!lastSaveSucceeded) {
+				pendingSaves.put(serverKey, new PendingSave(List.copyOf(bookmarks), preserveBeforeSave));
+			}
+		}
 	}
 
 	public ChatBookmark add(ChatTab channel, String sender, String text) {
@@ -182,6 +209,7 @@ public final class ChatBookmarkStore {
 			}
 			dirty = false;
 			preserveBeforeSave = false;
+			pendingSaves.remove(serverKey);
 			return true;
 		} catch (IOException exception) {
 			try {

@@ -1,5 +1,9 @@
 package ru.gasada.cndlchatplus;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
@@ -14,6 +18,7 @@ import net.minecraft.sounds.SoundEvent;
 public final class TeleportRequestButton {
 	static final long TIMEOUT_MILLIS = 60_000L;
 	private static final int HEIGHT = 20;
+	private static final int MAX_VISIBLE = 3;
 	private static final SoundEvent REQUEST_SOUND = SoundEvent.createVariableRangeEvent(
 			Identifier.fromNamespaceAndPath(CndlChatPlusClient.MOD_ID, "teleport_request"));
 
@@ -22,7 +27,8 @@ public final class TeleportRequestButton {
 	private final LongSupplier clock;
 	private final Runnable soundPlayer;
 	private final BooleanSupplier soundEnabled;
-	private PendingRequest pending;
+	private final List<PendingRequest> pending = new ArrayList<>();
+	private final Set<PendingRequest> accepting = new HashSet<>();
 	private boolean playSound;
 
 	public TeleportRequestButton(VanillaBoxRuntime runtime, ServerCommandService commands) {
@@ -64,12 +70,18 @@ public final class TeleportRequestButton {
 		if (!PlayerNameValidator.validate(requester).valid()) {
 			return;
 		}
-		if (shouldAutoAccept(snapshot, requester) && commands.acceptTeleport().success()) {
-			pending = null;
-			playSound = false;
-			return;
+		prune();
+		PendingRequest request = new PendingRequest(requester, snapshot.generation(), clock.getAsLong() + TIMEOUT_MILLIS);
+		int existing = -1;
+		for (int index = 0; index < pending.size(); index++) {
+			if (pending.get(index).requester().equalsIgnoreCase(requester)) {
+				existing = index;
+				break;
+			}
 		}
-		pending = new PendingRequest(requester, snapshot.generation(), clock.getAsLong() + TIMEOUT_MILLIS);
+		if (existing < 0) pending.add(request);
+		else pending.set(existing, request);
+		if (shouldAutoAccept(snapshot, requester) && accept(request)) return;
 		playSound = true;
 	}
 
@@ -87,31 +99,47 @@ public final class TeleportRequestButton {
 	}
 
 	public void tick(Minecraft minecraft) {
-		if (minecraft.getConnection() == null || !visible()) {
-			pending = null;
-			playSound = false;
+		if (minecraft.getConnection() == null) {
+			resetRuntimeState();
 			return;
 		}
+		prune();
 		playPendingSound();
 	}
 
 	public boolean click(double mouseX, double mouseY, int screenWidth, Font font) {
 		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return false;
-		PendingRequest request = current();
-		if (request == null) {
-			return false;
+		List<PendingRequest> visible = visibleRequests();
+		for (int row = 0; row < visible.size(); row++) {
+			PendingRequest request = visible.get(row);
+			if (bounds(screenWidth, font, request.requester(), row).contains(mouseX, mouseY)) {
+				accept(request.requester());
+				return true;
+			}
 		}
-		Bounds bounds = bounds(screenWidth, font, request.requester());
-		if (!bounds.contains(mouseX, mouseY)) {
-			return false;
-		}
-		pending = null;
-		commands.acceptTeleport();
-		return true;
+		return false;
+	}
+
+	boolean accept(String requester) {
+		prune();
+		PendingRequest request = pending.stream().filter(value -> value.requester().equalsIgnoreCase(requester))
+				.findFirst().orElse(null);
+		return request != null && accept(request);
+	}
+
+	private boolean accept(PendingRequest request) {
+		if (!accepting.add(request)) return true;
+		return commands.acceptTeleport(request.requester(), result -> {
+			accepting.remove(request);
+			if (!pending.contains(request)) return;
+			if (result.state() == OutgoingChatService.SendState.SENT) pending.remove(request);
+			else playSound = true;
+		}).success();
 	}
 
 	public void resetRuntimeState() {
-		pending = null;
+		pending.clear();
+		accepting.clear();
 		playSound = false;
 	}
 
@@ -122,12 +150,16 @@ public final class TeleportRequestButton {
 	}
 
 	boolean visible() {
-		return current() != null;
+		return !visibleRequests().isEmpty();
 	}
 
 	String requester() {
-		PendingRequest request = current();
-		return request == null ? null : request.requester();
+		List<PendingRequest> visible = visibleRequests();
+		return visible.isEmpty() ? null : visible.getFirst().requester();
+	}
+
+	List<String> visibleRequesters() {
+		return visibleRequests().stream().map(PendingRequest::requester).toList();
 	}
 
 	void playPendingSound() {
@@ -140,27 +172,29 @@ public final class TeleportRequestButton {
 
 	private void render(CompatGraphics graphics) {
 		if (!CndlChatPlusClient.CONNECTION_GATE.active()) return;
-		PendingRequest request = current();
-		if (request == null) {
-			return;
-		}
 		Minecraft minecraft = Minecraft.getInstance();
-		String label = label(request);
-		Bounds bounds = bounds(graphics.guiWidth(), minecraft.font, request.requester());
-		graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + HEIGHT,
-				ThemeTokens.surfaceSecondary());
-		graphics.outline(bounds.x(), bounds.y(), bounds.width(), HEIGHT, ThemeTokens.success());
-		graphics.centeredText(minecraft.font, label, bounds.x() + bounds.width() / 2,
-				bounds.y() + 6, ThemeTokens.text());
+		List<PendingRequest> visible = visibleRequests();
+		for (int row = 0; row < visible.size(); row++) {
+			PendingRequest request = visible.get(row);
+			Bounds bounds = bounds(graphics.guiWidth(), minecraft.font, request.requester(), row);
+			graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + HEIGHT,
+					ThemeTokens.surfaceSecondary());
+			graphics.outline(bounds.x(), bounds.y(), bounds.width(), HEIGHT, ThemeTokens.success());
+			graphics.centeredText(minecraft.font, label(request), bounds.x() + bounds.width() / 2,
+					bounds.y() + 6, ThemeTokens.text());
+		}
 	}
 
-	private PendingRequest current() {
-		PendingRequest request = pending;
-		if (request == null || request.expiresAt() <= clock.getAsLong()) {
-			return null;
-		}
+	private void prune() {
 		long generation = runtime.activeSnapshot().map(VanillaBoxSnapshot::generation).orElse(-1L);
-		return request.generation() == generation ? request : null;
+		long now = clock.getAsLong();
+		pending.removeIf(request -> request.expiresAt() <= now || request.generation() != generation);
+		accepting.retainAll(pending);
+	}
+
+	private List<PendingRequest> visibleRequests() {
+		prune();
+		return pending.stream().limit(MAX_VISIBLE).toList();
 	}
 
 	private String label(PendingRequest request) {
@@ -168,9 +202,9 @@ public final class TeleportRequestButton {
 		return "Принять ТП от " + request.requester() + " (" + seconds + ")";
 	}
 
-	private static Bounds bounds(int screenWidth, Font font, String requester) {
+	private static Bounds bounds(int screenWidth, Font font, String requester, int row) {
 		int width = Math.min(screenWidth - 4, font.width("Принять ТП от " + requester + " (60)") + 16);
-		return new Bounds((screenWidth - width) / 2, 8, width);
+		return new Bounds((screenWidth - width) / 2, 8 + row * (HEIGHT + 4), width);
 	}
 
 	private record PendingRequest(String requester, long generation, long expiresAt) { }

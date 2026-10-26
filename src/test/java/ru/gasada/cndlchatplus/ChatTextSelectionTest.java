@@ -15,12 +15,30 @@ final class ChatTextSelectionTest {
 			new int[] {0, 10, 20, 30, 40, 50, 60}, new int[] {0, 10, 20, 30});
 
 	@Test
+	void selectsSuffixOfTopAndPrefixOfBottomIncludingEmptyEdges() {
+		assertEquals("d\nmiddle\nn", ChatTextSelection.selectedText(LINES,
+				new ChatTextSelection.Point(2, 2), new ChatTextSelection.Point(0, 1)));
+		assertEquals("\nmiddle\n", ChatTextSelection.selectedText(LINES,
+				new ChatTextSelection.Point(2, 3), new ChatTextSelection.Point(0, 0)));
+	}
+
+	@Test
 	void mapsCoordinatesWithScrollAndClampsDraggedEndpoints() {
 		assertEquals(new ChatTextSelection.Point(2, 2), ChatTextSelection.pointAt(24, 141, 200, 180,
 				1, 9, 2, LINES, ADVANCES, 4));
 		assertEquals(new ChatTextSelection.Point(2, 0), ChatTextSelection.pointAt(-20, -30, 200, 180,
 				1, 9, 2, LINES, ADVANCES, 4));
 		assertNull(ChatTextSelection.pointAt(4, 160, 200, 180, 0, 9, 0, LINES, ADVANCES, 4));
+	}
+
+	@Test
+	void scaleAndScrollMapToSameTextAndSingleLineHighlightHandlesReverseDrag() {
+		assertEquals(new ChatTextSelection.Point(2, 2), ChatTextSelection.pointAt(12, 154, 200, 180,
+				0.5, 9, 1, LINES, ADVANCES, 4));
+		assertEquals(new ChatTextSelection.Range(1, 3), ChatTextSelection.range("new", 0,
+				new ChatTextSelection.Point(0, 3), new ChatTextSelection.Point(0, 1)));
+		assertEquals(new ChatTextSelection.Range(2, 3), ChatTextSelection.range("old", 2,
+				new ChatTextSelection.Point(2, 2), new ChatTextSelection.Point(0, 1)));
 	}
 
 	@Test
@@ -33,13 +51,13 @@ final class ChatTextSelectionTest {
 
 	@Test
 	void extractsMultipleVisualLinesInScreenOrder() {
-		assertEquals("ol\nmiddle\new", ChatTextSelection.selectedText(LINES,
+		assertEquals("d\nmiddle\nn", ChatTextSelection.selectedText(LINES,
 				new ChatTextSelection.Point(0, 1), new ChatTextSelection.Point(2, 2)));
 	}
 
 	@Test
 	void reversesBottomToTopDragWithoutReversingCopiedLines() {
-		assertEquals("ol\nmiddle\new", ChatTextSelection.selectedText(LINES,
+		assertEquals("d\nmiddle\nn", ChatTextSelection.selectedText(LINES,
 				new ChatTextSelection.Point(2, 2), new ChatTextSelection.Point(0, 1)));
 	}
 

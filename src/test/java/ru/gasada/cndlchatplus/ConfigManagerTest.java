@@ -52,6 +52,7 @@ final class ConfigManagerTest {
 		ResponderConfig edited = ResponderConfig.defaults();
 		edited.chatTabsEnabled = false;
 		edited.chatTabTextScalePercent = 135;
+		edited.chatTimestampColor = net.minecraft.ChatFormatting.AQUA;
 		edited.customChatTabs = new ArrayList<>();
 		edited.hiddenBuiltInTabs = new ArrayList<>(List.of("GLOBAL"));
 		edited.friendHudEnabled = false;
@@ -68,6 +69,7 @@ final class ConfigManagerTest {
 		JsonObject after = JsonParser.parseString(Files.readString(main)).getAsJsonObject();
 		assertFalse(after.get("chatTabsEnabled").getAsBoolean());
 		assertEquals(135, after.get("chatTabTextScalePercent").getAsInt());
+		assertEquals("AQUA", after.get("chatTimestampColor").getAsString());
 		assertFalse(after.get("friendHudEnabled").getAsBoolean());
 		assertEquals(7, after.get("friendHudLimit").getAsInt());
 		assertFalse(after.get("clanLookupEnabled").getAsBoolean());

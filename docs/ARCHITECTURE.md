@@ -21,7 +21,8 @@ Malformed input, singleplayer и connection без `ServerData` отклоняю
 
 Snapshot содержит deep immutable settings, generation и заранее скомпилированные parser/filter
 артефакты. `RuntimeResetCoordinator` очищает lookup queues, presence и transient UI state при
-activation и clear. `updateLastSeen` публикует новую generation без очистки очереди. Message и
+activation и clear. Generation является эпохой активации: `updateLastSeen` публикует новый snapshot
+с прежней generation без очистки очереди и инвалидации запросов. Message и
 render hot paths не читают файлы, не делают HTTP и не компилируют regex.
 
 ## Хранение и migration
@@ -73,6 +74,11 @@ messages, email, reply payloads и amounts не логируются.
 через `OutgoingChatService` как команда с этим префиксом. Явная slash-команда не меняется и
 остаётся vanilla command path. Если runtime inactive или shared send проверка отклоняет команду,
 маршрут поглощает это сообщение без vanilla fallback.
+`SendResult` различает `QUEUED`, `SENT` и `FAILED`: успешный возврат при постановке в очередь
+не гарантирует исполнение. Completion сообщает результат transport или отмену по подключению/эпохе.
+`SENT` означает вызов клиентского send API, а не подтверждение доставки сервером. Для custom-tab
+ошибка выводится локальным notice, видимым независимо от фильтра вкладки, с действиями восстановления
+slash-команды и копирования исходного текста; автоматической повторной отправки нет.
 
 ## Пользовательские функции
 
@@ -91,6 +97,16 @@ Vanilla-box config. `FriendLookupManager` и `PlayerInfoService` использ�
 `ChatHistoryStore` и `ChatBookmarkStore` хранят данные отдельно по нормализованному multiplayer
 адресу через atomic temporary file и move. Они не создают scope в singleplayer или invalid
 connection. Bookmarks независимы от history toggles.
+Повреждённая/частично некорректная история сохраняется побайтово в backup перед заменой;
+при невозможности backup исходный файл не заменяется. Несохранённые bookmarks удерживаются в
+памяти по server key и повторно записываются при возвращении к scope; замена store при invalid join
+не выполняется. Этот pending state не переживает завершение процесса.
+
+`TeleportRequestButton` хранит очередь по порядку поступления, показывает до трёх карточек сверху
+и принимает выбранного игрока через `ServerCommandService` с аргументом ника. Таймаут каждого
+запроса — 60 секунд от получения, включая скрытые; повторный запрос того же игрока обновляет
+карточку на прежней позиции. Карточка удаляется после `SENT`, а не после `QUEUED`; ошибка оставляет её.
+Ручные `/tpaccept` и серверное подтверждение без ника с очередью не синхронизируются.
 
 ## Поддерживаемые границы
 

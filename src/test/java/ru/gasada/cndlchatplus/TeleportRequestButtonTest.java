@@ -114,8 +114,8 @@ final class TeleportRequestButtonTest {
 		assertTrue(transport.commands.isEmpty());
 
 		button.handleMessage("alice просит телепортироваться к вам.");
-		assertFalse(button.visible());
-		assertEquals(List.of("tpaccept"), transport.commands);
+		assertEquals(List.of("Bob"), button.visibleRequesters());
+		assertEquals(List.of("tpaccept alice"), transport.commands);
 
 		config.teleportAutoAcceptMode = TeleportAutoAcceptMode.FRIENDS;
 		runtime.activate(config);
@@ -128,6 +128,73 @@ final class TeleportRequestButtonTest {
 		button.handleMessage("Stranger просит телепортироваться к вам.");
 		assertFalse(button.visible());
 		assertEquals(3, transport.commands.size());
+	}
+
+	@Test
+	void queuesFiveShowsThreeAndAcceptsSpecificPlayerWithoutLosingOthers() {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.activate(config);
+		ConnectedTransport transport = new ConnectedTransport();
+		long[] now = {1_000L};
+		TeleportRequestButton button = new TeleportRequestButton(runtime,
+				new ServerCommandService(runtime, new OutgoingChatService(transport, ignored -> { })), () -> now[0]);
+		for (String player : List.of("One", "Two", "Three", "Four", "Five")) {
+			button.handleMessage(player + " просит телепортироваться к вам.");
+		}
+		assertEquals(List.of("One", "Two", "Three"), button.visibleRequesters());
+		runtime.updateLastSeen("Alice", "сейчас");
+		assertEquals(List.of("One", "Two", "Three"), button.visibleRequesters());
+		assertTrue(button.accept("Two"));
+		assertEquals(List.of("tpaccept Two"), transport.commands);
+		assertEquals(List.of("One", "Three", "Four"), button.visibleRequesters());
+		transport.connected = false;
+		assertFalse(button.accept("Three"));
+		assertEquals(List.of("One", "Three", "Four"), button.visibleRequesters());
+		transport.connected = true;
+		now[0] += 30_000;
+		button.handleMessage("one просит телепортироваться к вам.");
+		assertEquals(List.of("one", "Three", "Four"), button.visibleRequesters());
+		now[0] += 30_000;
+		assertEquals(List.of("one"), button.visibleRequesters());
+		runtime.clear();
+		assertFalse(button.visible());
+	}
+
+	@Test
+	void keepsCardUntilTransportSendsAndOnDeferredFailure() {
+		VanillaBoxRuntime runtime = new VanillaBoxRuntime(new RuntimeResetCoordinator());
+		VanillaBoxConfig config = VanillaBoxConfig.empty();
+		config.commands = ServerCommandSettings.vanillaBoxDefaults();
+		config.parsers = ParserSettings.vanillaBoxDefaults();
+		runtime.activate(config);
+		List<Runnable> queued = new ArrayList<>();
+		List<String> sent = new ArrayList<>();
+		boolean[] connected = {true};
+		OutgoingChatService.Transport transport = new OutgoingChatService.Transport() {
+			@Override public boolean connected() { return connected[0]; }
+			@Override public void execute(Runnable action) { queued.add(action); }
+			@Override public void sendChat(String message) { throw new AssertionError("unexpected chat"); }
+			@Override public void sendCommand(String command) { sent.add(command); }
+		};
+		TeleportRequestButton button = new TeleportRequestButton(runtime,
+				new ServerCommandService(runtime, new OutgoingChatService(transport, ignored -> { }, () -> true, runtime::generation)),
+				() -> 1_000L);
+		button.handleMessage("One просит телепортироваться к вам.");
+		assertTrue(button.accept("One"));
+		assertTrue(button.accept("One"));
+		assertEquals(1, queued.size());
+		assertTrue(button.visible());
+		connected[0] = false;
+		queued.removeFirst().run();
+		assertTrue(button.visible());
+		connected[0] = true;
+		assertTrue(button.accept("One"));
+		queued.removeFirst().run();
+		assertFalse(button.visible());
+		assertEquals(List.of("tpaccept One"), sent);
 	}
 
 	@Test

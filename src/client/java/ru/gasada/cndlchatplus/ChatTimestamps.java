@@ -9,10 +9,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.contents.PlainTextContents;
 
 public final class ChatTimestamps {
@@ -21,11 +23,17 @@ public final class ChatTimestamps {
 	private static final int MAX_TRACKED_PREFIXES = ResponderConfig.MAX_CHAT_HISTORY_LIMIT * 2;
 
 	private final BooleanSupplier enabledSupplier;
+	private final Supplier<ChatFormatting> colorSupplier;
 	private final Set<Component> skipNext = Collections.newSetFromMap(new IdentityHashMap<>());
 	private final Map<IdentityKey, Boolean> ownPrefixes = new LinkedHashMap<>();
 
 	public ChatTimestamps(BooleanSupplier enabledSupplier) {
+		this(enabledSupplier, () -> ChatFormatting.GRAY);
+	}
+
+	ChatTimestamps(BooleanSupplier enabledSupplier, Supplier<ChatFormatting> colorSupplier) {
 		this.enabledSupplier = enabledSupplier;
+		this.colorSupplier = colorSupplier;
 	}
 
 	public boolean enabled() {
@@ -76,7 +84,10 @@ public final class ChatTimestamps {
 
 	private Component withOwnPrefix(Component message, long timestamp) {
 		String time = FORMAT.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()));
-		Component prefixed = Component.literal("[" + time + "] ").withStyle(ChatFormatting.GRAY).append(message);
+		ChatFormatting color = colorSupplier.get();
+		if (color == null || TextColor.fromLegacyFormat(color) == null) color = ChatFormatting.GRAY;
+		Component prefixed = Component.empty()
+				.append(Component.literal("[" + time + "] ").withStyle(color)).append(message);
 		ownPrefixes.put(new IdentityKey(prefixed), Boolean.TRUE);
 		if (ownPrefixes.size() > MAX_TRACKED_PREFIXES) {
 			ownPrefixes.remove(ownPrefixes.keySet().iterator().next());
@@ -86,12 +97,34 @@ public final class ChatTimestamps {
 
 	Component withoutOwnPrefix(Component message) {
 		if (ownPrefixes.containsKey(new IdentityKey(message))
-				&& message.getContents() instanceof PlainTextContents.LiteralContents literal
-				&& PREFIX_PATTERN.matcher(literal.text()).matches()
-				&& message.getSiblings().size() == 1) {
-			return message.getSiblings().getFirst();
+				&& message.getSiblings().size() == 2
+				&& message.getSiblings().getFirst().getContents() instanceof PlainTextContents.LiteralContents literal
+				&& PREFIX_PATTERN.matcher(literal.text()).matches()) {
+			return message.getSiblings().get(1);
 		}
 		return message;
+	}
+
+	static String colorName(ChatFormatting color) {
+		return switch (color) {
+			case BLACK -> "Чёрный";
+			case DARK_BLUE -> "Тёмно-синий";
+			case DARK_GREEN -> "Тёмно-зелёный";
+			case DARK_AQUA -> "Бирюзовый";
+			case DARK_RED -> "Тёмно-красный";
+			case DARK_PURPLE -> "Фиолетовый";
+			case GOLD -> "Золотой";
+			case GRAY -> "Серый";
+			case DARK_GRAY -> "Тёмно-серый";
+			case BLUE -> "Синий";
+			case GREEN -> "Зелёный";
+			case AQUA -> "Голубой";
+			case RED -> "Красный";
+			case LIGHT_PURPLE -> "Розовый";
+			case YELLOW -> "Жёлтый";
+			case WHITE -> "Белый";
+			default -> "Серый";
+		};
 	}
 
 	int trackedPrefixCount() {

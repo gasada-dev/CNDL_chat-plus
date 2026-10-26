@@ -50,6 +50,50 @@ final class ChatHistoryStoreTest {
 	}
 
 	@Test
+	void preservesCorruptBytesOnSaveEvenAfterRepeatedLoad() throws Exception {
+		Path path = directory.resolve("broken.json");
+		Files.writeString(path, "{not json");
+		ChatHistoryStore store = new ChatHistoryStore(directory);
+		store.load("broken");
+		store.load("broken");
+		assertTrue(store.save("broken", List.of(new ChatHistoryEntry(1, "{}"))));
+		try (var files = Files.list(directory)) {
+			List<Path> backups = files.filter(file -> file.toString().endsWith(".bak")).toList();
+			assertEquals(1, backups.size());
+			assertEquals("{not json", Files.readString(backups.getFirst()));
+		}
+		assertEquals(1, store.load("broken").size());
+	}
+
+	@Test
+	void oversizedFileIsNotReadAndIsPreservedBeforeReplacement() throws Exception {
+		Path path = directory.resolve("large.json");
+		try (var file = new java.io.RandomAccessFile(path.toFile(), "rw")) {
+			file.setLength((long) ChatHistoryStore.MAX_FILE_BYTES + 1);
+		}
+		ChatHistoryStore store = new ChatHistoryStore(directory);
+		assertTrue(store.load("large").isEmpty());
+		assertTrue(store.save("large", List.of()));
+		try (var files = Files.list(directory)) {
+			Path backup = files.filter(file -> file.toString().endsWith(".bak")).findFirst().orElseThrow();
+			assertEquals((long) ChatHistoryStore.MAX_FILE_BYTES + 1, Files.size(backup));
+		}
+	}
+
+	@Test
+	void backupFailurePreventsReplacement() throws Exception {
+		Path path = directory.resolve("broken.json");
+		Files.writeString(path, "broken");
+		ChatHistoryStore store = new ChatHistoryStore(directory);
+		store.load("broken");
+		Files.delete(path);
+		Files.createDirectory(path);
+		Files.writeString(path.resolve("keep"), "original");
+		assertFalse(store.save("broken", List.of()));
+		assertEquals("original", Files.readString(path.resolve("keep")));
+	}
+
+	@Test
 	void fileKeySanitizesAddressCharacters() {
 		assertEquals("example.org_25565", ChatHistoryStore.fileKey("example.org:25565"));
 		assertEquals("_2001_db8__1__25565", ChatHistoryStore.fileKey("[2001:db8::1]:25565"));

@@ -164,6 +164,15 @@ final class FriendLookupManagerTest {
 	}
 
 	@Test
+	void unrelatedMessageContainingPendingPlayerRemainsVisible() {
+		TestContext context = context("Alex");
+		context.lookup.queueActiveFriends();
+		context.lookup.tick(true);
+		assertTrue(context.lookup.shouldShowSystemMessage(Component.literal("Alex, привет"), false));
+		assertFalse(context.lookup.shouldShowSystemMessage(Component.literal("Тип убийства: обычный"), false));
+	}
+
+	@Test
 	void disconnectClearsQueueAndRestartsAutomaticDelay() {
 		TestContext context = context("Alice");
 		context.lookup.queueActiveFriends();
