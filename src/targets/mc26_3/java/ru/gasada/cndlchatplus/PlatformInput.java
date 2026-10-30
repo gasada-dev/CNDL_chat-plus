@@ -2,6 +2,7 @@ package ru.gasada.cndlchatplus;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.sdl.SDLMouse;
 import org.lwjgl.sdl.SDLScancode;
 
 public final class PlatformInput {
@@ -108,7 +109,10 @@ public final class PlatformInput {
 	static boolean altDown(Minecraft minecraft) {
 		return down(InputConstants.KEY_LALT, InputConstants.KEY_RALT);
 	}
-	public static boolean leftMouseDown(Minecraft minecraft) { return minecraft.mouseHandler.isLeftPressed(); }
+	public static boolean leftMouseDown(Minecraft minecraft) {
+		// MouseHandler.isLeftPressed() is not updated while a GUI is open.
+		return (SDLMouse.SDL_GetMouseState(null, null) & SDLMouse.SDL_BUTTON_LMASK) != 0;
+	}
 
 	private static boolean down(int left, int right) {
 		return InputConstants.isKeyDown(left) || InputConstants.isKeyDown(right);

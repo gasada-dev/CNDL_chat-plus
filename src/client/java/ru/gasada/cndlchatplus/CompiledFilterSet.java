@@ -17,16 +17,6 @@ public final class CompiledFilterSet {
 				.toList());
 	}
 
-	static boolean matchesAnyMutedPattern(List<String> mutedWords, String text) {
-		WildcardMatcher matcher = new WildcardMatcher();
-		for (String source : mutedWords) {
-			if (matcher.matches(source, text, WildcardMatchMode.CONTAINS_MATCH)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	public Optional<String> firstMutedWord(String text) {
 		for (CompiledWildcard filter : mutedWords) {
 			if (filter.matches(text)) {

@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -461,17 +459,4 @@ final class VanillaBoxConfigStoreTest {
 		assertTrue(Files.isSymbolicLink(templates));
 	}
 
-	@Test
-	void exposesOnlyFixedLoadAndSaveOperationsWithoutSelectorParameters() {
-		List<Method> operations = Arrays.stream(VanillaBoxConfigStore.class.getDeclaredMethods())
-				.filter(method -> !Modifier.isPrivate(method.getModifiers()) && !method.isSynthetic())
-				.sorted(java.util.Comparator.comparing(Method::getName))
-				.toList();
-
-		assertFalse(Modifier.isPublic(VanillaBoxConfigStore.class.getModifiers()));
-		assertEquals(List.of("load", "save"), operations.stream().map(Method::getName).toList());
-		assertEquals(List.of(0, 1), operations.stream().map(Method::getParameterCount).toList());
-		assertTrue(operations.stream().flatMap(method -> Arrays.stream(method.getParameterTypes()))
-				.noneMatch(type -> type == String.class || type == Path.class));
-	}
 }

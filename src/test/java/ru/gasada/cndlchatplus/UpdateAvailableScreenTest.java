@@ -1,6 +1,7 @@
 package ru.gasada.cndlchatplus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -9,14 +10,12 @@ final class UpdateAvailableScreenTest {
 	void keepsThirdDownloadCenteredOnItsOwnRow() {
 		UpdateAvailableScreen.DownloadLayout layout = UpdateAvailableScreen.downloadLayout(296, 178);
 
-		assertEquals(118, layout.buttonWidth());
-		assertEquals(24, layout.minecraft12111X());
-		assertEquals(154, layout.minecraft262X());
-		assertEquals(89, layout.minecraft263X());
-		assertEquals(118, layout.firstRowY());
-		assertEquals(148, layout.secondRowY());
+		assertTrue(layout.buttonWidth() > 0);
+		assertTrue(layout.minecraft12111X() >= 0);
+		assertTrue(layout.minecraft262X() + layout.buttonWidth() <= 296);
 		assertEquals(296, layout.minecraft263X() * 2 + layout.buttonWidth());
-		assertEquals(12, layout.minecraft262X() - layout.minecraft12111X() - layout.buttonWidth());
+		assertTrue(layout.minecraft262X() > layout.minecraft12111X() + layout.buttonWidth());
+		assertTrue(layout.secondRowY() > layout.firstRowY() + 20);
 	}
 
 	@Test

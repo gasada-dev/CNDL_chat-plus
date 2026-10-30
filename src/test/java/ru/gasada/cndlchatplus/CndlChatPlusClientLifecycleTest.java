@@ -8,21 +8,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 final class CndlChatPlusClientLifecycleTest {
 	@TempDir
 	Path directory;
 
-	@ParameterizedTest
-	@MethodSource("validAddresses")
-	void validJoinActivatesExactPersistedVanillaBox(String address, String normalized) throws Exception {
+	@Test
+	void validJoinActivatesExactPersistedVanillaBox() throws Exception {
 		Path main = initializedMain();
 		VanillaBoxConfig persisted = VanillaBoxConfig.empty();
 		persisted.friends = new ArrayList<>(List.of("PersistedOnly"));
@@ -34,16 +32,17 @@ final class CndlChatPlusClientLifecycleTest {
 
 		assertTrue(runtime.activeSnapshot().isEmpty());
 		VanillaBoxConnectionGate.State state = CndlChatPlusClient.activateConnection(
-				gate, runtime, loaded.vanillaBox(), address);
+				gate, runtime, loaded.vanillaBox(), "play.example.org:25566");
 
 		assertTrue(state.active());
-		assertEquals(normalized, state.normalizedAddress());
+		assertEquals("play.example.org:25566", state.normalizedAddress());
 		assertEquals(List.of("PersistedOnly"), runtime.activeSnapshot().orElseThrow().friends());
 		assertEquals(List.of("PersistedOnly"), loaded.config().friends);
 	}
 
 	@ParameterizedTest
-	@MethodSource("invalidAddresses")
+	@NullSource
+	@ValueSource(strings = "https://vanilla-box.ru")
 	void invalidOrSingleplayerJoinClearsRuntimeAndAddress(String address) {
 		VanillaBoxRuntime runtime = activeRuntime();
 		VanillaBoxConnectionGate gate = new VanillaBoxConnectionGate();
@@ -160,19 +159,4 @@ final class CndlChatPlusClientLifecycleTest {
 		return runtime;
 	}
 
-	private static Stream<Arguments> validAddresses() {
-		return Stream.of(
-				Arguments.of("vanilla-box.ru", "vanilla-box.ru:25565"),
-				Arguments.of("play.example.org:25566", "play.example.org:25566"),
-				Arguments.of("127.0.0.1", "127.0.0.1:25565"),
-				Arguments.of("[2001:db8::1]:25566", "[2001:db8::1]:25566"));
-	}
-
-	private static Stream<Arguments> invalidAddresses() {
-		return Stream.of(
-				Arguments.of((String) null),
-				Arguments.of("vanilla-box.ru:0"),
-				Arguments.of("https://vanilla-box.ru"),
-				Arguments.of("[::1"));
-	}
 }

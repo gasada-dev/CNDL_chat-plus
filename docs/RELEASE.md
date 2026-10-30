@@ -1,8 +1,9 @@
 # Выпуск CNDL_chat+
 
-Любое изменение проекта, включая документацию и CI, обязано увеличивать
-`mod_version`. Commit с изменениями нельзя публиковать с уже использованной версией;
-одновременно обновляются `README.md`, `CHANGELOG.md` и `UPDATE_NOTES.md`.
+Для каждого релиза увеличивается `mod_version`; публиковать релиз с уже использованной
+версией нельзя. При подготовке релиза обновляются `README.md`, `CHANGELOG.md` и
+`UPDATE_NOTES.md`. Обычные commits и push веток не требуют увеличения версии или обновления
+release notes. `UPDATE_NOTES.md` редактирует только пользователь, агент лишь проверяет файл.
 
 GitHub Release создаётся автоматически workflow `.github/workflows/release.yml` при
 push тега `v<mod_version>`. Workflow повторно выполняет clean test/build, проверяет
@@ -48,8 +49,10 @@ F8 открывает chat manager, F9 — toolkit.
 
 ## Публикация
 
-После commit и ручной проверки убедиться, что outgoing commits изменяют `UPDATE_NOTES.md`.
-Без этого `git push` запрещён.
+После commit и ручной проверки убедиться, что commits с предыдущего релиза до выпускаемого
+commit изменяют `UPDATE_NOTES.md` для текущей версии. Без этого публикация релиза, включая
+push тега `v<mod_version>`, запрещена до обновления файла пользователем. Обычный push ветки
+этой проверкой не блокируется.
 
 ```bash
 git tag v<mod_version>

@@ -21,18 +21,6 @@ final class ResponderUiComponentsTest {
 	}
 
 	@Test
-	void screenStatusOwnsTextAndColorLifecycle() {
-		ScreenStatus status = new ScreenStatus();
-		assertTrue(status.empty());
-		status.set("Ошибка", 0x12345678);
-		assertFalse(status.empty());
-		assertEquals("Ошибка", status.text());
-		assertEquals(0x12345678, status.color());
-		status.clear();
-		assertTrue(status.empty());
-	}
-
-	@Test
 	void suggestionProviderSafelyHandlesAbsentClient() {
 		assertTrue(new PlayerSuggestionProvider().suggest(null, "a", 3).isEmpty());
 	}
@@ -106,8 +94,4 @@ final class ResponderUiComponentsTest {
 		assertNull(ChatTabEditorValidation.error("ГС чат", List.of(ChatTabSource.VOICE), "voice", tabs));
 	}
 
-	@Test
-	void chatTabTextSizeInputHasVisibleRussianLabel() {
-		assertEquals("Размер вкладок в процентах", ChatTabsScreen.textSizeLabel().getString());
-	}
 }

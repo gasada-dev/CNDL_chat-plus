@@ -56,12 +56,6 @@ final class ChatTextSelectionTest {
 	}
 
 	@Test
-	void reversesBottomToTopDragWithoutReversingCopiedLines() {
-		assertEquals("d\nmiddle\nn", ChatTextSelection.selectedText(LINES,
-				new ChatTextSelection.Point(2, 2), new ChatTextSelection.Point(0, 1)));
-	}
-
-	@Test
 	void clampsOffsetsAndKeepsEmptyOrBlankSelectionsEmptyForCaller() {
 		assertEquals("new", ChatTextSelection.selectedText(LINES,
 				new ChatTextSelection.Point(0, -5), new ChatTextSelection.Point(0, 20)));

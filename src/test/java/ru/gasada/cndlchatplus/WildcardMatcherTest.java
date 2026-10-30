@@ -14,10 +14,18 @@ final class WildcardMatcherTest {
 	void fullMatchSupportsEveryWildcardPositionAndMultipleWildcards() {
 		assertTrue(matcher.matches("привет", "привет", WildcardMatchMode.FULL_MATCH));
 		assertTrue(matcher.matches("привет*", "привет всем", WildcardMatchMode.FULL_MATCH));
+		assertTrue(matcher.matches("привет*", "привет", WildcardMatchMode.FULL_MATCH));
+		assertFalse(matcher.matches("привет*", "ну привет", WildcardMatchMode.FULL_MATCH));
 		assertTrue(matcher.matches("*привет", "ну привет", WildcardMatchMode.FULL_MATCH));
+		assertTrue(matcher.matches("*привет", "привет", WildcardMatchMode.FULL_MATCH));
+		assertFalse(matcher.matches("*привет", "привет всем", WildcardMatchMode.FULL_MATCH));
 		assertTrue(matcher.matches("*привет*", "ну привет всем", WildcardMatchMode.FULL_MATCH));
+		assertFalse(matcher.matches("*привет*", "добрый день", WildcardMatchMode.FULL_MATCH));
+		assertTrue(matcher.matches("*", "любой текст", WildcardMatchMode.FULL_MATCH));
+		assertTrue(matcher.matches("*", "", WildcardMatchMode.FULL_MATCH));
 		assertTrue(matcher.matches("п*р*т", "привет", WildcardMatchMode.FULL_MATCH));
 		assertFalse(matcher.matches("привет", "ну привет", WildcardMatchMode.FULL_MATCH));
+		assertFalse(matcher.matches("привет", "привет всем", WildcardMatchMode.FULL_MATCH));
 	}
 
 	@Test
@@ -31,6 +39,7 @@ final class WildcardMatcherTest {
 	@Test
 	void preservesEmptyPatternCharacterization() {
 		assertTrue(matcher.matches("", "", WildcardMatchMode.FULL_MATCH));
+		assertTrue(matcher.matches("   ", " \t ", WildcardMatchMode.FULL_MATCH));
 		assertFalse(matcher.matches("", "текст", WildcardMatchMode.FULL_MATCH));
 		assertTrue(matcher.matches("", "любой текст", WildcardMatchMode.CONTAINS_MATCH));
 		assertTrue(matcher.matches("   ", "любой текст", WildcardMatchMode.CONTAINS_MATCH));
